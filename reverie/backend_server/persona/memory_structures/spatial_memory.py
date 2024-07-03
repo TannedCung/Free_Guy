@@ -109,7 +109,7 @@ class MemoryTree:
 
 
 if __name__ == '__main__':
-  x = f"../../../../environment/frontend_server/storage/the_ville_base_LinFamily/personas/Eddy Lin/bootstrap_memory/spatial_memory.json"
+  x = f"../../../..//frontend_server/storage/the_ville_base_LinFamily/personas/Eddy Lin/bootstrap_memory/spatial_memory.json"
   x = MemoryTree(x)
   x.print_tree()
 

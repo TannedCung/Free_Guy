@@ -9,8 +9,8 @@ import json
 from global_methods import *
 
 def compress(sim_code):
-  sim_storage = f"../environment/frontend_server/storage/{sim_code}"
-  compressed_storage = f"../environment/frontend_server/compressed_storage/{sim_code}"
+  sim_storage = f"../frontend_server/storage/{sim_code}"
+  compressed_storage = f"../frontend_server/compressed_storage/{sim_code}"
   persona_folder = sim_storage + "/personas"
   move_folder = sim_storage + "/movement"
   meta_file = sim_storage + "/reverie/meta.json"
