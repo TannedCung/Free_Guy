@@ -1,18 +1,29 @@
 """
-Author: Joon Sung Park (joonspk@stanford.edu)
+Author: TannedCung (tando1903@gmail.com)
 
-File: gpt_structure.py
+File: ollama_structure.py
 Description: Wrapper functions for calling OpenAI APIs.
 """
 import json
 import random
 import openai
 import time
+from openai import OpenAI
+from ollama._client import Client
+import logging
 
 from utils import *
+from common import *
 
 openai.api_key = openai_api_key
 
+logger = logging.getLogger(__name__)
+
+client = OpenAI(
+    base_url = 'http://localhost:11434/v1',
+    api_key='ollama', # required, but unused
+)
+ollama_client = Client(host='http://localhost:11434/')
 
 def temp_sleep(seconds=0.1):
     time.sleep(seconds)
@@ -21,8 +32,8 @@ def temp_sleep(seconds=0.1):
 def ChatGPT_single_request(prompt):
     temp_sleep()
 
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+    completion = client.chat.completions.create(
+        model="gemma2",
         messages=[{"role": "user", "content": prompt}]
     )
     return completion["choices"][0]["message"]["content"]
@@ -47,7 +58,7 @@ def GPT4_request(prompt):
     temp_sleep()
 
     try:
-        completion = openai.ChatCompletion.create(
+        completion = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}]
         )
@@ -71,16 +82,19 @@ def ChatGPT_request(prompt):
       a str of GPT-3's response. 
     """
     # temp_sleep()
+    logger.debug(f"[Prompt]: {prompt}")
     try:
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+        completion = client.chat.completions.create(
+            model="gemma2",
             messages=[{"role": "user", "content": prompt}]
         )
-        return completion["choices"][0]["message"]["content"]
+        
+        logger.debug("[Response]: {}".format(completion.choices[0].message.content))
+        return completion.choices[0].message.content
 
-    except:
-        print("ChatGPT ERROR")
-        return "ChatGPT ERROR"
+    except Exception as e:
+        print(f"Ollama ERROR: {e}")
+        return "Ollama ERROR"
 
 
 def GPT4_safe_generate_response(prompt,
@@ -91,7 +105,7 @@ def GPT4_safe_generate_response(prompt,
                                 func_validate=None,
                                 func_clean_up=None,
                                 verbose=False):
-    prompt = 'GPT-3 Prompt:\n"""\n' + prompt + '\n"""\n'
+    prompt = 'Gemma2 Prompt:\n"""\n' + prompt + '\n"""\n'
     prompt += f"Output the response to the prompt above in json. {special_instruction}\n"
     prompt += "Example output json:\n"
     prompt += '{"output": "' + str(example_output) + '"}'
@@ -133,7 +147,7 @@ def ChatGPT_safe_generate_response(prompt,
     # prompt = 'GPT-3 Prompt:\n"""\n' + prompt + '\n"""\n'
     prompt = '"""\n' + prompt + '\n"""\n'
     prompt += f"Output the response to the prompt above in json. {special_instruction}\n"
-    prompt += "Example output json:\n"
+    prompt += "Example output in json string format:\n"
     prompt += '{"output": "' + str(example_output) + '"}'
 
     if verbose:
@@ -141,16 +155,12 @@ def ChatGPT_safe_generate_response(prompt,
         print(prompt)
 
     for i in range(repeat):
-
         try:
             curr_gpt_response = ChatGPT_request(prompt).strip()
+            start_index = curr_gpt_response.rfind('{')
             end_index = curr_gpt_response.rfind('}') + 1
-            curr_gpt_response = curr_gpt_response[:end_index]
+            curr_gpt_response = curr_gpt_response[start_index:end_index]
             curr_gpt_response = json.loads(curr_gpt_response)["output"]
-
-            # print ("---ashdfaf")
-            # print (curr_gpt_response)
-            # print ("000asdfhia")
 
             if func_validate(curr_gpt_response, prompt=prompt):
                 return func_clean_up(curr_gpt_response, prompt=prompt)
@@ -160,7 +170,8 @@ def ChatGPT_safe_generate_response(prompt,
                 print(curr_gpt_response)
                 print("~~~~")
 
-        except:
+        except Exception as e:
+            print(f"[ERROR]: ChatGPT_safe_generate_response: {e}") 
             pass
 
     return False
@@ -202,17 +213,23 @@ def GPT_request(prompt, gpt_parameter):
     server and returns the response. 
     ARGS:
       prompt: a str prompt
-      gpt_parameter: a python dictionary with the keys indicating the names of  
+      gpt_parameter: a python dictionaery with the keys indicating the names of  
                      the parameter and the values indicating the parameter 
                      values.   
     RETURNS: 
-      a str of GPT-3's response. 
+      a str of GPT-3's response. Describe subtasks in 5 min increments
     """
     temp_sleep()
     try:
-        response = openai.Completion.create(
+        logger.debug(f"[Prompt]: {prompt}")
+        response = client.chat.completions.create(
             model=gpt_parameter["engine"],
-            prompt=prompt,
+            messages=[
+                {
+                    'role': 'user',
+                    'content': f'{prompt}',
+                }
+            ],
             temperature=gpt_parameter["temperature"],
             max_tokens=gpt_parameter["max_tokens"],
             top_p=gpt_parameter["top_p"],
@@ -220,9 +237,10 @@ def GPT_request(prompt, gpt_parameter):
             presence_penalty=gpt_parameter["presence_penalty"],
             stream=gpt_parameter["stream"],
             stop=gpt_parameter["stop"],)
-        return response.choices[0].text
-    except:
-        print("TOKEN LIMIT EXCEEDED")
+        logger.debug("[Response]: {}".format(response.choices[0].message.content))
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Error: {e}")
         return "TOKEN LIMIT EXCEEDED"
 
 
@@ -257,7 +275,7 @@ def generate_prompt(curr_input, prompt_lib_file):
 
 def safe_generate_response(prompt,
                            gpt_parameter,
-                           repeat=5,
+                           repeat=2,
                            fail_safe_response="error",
                            func_validate=None,
                            func_clean_up=None,
@@ -276,12 +294,12 @@ def safe_generate_response(prompt,
     return fail_safe_response
 
 
-def get_embedding(text, model="text-embedding-ada-002"):
+def get_embedding(text, model="nomic-embed-text"):
     text = text.replace("\n", " ")
     if not text:
         text = "this is blank"
-    return openai.Embedding.create(
-        input=[text], model=model)['data'][0]['embedding']
+    return ollama_client.embeddings(
+        prompt=text, model=model)
 
 
 if __name__ == '__main__':
@@ -290,17 +308,17 @@ if __name__ == '__main__':
                      "frequency_penalty": 0, "presence_penalty": 0,
                      "stop": ['"']}
     curr_input = ["driving to a friend's house"]
-    prompt_lib_file = "prompt_template/test_prompt_July5.txt"
+    prompt_lib_file = "persona/prompt_template/v1/test_prompt_July5.txt"
     prompt = generate_prompt(curr_input, prompt_lib_file)
 
-    def __func_validate(gpt_response):
+    def __func_validate(gpt_response, prompt):
         if len(gpt_response.strip()) <= 1:
             return False
         if len(gpt_response.strip().split(" ")) > 1:
             return False
         return True
 
-    def __func_clean_up(gpt_response):
+    def __func_clean_up(gpt_response, prompt):
         cleaned_response = gpt_response.strip()
         return cleaned_response
 
