@@ -15,4 +15,5 @@ Hourly schedule format:
 !<INPUT 1>!
 !<INPUT 2>!
 !<INPUT 3>!!<INPUT 4>!
+Answer the activity at the time only
 !<INPUT 5>!
