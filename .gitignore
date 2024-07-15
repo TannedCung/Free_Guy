@@ -2,6 +2,7 @@ reverie/backend_server/utils.py
 frontend_server/settings/local.py
 storage/*
 static_dirs/*
+frontend_server/storage/*
 
 !storage/base_the_ville_isabella_maria_klaus/*
 !storage/base_the_ville_n25/*
