@@ -13,7 +13,7 @@ import time
 import math
 
 from global_methods import *
-from utils import *
+from backend_server.constant import *
 
 class Maze: 
   def __init__(self, maze_name): 

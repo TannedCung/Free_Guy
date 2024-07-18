@@ -1,0 +1,160 @@
+2024-07-09 07:08:38,623 INFO django.utils.autoreload autoreload 578 - Watching for file changes with StatReloader
+2024-07-09 07:08:38,624 DEBUG django.utils.autoreload autoreload 267 - Waiting for apps ready_event.
+2024-07-09 07:08:38,768 DEBUG django.utils.autoreload autoreload 273 - Apps ready_event triggered. Sending autoreload_started signal.
+2024-07-09 07:08:38,769 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/locale with glob **/*.mo.
+2024-07-09 07:08:38,769 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/admin/locale with glob **/*.mo.
+2024-07-09 07:08:38,769 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/auth/locale with glob **/*.mo.
+2024-07-09 07:08:38,769 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/contenttypes/locale with glob **/*.mo.
+2024-07-09 07:08:38,770 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/sessions/locale with glob **/*.mo.
+2024-07-09 07:08:38,770 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/messages/locale with glob **/*.mo.
+2024-07-09 07:08:38,770 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/staticfiles/locale with glob **/*.mo.
+2024-07-09 07:08:38,770 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/translator/locale with glob **/*.mo.
+2024-07-09 07:08:38,770 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/corsheaders/locale with glob **/*.mo.
+2024-07-09 07:08:38,771 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/storages/locale with glob **/*.mo.
+2024-07-09 07:08:38,826 DEBUG django.db.backends utils 108 - (0.001) 
+            SELECT name, type FROM sqlite_master
+            WHERE type in ('table', 'view') AND NOT name='sqlite_sequence'
+            ORDER BY name; args=None
+2024-07-09 07:08:38,828 DEBUG django.db.backends utils 108 - (0.000) SELECT "django_migrations"."app", "django_migrations"."name" FROM "django_migrations"; args=()
+2024-07-09 07:08:52,403 DEBUG django.utils.autoreload autoreload 341 - File /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py. is_changed: False, is_new: True
+2024-07-09 07:08:52,403 DEBUG django.utils.autoreload autoreload 342 - File /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py previous mtime: None, current mtime: 1720508931.7042944
+2024-07-09 07:08:52,403 DEBUG django.utils.autoreload autoreload 302 - /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py notified as changed. Signal results: [(<function translation_file_changed at 0x73031baba7a0>, None)].
+2024-07-09 07:08:52,404 INFO django.utils.autoreload autoreload 203 - /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py changed, reloading.
+2024-07-09 07:08:52,811 INFO django.utils.autoreload autoreload 578 - Watching for file changes with StatReloader
+2024-07-09 07:08:52,812 DEBUG django.utils.autoreload autoreload 267 - Waiting for apps ready_event.
+2024-07-09 07:08:52,928 DEBUG django.utils.autoreload autoreload 273 - Apps ready_event triggered. Sending autoreload_started signal.
+2024-07-09 07:08:52,930 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/locale with glob **/*.mo.
+2024-07-09 07:08:52,930 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/admin/locale with glob **/*.mo.
+2024-07-09 07:08:52,930 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/auth/locale with glob **/*.mo.
+2024-07-09 07:08:52,930 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/contenttypes/locale with glob **/*.mo.
+2024-07-09 07:08:52,930 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/sessions/locale with glob **/*.mo.
+2024-07-09 07:08:52,931 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/messages/locale with glob **/*.mo.
+2024-07-09 07:08:52,931 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/staticfiles/locale with glob **/*.mo.
+2024-07-09 07:08:52,931 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/translator/locale with glob **/*.mo.
+2024-07-09 07:08:52,931 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/corsheaders/locale with glob **/*.mo.
+2024-07-09 07:08:52,931 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/storages/locale with glob **/*.mo.
+2024-07-09 07:08:52,983 DEBUG django.db.backends utils 108 - (0.001) 
+            SELECT name, type FROM sqlite_master
+            WHERE type in ('table', 'view') AND NOT name='sqlite_sequence'
+            ORDER BY name; args=None
+2024-07-09 07:08:52,985 DEBUG django.db.backends utils 108 - (0.000) SELECT "django_migrations"."app", "django_migrations"."name" FROM "django_migrations"; args=()
+2024-07-09 07:09:01,375 DEBUG django.utils.autoreload autoreload 341 - File /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py. is_changed: False, is_new: True
+2024-07-09 07:09:01,375 DEBUG django.utils.autoreload autoreload 342 - File /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py previous mtime: None, current mtime: 1720508941.1637197
+2024-07-09 07:09:01,375 DEBUG django.utils.autoreload autoreload 302 - /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py notified as changed. Signal results: [(<function translation_file_changed at 0x726e7c89a7a0>, None)].
+2024-07-09 07:09:01,375 INFO django.utils.autoreload autoreload 203 - /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py changed, reloading.
+2024-07-09 07:09:01,779 INFO django.utils.autoreload autoreload 578 - Watching for file changes with StatReloader
+2024-07-09 07:09:01,780 DEBUG django.utils.autoreload autoreload 267 - Waiting for apps ready_event.
+2024-07-09 07:09:01,920 DEBUG django.utils.autoreload autoreload 273 - Apps ready_event triggered. Sending autoreload_started signal.
+2024-07-09 07:09:01,921 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/locale with glob **/*.mo.
+2024-07-09 07:09:01,921 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/admin/locale with glob **/*.mo.
+2024-07-09 07:09:01,921 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/auth/locale with glob **/*.mo.
+2024-07-09 07:09:01,922 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/contenttypes/locale with glob **/*.mo.
+2024-07-09 07:09:01,922 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/sessions/locale with glob **/*.mo.
+2024-07-09 07:09:01,922 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/messages/locale with glob **/*.mo.
+2024-07-09 07:09:01,922 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/staticfiles/locale with glob **/*.mo.
+2024-07-09 07:09:01,923 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/translator/locale with glob **/*.mo.
+2024-07-09 07:09:01,923 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/corsheaders/locale with glob **/*.mo.
+2024-07-09 07:09:01,923 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/storages/locale with glob **/*.mo.
+2024-07-09 07:09:01,973 DEBUG django.db.backends utils 108 - (0.001) 
+            SELECT name, type FROM sqlite_master
+            WHERE type in ('table', 'view') AND NOT name='sqlite_sequence'
+            ORDER BY name; args=None
+2024-07-09 07:09:01,976 DEBUG django.db.backends utils 108 - (0.000) SELECT "django_migrations"."app", "django_migrations"."name" FROM "django_migrations"; args=()
+2024-07-09 07:09:05,184 DEBUG django.utils.autoreload autoreload 341 - File /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py. is_changed: False, is_new: True
+2024-07-09 07:09:05,184 DEBUG django.utils.autoreload autoreload 342 - File /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py previous mtime: None, current mtime: 1720508944.9914873
+2024-07-09 07:09:05,184 DEBUG django.utils.autoreload autoreload 302 - /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py notified as changed. Signal results: [(<function translation_file_changed at 0x764cc2e067a0>, None)].
+2024-07-09 07:09:05,185 INFO django.utils.autoreload autoreload 203 - /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py changed, reloading.
+2024-07-09 07:09:05,650 INFO django.utils.autoreload autoreload 578 - Watching for file changes with StatReloader
+2024-07-09 07:09:05,651 DEBUG django.utils.autoreload autoreload 267 - Waiting for apps ready_event.
+2024-07-09 07:09:05,791 DEBUG django.utils.autoreload autoreload 273 - Apps ready_event triggered. Sending autoreload_started signal.
+2024-07-09 07:09:05,792 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/locale with glob **/*.mo.
+2024-07-09 07:09:05,792 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/admin/locale with glob **/*.mo.
+2024-07-09 07:09:05,793 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/auth/locale with glob **/*.mo.
+2024-07-09 07:09:05,793 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/contenttypes/locale with glob **/*.mo.
+2024-07-09 07:09:05,793 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/sessions/locale with glob **/*.mo.
+2024-07-09 07:09:05,793 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/messages/locale with glob **/*.mo.
+2024-07-09 07:09:05,794 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/staticfiles/locale with glob **/*.mo.
+2024-07-09 07:09:05,794 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/translator/locale with glob **/*.mo.
+2024-07-09 07:09:05,794 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/corsheaders/locale with glob **/*.mo.
+2024-07-09 07:09:05,795 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/storages/locale with glob **/*.mo.
+2024-07-09 07:09:05,845 DEBUG django.db.backends utils 108 - (0.001) 
+            SELECT name, type FROM sqlite_master
+            WHERE type in ('table', 'view') AND NOT name='sqlite_sequence'
+            ORDER BY name; args=None
+2024-07-09 07:09:05,847 DEBUG django.db.backends utils 108 - (0.000) SELECT "django_migrations"."app", "django_migrations"."name" FROM "django_migrations"; args=()
+2024-07-09 07:09:13,218 DEBUG django.utils.autoreload autoreload 341 - File /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py. is_changed: False, is_new: True
+2024-07-09 07:09:13,219 DEBUG django.utils.autoreload autoreload 342 - File /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py previous mtime: None, current mtime: 1720508953.1709902
+2024-07-09 07:09:13,219 DEBUG django.utils.autoreload autoreload 302 - /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py notified as changed. Signal results: [(<function translation_file_changed at 0x7750a0f9a7a0>, None)].
+2024-07-09 07:09:13,219 INFO django.utils.autoreload autoreload 203 - /home/tannedcung/projects/Free_Guy/BE/frontend_server/frontend_server/settings/local.py changed, reloading.
+2024-07-09 07:13:58,066 INFO django.utils.autoreload autoreload 578 - Watching for file changes with StatReloader
+2024-07-09 07:13:58,066 INFO django.utils.autoreload autoreload 578 - Watching for file changes with StatReloader
+2024-07-09 07:13:58,067 DEBUG django.utils.autoreload autoreload 267 - Waiting for apps ready_event.
+2024-07-09 07:13:58,067 DEBUG django.utils.autoreload autoreload 267 - Waiting for apps ready_event.
+2024-07-09 07:13:58,140 DEBUG django.utils.autoreload autoreload 273 - Apps ready_event triggered. Sending autoreload_started signal.
+2024-07-09 07:13:58,140 DEBUG django.utils.autoreload autoreload 273 - Apps ready_event triggered. Sending autoreload_started signal.
+2024-07-09 07:13:58,141 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/locale with glob **/*.mo.
+2024-07-09 07:13:58,141 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/locale with glob **/*.mo.
+2024-07-09 07:13:58,142 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/admin/locale with glob **/*.mo.
+2024-07-09 07:13:58,142 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/admin/locale with glob **/*.mo.
+2024-07-09 07:13:58,143 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/auth/locale with glob **/*.mo.
+2024-07-09 07:13:58,143 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/auth/locale with glob **/*.mo.
+2024-07-09 07:13:58,144 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/contenttypes/locale with glob **/*.mo.
+2024-07-09 07:13:58,144 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/contenttypes/locale with glob **/*.mo.
+2024-07-09 07:13:58,144 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/sessions/locale with glob **/*.mo.
+2024-07-09 07:13:58,144 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/sessions/locale with glob **/*.mo.
+2024-07-09 07:13:58,144 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/messages/locale with glob **/*.mo.
+2024-07-09 07:13:58,144 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/messages/locale with glob **/*.mo.
+2024-07-09 07:13:58,145 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/staticfiles/locale with glob **/*.mo.
+2024-07-09 07:13:58,145 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/staticfiles/locale with glob **/*.mo.
+2024-07-09 07:13:58,145 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/translator/locale with glob **/*.mo.
+2024-07-09 07:13:58,145 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/translator/locale with glob **/*.mo.
+2024-07-09 07:13:58,146 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/corsheaders/locale with glob **/*.mo.
+2024-07-09 07:13:58,146 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/corsheaders/locale with glob **/*.mo.
+2024-07-09 07:13:58,146 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/storages/locale with glob **/*.mo.
+2024-07-09 07:13:58,146 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/storages/locale with glob **/*.mo.
+2024-07-09 07:13:58,202 DEBUG django.db.backends utils 108 - (0.000) 
+            SELECT name, type FROM sqlite_master
+            WHERE type in ('table', 'view') AND NOT name='sqlite_sequence'
+            ORDER BY name; args=None
+2024-07-09 07:13:58,202 DEBUG django.db.backends utils 108 - (0.000) 
+            SELECT name, type FROM sqlite_master
+            WHERE type in ('table', 'view') AND NOT name='sqlite_sequence'
+            ORDER BY name; args=None
+2024-07-09 07:13:58,204 DEBUG django.db.backends utils 108 - (0.000) SELECT "django_migrations"."app", "django_migrations"."name" FROM "django_migrations"; args=()
+2024-07-09 07:13:58,204 DEBUG django.db.backends utils 108 - (0.000) SELECT "django_migrations"."app", "django_migrations"."name" FROM "django_migrations"; args=()
+2024-07-10 06:00:13,642 INFO django.utils.autoreload autoreload 578 - Watching for file changes with StatReloader
+2024-07-10 06:00:13,642 INFO django.utils.autoreload autoreload 578 - Watching for file changes with StatReloader
+2024-07-10 06:00:13,643 DEBUG django.utils.autoreload autoreload 267 - Waiting for apps ready_event.
+2024-07-10 06:00:13,643 DEBUG django.utils.autoreload autoreload 267 - Waiting for apps ready_event.
+2024-07-10 06:00:13,789 DEBUG django.utils.autoreload autoreload 273 - Apps ready_event triggered. Sending autoreload_started signal.
+2024-07-10 06:00:13,789 DEBUG django.utils.autoreload autoreload 273 - Apps ready_event triggered. Sending autoreload_started signal.
+2024-07-10 06:00:13,790 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/locale with glob **/*.mo.
+2024-07-10 06:00:13,790 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/locale with glob **/*.mo.
+2024-07-10 06:00:13,790 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/admin/locale with glob **/*.mo.
+2024-07-10 06:00:13,790 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/admin/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/auth/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/auth/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/contenttypes/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/contenttypes/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/sessions/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/sessions/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/messages/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/messages/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/staticfiles/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/django/contrib/staticfiles/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/translator/locale with glob **/*.mo.
+2024-07-10 06:00:13,791 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/projects/Free_Guy/BE/frontend_server/translator/locale with glob **/*.mo.
+2024-07-10 06:00:13,792 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/corsheaders/locale with glob **/*.mo.
+2024-07-10 06:00:13,792 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/corsheaders/locale with glob **/*.mo.
+2024-07-10 06:00:13,792 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/storages/locale with glob **/*.mo.
+2024-07-10 06:00:13,792 DEBUG django.utils.autoreload autoreload 226 - Watching dir /home/tannedcung/miniconda3/envs/free_guy/lib/python3.10/site-packages/storages/locale with glob **/*.mo.
+2024-07-10 06:00:13,858 DEBUG django.db.backends utils 108 - (0.001) 
+            SELECT name, type FROM sqlite_master
+            WHERE type in ('table', 'view') AND NOT name='sqlite_sequence'
+            ORDER BY name; args=None
+2024-07-10 06:00:13,858 DEBUG django.db.backends utils 108 - (0.001) 
+            SELECT name, type FROM sqlite_master
+            WHERE type in ('table', 'view') AND NOT name='sqlite_sequence'
+            ORDER BY name; args=None
+2024-07-10 06:00:13,861 DEBUG django.db.backends utils 108 - (0.000) SELECT "django_migrations"."app", "django_migrations"."name" FROM "django_migrations"; args=()
+2024-07-10 06:00:13,861 DEBUG django.db.backends utils 108 - (0.000) SELECT "django_migrations"."app", "django_migrations"."name" FROM "django_migrations"; args=()
