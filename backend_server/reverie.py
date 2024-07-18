@@ -29,7 +29,7 @@ import shutil
 import traceback
 
 from global_methods import *
-from utils import *
+from backend_server.constant import *
 from maze import *
 from persona.persona import *
 
@@ -133,7 +133,7 @@ class ReverieServer:
     # REVERIE SETTINGS PARAMETERS:  
     # <server_sleep> denotes the amount of time that our while loop rests each
     # cycle; this is to not kill our machine. 
-    self.server_sleep = 0.1
+    self.server_sleep = 0.01
 
     # SIGNALING THE FRONTEND SERVER: 
     # curr_sim_code.json contains the current simulation code, and
