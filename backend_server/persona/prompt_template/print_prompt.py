@@ -14,7 +14,7 @@ import random
 
 from global_methods import *
 from persona.prompt_template.ollama_structure import *
-from utils import *
+from constant import *
 
 ##############################################################################
 #                    PERSONA Chapter 1: Prompt Structures                    #

@@ -9,7 +9,7 @@ import random
 import openai
 import time 
 
-from utils import *
+from backend_server.constant import *
 openai.api_key = openai_api_key
 
 def ChatGPT_request(prompt): 

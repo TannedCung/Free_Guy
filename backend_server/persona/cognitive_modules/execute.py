@@ -10,7 +10,7 @@ sys.path.append('../../')
 
 from global_methods import *
 from path_finder import *
-from utils import *
+from constant import *
 
 def execute(persona, maze, personas, plan): 
   """
