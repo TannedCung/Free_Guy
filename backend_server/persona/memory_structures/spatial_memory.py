@@ -9,7 +9,7 @@ import json
 import sys
 sys.path.append('../../')
 
-from backend_server.constant import *
+from constant import *
 from global_methods import *
 
 class MemoryTree: 

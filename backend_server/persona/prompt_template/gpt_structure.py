@@ -9,7 +9,7 @@ import random
 import openai
 import time
 
-from backend_server.constant import *
+from constant import *
 
 openai.api_key = openai_api_key
 
