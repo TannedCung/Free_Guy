@@ -12,7 +12,7 @@ from openai import OpenAI
 from ollama._client import Client
 import logging
 
-from backend_server.constant import *
+from constant import *
 from common import *
 
 openai.api_key = openai_api_key

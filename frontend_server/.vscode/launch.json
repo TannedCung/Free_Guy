@@ -5,20 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Backend",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "reverie.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "cwd": "/home/tannedcung/projects/Free_Guy/BE/backend_server"
-        },
-        {
             "name": "Django - Frontend",
             "type": "python",
             "request": "launch",
             "stopOnEntry": false,
-            "pythonPath": "${config.python.pythonPath}",
             "program": "${workspaceRoot}/manage.py",
             "args": [
                 "runserver",
