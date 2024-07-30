@@ -43,7 +43,7 @@
 
 	// Phaser 3.0 global settings. 
 	// Configuration meant to be passed to the main Phaser game instance. 
-	const config = {
+	{% comment %} const config = {
 	  type: Phaser.AUTO,
 	  width: 1500,
 	  height: 800,
@@ -56,23 +56,23 @@
 	  scene: {
 	    preload: preload,
 	    create: create,
-	    update: update } };
+	    update: update } }; {% endcomment %}
 
-	// const config = {
-	//   type: Phaser.AUTO,
-	//   width: 4480,
-	//   height: 3200,
-	//   parent: "game-container",
-	//   pixelArt: true,
-	//   physics: {
-	//     default: "arcade",
-	//     arcade: {
-	//       gravity: { y: 0 } } },
-	//   scene: {
-	//     preload: preload,
-	//     create: create,
-	//     update: update },
-	//   scale: {zoom: 0.5} };
+	const config = {
+	  type: Phaser.AUTO,
+	  width: 4300,
+	  height: 2800,
+	  parent: "game-container",
+	  pixelArt: true,
+	  physics: {
+	    default: "arcade",
+	    arcade: {
+	      gravity: { y: 0 } } },
+	  scene: {
+	    preload: preload,
+	    create: create,
+	    update: update },
+	  scale: {zoom: 0.6} };
 
 	// Creating the game instance and setting up the main Phaser variables that  
 	// will be used in it. 
@@ -481,25 +481,25 @@
 	        }
 
 	        curr_pronunciatio.x = curr_persona.body.x - 6; 
-          curr_pronunciatio.y = curr_persona.body.y - 42 - 32; // DEBUG 1 --- I added 32 offset on Dec 29. 
+          	curr_pronunciatio.y = curr_persona.body.y - 42 - 32; // DEBUG 1 --- I added 32 offset on Dec 29. 
 
-          if (anims_direction == "l") {
-			      curr_persona.anims.play("misa-left-walk", true);
-			    } else if (anims_direction == "r") {
-			      curr_persona.anims.play("misa-right-walk", true);
-			    } else if (anims_direction == "u") {
-			      curr_persona.anims.play("misa-back-walk", true);
-			    } else if (anims_direction == "d") {
-			      curr_persona.anims.play("misa-front-walk", true);
-			    } else {
-			      curr_persona.anims.stop();
+          	if (anims_direction == "l") {
+				curr_persona.anims.play("misa-left-walk", true);
+			} else if (anims_direction == "r") {
+				curr_persona.anims.play("misa-right-walk", true);
+			} else if (anims_direction == "u") {
+				curr_persona.anims.play("misa-back-walk", true);
+			} else if (anims_direction == "d") {
+				curr_persona.anims.play("misa-front-walk", true);
+			} else {
+				curr_persona.anims.stop();
 
-			      // If we were moving, pick an idle frame to use
-			      if (pre_anims_direction_dict[curr_persona_name] == "l") curr_persona.setTexture("atlas", "misa-left");else
-			      if (pre_anims_direction_dict[curr_persona_name] == "r") curr_persona.setTexture("atlas", "misa-right");else
-			      if (pre_anims_direction_dict[curr_persona_name] == "u") curr_persona.setTexture("atlas", "misa-back");else
-			      if (pre_anims_direction_dict[curr_persona_name] == "d") curr_persona.setTexture("atlas", "misa-front");
-			    };
+				// If we were moving, pick an idle frame to use
+				if (pre_anims_direction_dict[curr_persona_name] == "l") curr_persona.setTexture("atlas", "misa-left");else
+				if (pre_anims_direction_dict[curr_persona_name] == "r") curr_persona.setTexture("atlas", "misa-right");else
+				if (pre_anims_direction_dict[curr_persona_name] == "u") curr_persona.setTexture("atlas", "misa-back");else
+				if (pre_anims_direction_dict[curr_persona_name] == "d") curr_persona.setTexture("atlas", "misa-front");
+			};
 
 	      } 
 	      else {
