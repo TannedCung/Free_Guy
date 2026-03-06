@@ -12,6 +12,7 @@ import os
 import datetime
 from django.shortcuts import render, redirect, HttpResponseRedirect
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from global_methods import *
 
 from django.contrib.staticfiles.templatetags.staticfiles import static
@@ -238,17 +239,18 @@ def path_tester(request):
   return render(request, template, context)
 
 
-def process_environment(request): 
+@csrf_exempt  # Exempt: called from Phaser game loop via XMLHttpRequest (no HTML form/session context)
+def process_environment(request):
   """
-  <FRONTEND to BACKEND> 
-  This sends the frontend visual world information to the backend server. 
-  It does this by writing the current environment representation to 
-  "storage/environment.json" file. 
+  <FRONTEND to BACKEND>
+  This sends the frontend visual world information to the backend server.
+  It does this by writing the current environment representation to
+  "storage/environment.json" file.
 
   ARGS:
     request: Django request
-  RETURNS: 
-    HttpResponse: string confirmation message. 
+  RETURNS:
+    HttpResponse: string confirmation message.
   """
   # f_curr_sim_code = "temp_storage/curr_sim_code.json"
   # with open(f_curr_sim_code) as json_file:  
@@ -265,17 +267,18 @@ def process_environment(request):
   return HttpResponse("received")
 
 
-def update_environment(request): 
+@csrf_exempt  # Exempt: called from Phaser game loop via XMLHttpRequest (no HTML form/session context)
+def update_environment(request):
   """
-  <BACKEND to FRONTEND> 
+  <BACKEND to FRONTEND>
   This sends the backend computation of the persona behavior to the frontend
-  visual server. 
-  It does this by reading the new movement information from 
+  visual server.
+  It does this by reading the new movement information from
   "storage/movement.json" file.
 
   ARGS:
     request: Django request
-  RETURNS: 
+  RETURNS:
     HttpResponse
   """
   # f_curr_sim_code = "temp_storage/curr_sim_code.json"
@@ -295,15 +298,16 @@ def update_environment(request):
   return JsonResponse(response_data)
 
 
-def path_tester_update(request): 
+@csrf_exempt  # Exempt: called from path tester via XMLHttpRequest (internal tool, no form/session context)
+def path_tester_update(request):
   """
-  Processing the path and saving it to path_tester_env.json temp storage for 
-  conducting the path tester. 
+  Processing the path and saving it to path_tester_env.json temp storage for
+  conducting the path tester.
 
   ARGS:
     request: Django request
-  RETURNS: 
-    HttpResponse: string confirmation message. 
+  RETURNS:
+    HttpResponse: string confirmation message.
   """
   data = json.loads(request.body)
   camera = data["camera"]
