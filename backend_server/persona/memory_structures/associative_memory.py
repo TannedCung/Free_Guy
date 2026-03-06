@@ -7,8 +7,6 @@ Description: Defines the core long-term memory module for generative agents.
 Note (May 1, 2023) -- this class is the Memory Stream module in the generative
 agents paper. 
 """
-import sys
-sys.path.append('../../')
 
 import json
 import datetime

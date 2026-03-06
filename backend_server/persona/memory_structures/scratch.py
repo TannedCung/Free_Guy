@@ -6,8 +6,6 @@ Description: Defines the short-term memory module for generative agents.
 """
 import datetime
 import json
-import sys
-sys.path.append('../../')
 
 from global_methods import *
 

@@ -9,8 +9,6 @@ Note (March 10, 2023) -- Defunct
 """
 import re
 import datetime
-import sys
-sys.path.append('../../')
 
 from global_methods import *
 from persona.prompt_template.ollama_structure import *

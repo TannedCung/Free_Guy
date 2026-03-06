@@ -6,8 +6,6 @@ Description: Defines the MemoryTree class that serves as the agents' spatial
 memory that aids in grounding their behavior in the game world. 
 """
 import json
-import sys
-sys.path.append('../../')
 
 from constant import *
 from global_methods import *

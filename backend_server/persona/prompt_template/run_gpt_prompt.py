@@ -7,10 +7,7 @@ interface with the safe_generate_response function.
 """
 import re
 import datetime
-import sys
 import ast
-
-sys.path.append('../../')
 
 from global_methods import *
 from persona.prompt_template.ollama_structure import *
