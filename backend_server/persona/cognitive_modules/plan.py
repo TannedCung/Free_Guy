@@ -11,11 +11,14 @@ import time
 
 from constant import debug
 from persona.prompt_template.ollama_structure import ChatGPT_single_request, get_embedding
-from persona.prompt_template.run_gpt_prompt import (
+from persona.prompt_template.prompts.planning import (
     run_gpt_prompt_wake_up_hour,
     run_gpt_prompt_daily_plan,
     run_gpt_prompt_generate_hourly_schedule,
     run_gpt_prompt_task_decomp,
+    run_gpt_prompt_new_decomp_schedule,
+)
+from persona.prompt_template.run_gpt_prompt import (
     run_gpt_prompt_action_sector,
     run_gpt_prompt_action_arena,
     run_gpt_prompt_action_game_object,
@@ -23,7 +26,6 @@ from persona.prompt_template.run_gpt_prompt import (
     run_gpt_prompt_event_triple,
     run_gpt_prompt_act_obj_desc,
     run_gpt_prompt_act_obj_event_triple,
-    run_gpt_prompt_new_decomp_schedule,
     run_gpt_prompt_summarize_conversation,
     run_gpt_prompt_decide_to_talk,
     run_gpt_prompt_decide_to_react,
