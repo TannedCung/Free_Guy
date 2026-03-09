@@ -71,8 +71,8 @@ def get_provider(config: LLMConfig) -> LLMProvider:
 
     Currently supported providers:
 
-    * ``"openai"``  — implemented in :mod:`llm.openai_provider` (US-020)
-    * ``"ollama"``  — implemented in :mod:`llm.ollama_provider` (US-021)
+    * ``"openai"``  — implemented in :mod:`llm.openai_provider`
+    * ``"ollama"``  — implemented in :mod:`llm.ollama_provider`
 
     Args:
         config: Provider configuration.
@@ -82,7 +82,6 @@ def get_provider(config: LLMConfig) -> LLMProvider:
 
     Raises:
         ValueError: If *config.provider* is not a recognised provider name.
-        NotImplementedError: If the provider module has not been installed yet.
     """
     provider = config.provider.lower()
 
@@ -91,14 +90,8 @@ def get_provider(config: LLMConfig) -> LLMProvider:
         return OpenAIProvider(config)
 
     if provider == "ollama":
-        try:
-            from llm.ollama_provider import OllamaProvider  # type: ignore[import]
-        except ImportError as exc:
-            raise NotImplementedError(
-                "Ollama provider module not found. "
-                "It will be implemented in US-021 (llm/ollama_provider.py)."
-            ) from exc
-        return OllamaProvider(config)  # type: ignore[return-value]
+        from llm.ollama_provider import OllamaProvider
+        return OllamaProvider(config)
 
     raise ValueError(
         f"Unknown LLM provider: {config.provider!r}. "
