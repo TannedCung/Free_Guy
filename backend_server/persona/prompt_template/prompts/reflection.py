@@ -9,7 +9,7 @@ import re
 import ast
 
 from constant import debug
-from persona.prompt_template.ollama_structure import (
+from persona.prompt_template.llm_bridge import (
     generate_prompt,
     safe_generate_response,
     ChatGPT_safe_generate_response,

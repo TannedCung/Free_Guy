@@ -8,7 +8,7 @@ Description: This defines the "Perceive" module for generative agents.
 import math
 from operator import itemgetter
 # from persona.prompt_template.gpt_structure import *
-from persona.prompt_template.ollama_structure import get_embedding
+from persona.prompt_template.llm_bridge import get_embedding
 from persona.prompt_template.prompts.perception import run_gpt_prompt_event_poignancy
 from persona.prompt_template.prompts.conversation import run_gpt_prompt_chat_poignancy
 

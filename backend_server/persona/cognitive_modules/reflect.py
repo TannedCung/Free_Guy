@@ -12,7 +12,7 @@ from numpy import dot
 from numpy.linalg import norm
 
 from constant import debug
-from persona.prompt_template.ollama_structure import get_embedding
+from persona.prompt_template.llm_bridge import get_embedding
 from persona.prompt_template.prompts.perception import run_gpt_prompt_event_poignancy
 from persona.prompt_template.prompts.reflection import (
     run_gpt_prompt_focal_pt,

@@ -9,7 +9,7 @@ decomposition, identity revision, and the _long_term_planning coordinator.
 import datetime
 
 from constant import debug
-from persona.prompt_template.ollama_structure import ChatGPT_single_request, get_embedding
+from persona.prompt_template.llm_bridge import ChatGPT_single_request, get_embedding
 from persona.prompt_template.prompts.planning import (
     run_gpt_prompt_wake_up_hour,
     run_gpt_prompt_daily_plan,
