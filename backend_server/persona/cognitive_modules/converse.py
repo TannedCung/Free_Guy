@@ -11,10 +11,8 @@ import random
 from constant import debug
 from persona.cognitive_modules.retrieve import new_retrieve
 from persona.prompt_template.ollama_structure import get_embedding
-from persona.prompt_template.run_gpt_prompt import (
-    run_gpt_prompt_event_triple,
-    run_gpt_prompt_event_poignancy,
-)
+from persona.prompt_template.prompts.reflection import run_gpt_prompt_event_triple
+from persona.prompt_template.prompts.perception import run_gpt_prompt_event_poignancy
 from persona.prompt_template.prompts.conversation import (
     run_gpt_prompt_agent_chat_summarize_ideas,
     run_gpt_prompt_agent_chat_summarize_relationship,

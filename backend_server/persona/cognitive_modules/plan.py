@@ -23,10 +23,10 @@ from persona.prompt_template.run_gpt_prompt import (
     run_gpt_prompt_action_arena,
     run_gpt_prompt_action_game_object,
     run_gpt_prompt_pronunciatio,
-    run_gpt_prompt_event_triple,
     run_gpt_prompt_act_obj_desc,
     run_gpt_prompt_act_obj_event_triple,
 )
+from persona.prompt_template.prompts.reflection import run_gpt_prompt_event_triple
 from persona.prompt_template.prompts.conversation import (
     run_gpt_prompt_summarize_conversation,
     run_gpt_prompt_decide_to_talk,

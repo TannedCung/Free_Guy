@@ -13,11 +13,11 @@ from numpy.linalg import norm
 
 from constant import debug
 from persona.prompt_template.ollama_structure import get_embedding
-from persona.prompt_template.run_gpt_prompt import (
+from persona.prompt_template.prompts.perception import run_gpt_prompt_event_poignancy
+from persona.prompt_template.prompts.reflection import (
     run_gpt_prompt_focal_pt,
     run_gpt_prompt_insight_and_guidance,
     run_gpt_prompt_event_triple,
-    run_gpt_prompt_event_poignancy,
 )
 from persona.prompt_template.prompts.conversation import (
     run_gpt_prompt_chat_poignancy,
