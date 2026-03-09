@@ -71,6 +71,7 @@ dependencies = [
     "trueskill==0.4.5",
     "typing-extensions==4.15.0",
     "urllib3==2.4.0",
+    "whitenoise==6.9.0",
     "wsproto==1.2.0",
     "yarl==1.20.0",
     "yellowbrick==1.5",

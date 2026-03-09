@@ -1,33 +1,19 @@
-###FOR PUSHING STATIC TO AWS 
+"""
+Settings selector for frontend_server.
 
+Selects the active settings module based on the DJANGO_ENV environment variable:
+  - DJANGO_ENV=development  →  settings.development  (default)
+  - DJANGO_ENV=production   →  settings.production
 
+DJANGO_SETTINGS_MODULE can still be used to bypass this entirely, e.g.:
+  DJANGO_SETTINGS_MODULE=frontend_server.settings.production
+"""
 
-# from .base import *
-# from .production import *
+import os
 
-# try:
-#   from .local import *
-# except:
-  # pass
+_env = os.environ.get('DJANGO_ENV', 'development')
 
-
-
-
-
-
-###FOR GENERAL USES
-
-
-
-
-
-from .base import *
-
-try: 
-  from .local import *
-  live = False
-except:
-  live = True
-
-if live:
-  from .production import *
+if _env == 'production':
+    from .production import *  # noqa: F401, F403
+else:
+    from .development import *  # noqa: F401, F403
