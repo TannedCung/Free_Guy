@@ -87,14 +87,8 @@ def get_provider(config: LLMConfig) -> LLMProvider:
     provider = config.provider.lower()
 
     if provider == "openai":
-        try:
-            from llm.openai_provider import OpenAIProvider  # type: ignore[import]
-        except ImportError as exc:
-            raise NotImplementedError(
-                "OpenAI provider module not found. "
-                "It will be implemented in US-020 (llm/openai_provider.py)."
-            ) from exc
-        return OpenAIProvider(config)  # type: ignore[return-value]
+        from llm.openai_provider import OpenAIProvider
+        return OpenAIProvider(config)
 
     if provider == "ollama":
         try:
