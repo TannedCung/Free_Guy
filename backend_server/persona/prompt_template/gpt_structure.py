@@ -6,12 +6,13 @@ Description: Wrapper functions for calling OpenAI APIs.
 """
 import json
 import random
-import openai
 import time
+
+from openai import OpenAI
 
 from constant import *
 
-openai.api_key = openai_api_key
+client = OpenAI(api_key=openai_api_key)
 
 
 def temp_sleep(seconds=0.1):
@@ -21,11 +22,11 @@ def temp_sleep(seconds=0.1):
 def ChatGPT_single_request(prompt):
     temp_sleep()
 
-    completion = openai.ChatCompletion.create(
+    completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}]
     )
-    return completion["choices"][0]["message"]["content"]
+    return completion.choices[0].message.content
 
 
 # ============================================================================
@@ -35,23 +36,23 @@ def ChatGPT_single_request(prompt):
 def GPT4_request(prompt):
     """
     Given a prompt and a dictionary of GPT parameters, make a request to OpenAI
-    server and returns the response. 
+    server and returns the response.
     ARGS:
       prompt: a str prompt
-      gpt_parameter: a python dictionary with the keys indicating the names of  
-                     the parameter and the values indicating the parameter 
-                     values.   
-    RETURNS: 
-      a str of GPT-3's response. 
+      gpt_parameter: a python dictionary with the keys indicating the names of
+                     the parameter and the values indicating the parameter
+                     values.
+    RETURNS:
+      a str of GPT-3's response.
     """
     temp_sleep()
 
     try:
-        completion = openai.ChatCompletion.create(
+        completion = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}]
         )
-        return completion["choices"][0]["message"]["content"]
+        return completion.choices[0].message.content
 
     except:
         print("ChatGPT ERROR")
@@ -61,22 +62,22 @@ def GPT4_request(prompt):
 def ChatGPT_request(prompt):
     """
     Given a prompt and a dictionary of GPT parameters, make a request to OpenAI
-    server and returns the response. 
+    server and returns the response.
     ARGS:
       prompt: a str prompt
-      gpt_parameter: a python dictionary with the keys indicating the names of  
-                     the parameter and the values indicating the parameter 
-                     values.   
-    RETURNS: 
-      a str of GPT-3's response. 
+      gpt_parameter: a python dictionary with the keys indicating the names of
+                     the parameter and the values indicating the parameter
+                     values.
+    RETURNS:
+      a str of GPT-3's response.
     """
     # temp_sleep()
     try:
-        completion = openai.ChatCompletion.create(
+        completion = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}]
         )
-        return completion["choices"][0]["message"]["content"]
+        return completion.choices[0].message.content
 
     except:
         print("ChatGPT ERROR")
@@ -199,18 +200,18 @@ def ChatGPT_safe_generate_response_OLD(prompt,
 def GPT_request(prompt, gpt_parameter):
     """
     Given a prompt and a dictionary of GPT parameters, make a request to OpenAI
-    server and returns the response. 
+    server and returns the response.
     ARGS:
       prompt: a str prompt
-      gpt_parameter: a python dictionary with the keys indicating the names of  
-                     the parameter and the values indicating the parameter 
-                     values.   
-    RETURNS: 
-      a str of GPT-3's response. 
+      gpt_parameter: a python dictionary with the keys indicating the names of
+                     the parameter and the values indicating the parameter
+                     values.
+    RETURNS:
+      a str of GPT-3's response.
     """
     temp_sleep()
     try:
-        response = openai.Completion.create(
+        response = client.completions.create(
             model=gpt_parameter["engine"],
             prompt=prompt,
             temperature=gpt_parameter["temperature"],
@@ -228,17 +229,17 @@ def GPT_request(prompt, gpt_parameter):
 
 def generate_prompt(curr_input, prompt_lib_file):
     """
-    Takes in the current input (e.g. comment that you want to classifiy) and 
+    Takes in the current input (e.g. comment that you want to classifiy) and
     the path to a prompt file. The prompt file contains the raw str prompt that
-    will be used, which contains the following substr: !<INPUT>! -- this 
-    function replaces this substr with the actual curr_input to produce the 
-    final promopt that will be sent to the GPT3 server. 
+    will be used, which contains the following substr: !<INPUT>! -- this
+    function replaces this substr with the actual curr_input to produce the
+    final promopt that will be sent to the GPT3 server.
     ARGS:
       curr_input: the input we want to feed in (IF THERE ARE MORE THAN ONE
                   INPUT, THIS CAN BE A LIST.)
-      prompt_lib_file: the path to the promopt file. 
-    RETURNS: 
-      a str prompt that will be sent to OpenAI's GPT server.  
+      prompt_lib_file: the path to the promopt file.
+    RETURNS:
+      a str prompt that will be sent to OpenAI's GPT server.
     """
     if type(curr_input) == type("string"):
         curr_input = [curr_input]
@@ -280,8 +281,8 @@ def get_embedding(text, model="text-embedding-ada-002"):
     text = text.replace("\n", " ")
     if not text:
         text = "this is blank"
-    return openai.Embedding.create(
-        input=[text], model=model)['data'][0]['embedding']
+    response = client.embeddings.create(input=[text], model=model)
+    return response.data[0].embedding
 
 
 if __name__ == '__main__':
