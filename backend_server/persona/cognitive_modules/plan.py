@@ -18,7 +18,7 @@ from persona.prompt_template.prompts.planning import (
     run_gpt_prompt_task_decomp,
     run_gpt_prompt_new_decomp_schedule,
 )
-from persona.prompt_template.run_gpt_prompt import (
+from persona.prompt_template.prompts.action import (
     run_gpt_prompt_action_sector,
     run_gpt_prompt_action_arena,
     run_gpt_prompt_action_game_object,
