@@ -18,6 +18,8 @@ from persona.prompt_template.run_gpt_prompt import (
     run_gpt_prompt_insight_and_guidance,
     run_gpt_prompt_event_triple,
     run_gpt_prompt_event_poignancy,
+)
+from persona.prompt_template.prompts.conversation import (
     run_gpt_prompt_chat_poignancy,
     run_gpt_prompt_planning_thought_on_convo,
     run_gpt_prompt_memo_on_convo,
