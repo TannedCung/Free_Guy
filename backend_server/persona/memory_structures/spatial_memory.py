@@ -7,8 +7,7 @@ memory that aids in grounding their behavior in the game world.
 """
 import json
 
-from constant import *
-from global_methods import *
+from global_methods import check_if_file_exists
 
 class MemoryTree: 
   def __init__(self, f_saved): 

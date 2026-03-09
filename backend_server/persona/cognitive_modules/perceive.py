@@ -5,11 +5,12 @@ File: perceive.py
 Description: This defines the "Perceive" module for generative agents. 
 """
 
+import math
 from operator import itemgetter
-from global_methods import *
 # from persona.prompt_template.gpt_structure import *
-from persona.prompt_template.ollama_structure import *
-from persona.prompt_template.run_gpt_prompt import *
+from persona.prompt_template.ollama_structure import get_embedding
+from persona.prompt_template.run_gpt_prompt import (run_gpt_prompt_event_poignancy,
+                                                     run_gpt_prompt_chat_poignancy)
 
 def generate_poig_score(persona, event_type, description): 
   if "is idle" in description: 

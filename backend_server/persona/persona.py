@@ -12,18 +12,16 @@ import math
 import datetime
 import random
 
-from global_methods import *
+from persona.memory_structures.spatial_memory import MemoryTree
+from persona.memory_structures.associative_memory import AssociativeMemory
+from persona.memory_structures.scratch import Scratch
 
-from persona.memory_structures.spatial_memory import *
-from persona.memory_structures.associative_memory import *
-from persona.memory_structures.scratch import *
-
-from persona.cognitive_modules.perceive import *
-from persona.cognitive_modules.retrieve import *
-from persona.cognitive_modules.plan import *
-from persona.cognitive_modules.reflect import *
-from persona.cognitive_modules.execute import *
-from persona.cognitive_modules.converse import *
+from persona.cognitive_modules.perceive import perceive
+from persona.cognitive_modules.retrieve import retrieve
+from persona.cognitive_modules.plan import plan
+from persona.cognitive_modules.reflect import reflect
+from persona.cognitive_modules.execute import execute
+from persona.cognitive_modules.converse import open_convo_session
 
 class Persona: 
   def __init__(self, name, folder_mem_saved=False):

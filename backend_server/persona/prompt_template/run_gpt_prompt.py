@@ -8,10 +8,17 @@ interface with the safe_generate_response function.
 import re
 import datetime
 import ast
+import random
+import string
 
-from global_methods import *
-from persona.prompt_template.ollama_structure import *
-from persona.prompt_template.print_prompt import *
+from constant import debug
+from persona.prompt_template.ollama_structure import (
+    generate_prompt,
+    safe_generate_response,
+    ChatGPT_safe_generate_response,
+    ChatGPT_safe_generate_response_OLD,
+)
+from persona.prompt_template.print_prompt import print_run_prompts
 
 def get_random_alphanumeric(i=6, j=6): 
   """

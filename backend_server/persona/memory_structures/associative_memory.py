@@ -11,7 +11,6 @@ agents paper.
 import json
 import datetime
 
-from global_methods import *
 
 
 class ConceptNode: 

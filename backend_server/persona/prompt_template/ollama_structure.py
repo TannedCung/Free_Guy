@@ -12,8 +12,8 @@ from openai import OpenAI
 from ollama._client import Client
 import logging
 
-from constant import *
-from common import *
+from constant import openai_api_key
+from common import LOGGING_CONFIG
 
 openai.api_key = openai_api_key
 

@@ -26,10 +26,11 @@ import os
 import shutil
 import traceback
 
-from global_methods import *
-from constant import *
-from maze import *
-from persona.persona import *
+from global_methods import copyanything, check_if_file_exists, read_file_to_list
+from constant import fs_storage, fs_temp_storage, maze_assets_loc
+from maze import Maze
+from persona.persona import Persona
+from persona.cognitive_modules.converse import load_history_via_whisper
 
 ##############################################################################
 #                                  REVERIE                                   #

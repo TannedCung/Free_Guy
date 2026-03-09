@@ -5,8 +5,7 @@ File: retrieve.py
 Description: This defines the "Retrieve" module for generative agents. 
 """
 
-from global_methods import *
-from persona.prompt_template.ollama_structure import *
+from persona.prompt_template.ollama_structure import get_embedding
 
 from numpy import dot
 from numpy.linalg import norm
