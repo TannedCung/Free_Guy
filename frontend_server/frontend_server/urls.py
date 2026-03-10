@@ -26,6 +26,12 @@ urlpatterns = [
     path('api/v1/simulations/', api_views.simulations_list, name='api-simulations-list'),
     path('api/v1/simulations/<str:sim_id>/', api_views.simulation_detail, name='api-simulation-detail'),
     path('api/v1/simulations/<str:sim_id>/state/', api_views.simulation_state, name='api-simulation-state'),
+    path('api/v1/simulations/<str:sim_id>/agents/', api_views.simulation_agents, name='api-simulation-agents'),
+    path('api/v1/simulations/<str:sim_id>/agents/<path:agent_id>/', api_views.simulation_agent_detail, name='api-simulation-agent-detail'),
+
+    # REST API v1 — demo endpoints
+    path('api/v1/demos/', api_views.demos_list, name='api-demos-list'),
+    path('api/v1/demos/<str:demo_id>/step/<int:step>/', api_views.demo_step, name='api-demo-step'),
 
     re_path(r'^$', translator_views.landing, name='landing'),
     re_path(r'^simulator_home$', translator_views.home, name='home'),
