@@ -19,8 +19,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from translator import views as translator_views
+from translator import api_views
 
 urlpatterns = [
+    # REST API v1 — simulation endpoints
+    path('api/v1/simulations/', api_views.simulations_list, name='api-simulations-list'),
+    path('api/v1/simulations/<str:sim_id>/', api_views.simulation_detail, name='api-simulation-detail'),
+    path('api/v1/simulations/<str:sim_id>/state/', api_views.simulation_state, name='api-simulation-state'),
+
     re_path(r'^$', translator_views.landing, name='landing'),
     re_path(r'^simulator_home$', translator_views.home, name='home'),
     re_path(r'^demo/(?P<sim_code>[\w-]+)/(?P<step>[\w-]+)/(?P<play_speed>[\w-]+)/$', translator_views.demo, name='demo'),

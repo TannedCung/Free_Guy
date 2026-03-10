@@ -35,6 +35,13 @@ else:
         }
     }
 
+# CORS — allow the React dev server (port 3000) to call the Django API
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+CORS_ALLOW_CREDENTIALS = False
+
 # Cookie security — disable HTTPS enforcement in local dev
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
