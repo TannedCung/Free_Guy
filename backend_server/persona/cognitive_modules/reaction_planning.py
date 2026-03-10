@@ -29,7 +29,7 @@ from persona.cognitive_modules.converse import agent_chat_v2
 
 
 def generate_convo(maze: Maze, init_persona: Persona, target_persona: Persona) -> tuple[list[list[str]], int]:
-  curr_loc = maze.access_tile(init_persona.scratch.curr_tile)
+  curr_loc = maze.access_tile(init_persona.scratch.curr_tile)  # type: ignore[arg-type]
 
   # convo = run_gpt_prompt_create_conversation(init_persona, target_persona, curr_loc)[0]
   # convo = agent_chat_v1(maze, init_persona, target_persona)
@@ -138,7 +138,7 @@ def _should_react(persona: Persona, retrieved: dict[str, Any], personas: dict[st
         or "sleeping" in init_persona.scratch.act_description):
       return False
 
-    if init_persona.scratch.curr_time.hour == 23:
+    if init_persona.scratch.curr_time.hour == 23:  # type: ignore[union-attr]
       return False
 
     if "<waiting>" in target_persona.scratch.act_address:
@@ -170,7 +170,7 @@ def _should_react(persona: Persona, retrieved: dict[str, Any], personas: dict[st
       return False
 
     # return False
-    if init_persona.scratch.curr_time.hour == 23:
+    if init_persona.scratch.curr_time.hour == 23:  # type: ignore[union-attr]
       return False
 
     if "waiting" in target_persona.scratch.act_description:
@@ -186,9 +186,9 @@ def _should_react(persona: Persona, retrieved: dict[str, Any], personas: dict[st
                                           target_persona, retrieved)
 
     if react_mode == "1":
-      wait_until = ((target_persona.scratch.act_start_time
-        + datetime.timedelta(minutes=target_persona.scratch.act_duration - 1))
-        .strftime("%B %d, %Y, %H:%M:%S"))
+      wait_until = ((target_persona.scratch.act_start_time  # type: ignore[operator]
+        + datetime.timedelta(minutes=target_persona.scratch.act_duration - 1))  # type: ignore[operator]
+        .strftime("%B %d, %Y, %H:%M:%S"))  # type: ignore[union-attr]
       return f"wait: {wait_until}"
     elif react_mode == "2":
       return False
@@ -199,7 +199,7 @@ def _should_react(persona: Persona, retrieved: dict[str, Any], personas: dict[st
   # If the persona is chatting right now, default to no reaction
   if persona.scratch.chatting_with:
     return False
-  if "<waiting>" in persona.scratch.act_address:
+  if "<waiting>" in persona.scratch.act_address:  # type: ignore[operator]
     return False
 
   # Recall that retrieved takes the following form:
@@ -292,11 +292,11 @@ def _chat_react(maze: Maze, persona: Persona, focused_event: dict[str, Any], rea
   act_start_time = target_persona.scratch.act_start_time
 
   curr_time = target_persona.scratch.curr_time
-  if curr_time.second != 0:
-    temp_curr_time = curr_time + datetime.timedelta(seconds=60 - curr_time.second)
+  if curr_time.second != 0:  # type: ignore[union-attr]
+    temp_curr_time = curr_time + datetime.timedelta(seconds=60 - curr_time.second)  # type: ignore[operator, union-attr]
     chatting_end_time = temp_curr_time + datetime.timedelta(minutes=inserted_act_dur)
   else:
-    chatting_end_time = curr_time + datetime.timedelta(minutes=inserted_act_dur)
+    chatting_end_time = curr_time + datetime.timedelta(minutes=inserted_act_dur)  # type: ignore[operator]
 
   for role, p in [("init", init_persona), ("target", target_persona)]:
     if role == "init":
@@ -318,7 +318,7 @@ def _chat_react(maze: Maze, persona: Persona, focused_event: dict[str, Any], rea
     act_obj_event = (None, None, None)
 
     _create_react(p, inserted_act, inserted_act_dur,
-      act_address, act_event, chatting_with, convo, chatting_with_buffer, chatting_end_time,
+      act_address, act_event, chatting_with, convo, chatting_with_buffer, chatting_end_time,  # type: ignore[arg-type]
       act_pronunciatio, act_obj_description, act_obj_pronunciatio,
       act_obj_event, act_start_time)
 
@@ -326,12 +326,12 @@ def _chat_react(maze: Maze, persona: Persona, focused_event: dict[str, Any], rea
 def _wait_react(persona: Persona, reaction_mode: str) -> None:
   p = persona
 
-  inserted_act = f'waiting to start {p.scratch.act_description.split("(")[-1][:-1]}'
+  inserted_act = f'waiting to start {p.scratch.act_description.split("(")[-1][:-1]}'  # type: ignore[union-attr]
   end_time = datetime.datetime.strptime(reaction_mode[6:].strip(), "%B %d, %Y, %H:%M:%S")
-  inserted_act_dur = (end_time.minute + end_time.hour * 60) - (p.scratch.curr_time.minute + p.scratch.curr_time.hour * 60) + 1
+  inserted_act_dur = (end_time.minute + end_time.hour * 60) - (p.scratch.curr_time.minute + p.scratch.curr_time.hour * 60) + 1  # type: ignore[union-attr]
 
-  act_address = f"<waiting> {p.scratch.curr_tile[0]} {p.scratch.curr_tile[1]}"
-  act_event = (p.name, "waiting to start", p.scratch.act_description.split("(")[-1][:-1])
+  act_address = f"<waiting> {p.scratch.curr_tile[0]} {p.scratch.curr_tile[1]}"  # type: ignore[index]
+  act_event = (p.name, "waiting to start", p.scratch.act_description.split("(")[-1][:-1])  # type: ignore[union-attr]
   chatting_with = None
   chat = None
   chatting_with_buffer = None

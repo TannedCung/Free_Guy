@@ -54,34 +54,34 @@ def perceive(persona: Persona, maze: Maze) -> list[ConceptNode]:
   # PERCEIVE SPACE
   # We get the nearby tiles given our current tile and the persona's vision
   # radius. 
-  nearby_tiles = maze.get_nearby_tiles(persona.scratch.curr_tile, 
+  nearby_tiles = maze.get_nearby_tiles(persona.scratch.curr_tile,  # type: ignore[arg-type]
                                        persona.scratch.vision_r)
 
   # We then store the perceived space. Note that the s_mem of the persona is
   # in the form of a tree constructed using dictionaries. 
-  for i in nearby_tiles: 
-    i = maze.access_tile(i)
-    if i["world"]: 
-      if (i["world"] not in persona.s_mem.tree): 
-        persona.s_mem.tree[i["world"]] = {}
-    if i["sector"]: 
-      if (i["sector"] not in persona.s_mem.tree[i["world"]]): 
-        persona.s_mem.tree[i["world"]][i["sector"]] = {}
-    if i["arena"]: 
-      if (i["arena"] not in persona.s_mem.tree[i["world"]]
-                                              [i["sector"]]): 
-        persona.s_mem.tree[i["world"]][i["sector"]][i["arena"]] = []
-    if i["game_object"]: 
-      if (i["game_object"] not in persona.s_mem.tree[i["world"]]
-                                                    [i["sector"]]
-                                                    [i["arena"]]): 
-        persona.s_mem.tree[i["world"]][i["sector"]][i["arena"]] += [
-                                                             i["game_object"]]
+  for tile_coord in nearby_tiles:
+    tile_det = maze.access_tile(tile_coord)
+    if tile_det["world"]:
+      if (tile_det["world"] not in persona.s_mem.tree):
+        persona.s_mem.tree[tile_det["world"]] = {}
+    if tile_det["sector"]:
+      if (tile_det["sector"] not in persona.s_mem.tree[tile_det["world"]]):
+        persona.s_mem.tree[tile_det["world"]][tile_det["sector"]] = {}
+    if tile_det["arena"]:
+      if (tile_det["arena"] not in persona.s_mem.tree[tile_det["world"]]
+                                                    [tile_det["sector"]]):
+        persona.s_mem.tree[tile_det["world"]][tile_det["sector"]][tile_det["arena"]] = []
+    if tile_det["game_object"]:
+      if (tile_det["game_object"] not in persona.s_mem.tree[tile_det["world"]]
+                                                          [tile_det["sector"]]
+                                                          [tile_det["arena"]]):
+        persona.s_mem.tree[tile_det["world"]][tile_det["sector"]][tile_det["arena"]] += [
+                                                                    tile_det["game_object"]]
 
   # PERCEIVE EVENTS. 
   # We will perceive events that take place in the same arena as the
   # persona's current arena. 
-  curr_arena_path = maze.get_tile_path(persona.scratch.curr_tile, "arena")
+  curr_arena_path = maze.get_tile_path(persona.scratch.curr_tile, "arena")  # type: ignore[arg-type]
   # We do not perceive the same event twice (this can happen if an object is
   # extended across multiple tiles).
   percept_events_set = set()
@@ -96,9 +96,9 @@ def perceive(persona: Persona, maze: Maze) -> list[ConceptNode]:
       if maze.get_tile_path(tile, "arena") == curr_arena_path:  
         # This calculates the distance between the persona's current tile, 
         # and the target tile.
-        dist = math.dist([tile[0], tile[1]], 
-                         [persona.scratch.curr_tile[0], 
-                          persona.scratch.curr_tile[1]])
+        dist = math.dist([tile[0], tile[1]],
+                         [persona.scratch.curr_tile[0],  # type: ignore[index]
+                          persona.scratch.curr_tile[1]])  # type: ignore[index]
         # Add any relevant events to our temp set/list with the distant info. 
         for event in tile_details["events"]: 
           if event not in percept_events_set: 
@@ -170,23 +170,23 @@ def perceive(persona: Persona, maze: Maze) -> list[ConceptNode]:
                              persona.scratch.act_description]
         else: 
           chat_embedding = get_embedding(persona.scratch
-                                                .act_description)
-        chat_embedding_pair = (persona.scratch.act_description, 
+                                                .act_description)  # type: ignore[arg-type]
+        chat_embedding_pair = (persona.scratch.act_description,
                                chat_embedding)
-        chat_poignancy = generate_poig_score(persona, "chat", 
-                                             persona.scratch.act_description)
-        chat_node = persona.a_mem.add_chat(persona.scratch.curr_time, None,
-                      curr_event[0], curr_event[1], curr_event[2], 
-                      persona.scratch.act_description, keywords, 
-                      chat_poignancy, chat_embedding_pair, 
-                      persona.scratch.chat)
+        chat_poignancy = generate_poig_score(persona, "chat",
+                                             persona.scratch.act_description)  # type: ignore[arg-type]
+        chat_node = persona.a_mem.add_chat(persona.scratch.curr_time, None,  # type: ignore[arg-type]
+                      curr_event[0], curr_event[1], curr_event[2],  # type: ignore[arg-type]
+                      persona.scratch.act_description, keywords,  # type: ignore[arg-type]
+                      chat_poignancy, chat_embedding_pair,  # type: ignore[arg-type]
+                      persona.scratch.chat)  # type: ignore[arg-type]
         chat_node_ids = [chat_node.node_id]
 
       # Finally, we add the current event to the agent's memory. 
-      ret_events += [persona.a_mem.add_event(persona.scratch.curr_time, None,
-                           s, p, o, desc, keywords, event_poignancy, 
-                           event_embedding_pair, chat_node_ids)]
-      persona.scratch.importance_trigger_curr -= event_poignancy
+      ret_events += [persona.a_mem.add_event(persona.scratch.curr_time, None,  # type: ignore[arg-type]
+                           s, p, o, desc, keywords, event_poignancy,  # type: ignore[arg-type]
+                           event_embedding_pair, chat_node_ids)]  # type: ignore[arg-type]
+      persona.scratch.importance_trigger_curr -= event_poignancy  # type: ignore[operator]
       persona.scratch.importance_ele_n += 1
 
   return ret_events

@@ -35,12 +35,12 @@ from persona.cognitive_modules.retrieve import new_retrieve
 def generate_focal_points(persona: Persona, n: int = 3) -> list[str]:
   if debug: print ("GNS FUNCTION: <generate_focal_points>")
   
-  node_pairs = [[i.last_accessed, i]
-                for i in persona.a_mem.seq_event + persona.a_mem.seq_thought
-                if "idle" not in i.embedding_key]
+  node_list = [(i.last_accessed, i)
+               for i in persona.a_mem.seq_event + persona.a_mem.seq_thought
+               if "idle" not in i.embedding_key]
 
-  node_pairs = sorted(node_pairs, key=lambda x: x[0])
-  nodes: list[ConceptNode] = [i for created, i in node_pairs]
+  node_list = sorted(node_list, key=lambda x: x[0])  # type: ignore[arg-type]
+  nodes: list[ConceptNode] = [i for _, i in node_list]
 
   statements = ""
   for node in nodes[-1*persona.scratch.importance_ele_n:]: 
@@ -136,14 +136,14 @@ def run_reflect(persona: Persona) -> None:
     thoughts = generate_insights_and_evidence(persona, nodes, 5)
     for thought, evidence in thoughts.items(): 
       created = persona.scratch.curr_time
-      expiration = persona.scratch.curr_time + datetime.timedelta(days=30)
+      expiration = persona.scratch.curr_time + datetime.timedelta(days=30)  # type: ignore[operator]
       s, p, o = generate_action_event_triple(thought, persona)
       keywords = set([s, p, o])
       thought_poignancy = generate_poig_score(persona, "thought", thought)
       thought_embedding_pair = (thought, get_embedding(thought))
 
-      persona.a_mem.add_thought(created, expiration, s, p, o, 
-                                thought, keywords, thought_poignancy, 
+      persona.a_mem.add_thought(created, expiration, s, p, o,  # type: ignore[arg-type]
+                                thought, keywords, thought_poignancy,  # type: ignore[arg-type]
                                 thought_embedding_pair, evidence)
 
 
@@ -204,7 +204,7 @@ def reflect(persona: Persona) -> None:
   # print (persona.scratch.name, "al;sdhfjlsad", persona.scratch.chatting_end_time)
   if persona.scratch.chatting_end_time: 
     # print("DEBUG", persona.scratch.curr_time + datetime.timedelta(0,10))
-    if persona.scratch.curr_time + datetime.timedelta(0,10) == persona.scratch.chatting_end_time: 
+    if persona.scratch.curr_time + datetime.timedelta(0,10) == persona.scratch.chatting_end_time:  # type: ignore[operator]
       # print ("KABOOOOOMMMMMMM")
       all_utt = ""
       if persona.scratch.chat: 
@@ -226,20 +226,20 @@ def reflect(persona: Persona) -> None:
 
       # print (persona.a_mem.get_last_chat(persona.scratch.chatting_with).node_id)
 
-      evidence = [persona.a_mem.get_last_chat(persona.scratch.chatting_with).node_id]
+      evidence = [persona.a_mem.get_last_chat(persona.scratch.chatting_with).node_id]  # type: ignore[arg-type, union-attr]
 
       planning_thought = generate_planning_thought_on_convo(persona, all_utt)
       planning_thought = f"For {persona.scratch.name}'s planning: {planning_thought}"
 
       created = persona.scratch.curr_time
-      expiration = persona.scratch.curr_time + datetime.timedelta(days=30)
+      expiration = persona.scratch.curr_time + datetime.timedelta(days=30)  # type: ignore[operator]
       s, p, o = generate_action_event_triple(planning_thought, persona)
       keywords = set([s, p, o])
       thought_poignancy = generate_poig_score(persona, "thought", planning_thought)
       thought_embedding_pair = (planning_thought, get_embedding(planning_thought))
 
-      persona.a_mem.add_thought(created, expiration, s, p, o, 
-                                planning_thought, keywords, thought_poignancy, 
+      persona.a_mem.add_thought(created, expiration, s, p, o,  # type: ignore[arg-type]
+                                planning_thought, keywords, thought_poignancy,  # type: ignore[arg-type]
                                 thought_embedding_pair, evidence)
 
 
@@ -248,14 +248,14 @@ def reflect(persona: Persona) -> None:
       memo_thought = f"{persona.scratch.name} {memo_thought}"
 
       created = persona.scratch.curr_time
-      expiration = persona.scratch.curr_time + datetime.timedelta(days=30)
+      expiration = persona.scratch.curr_time + datetime.timedelta(days=30)  # type: ignore[operator]
       s, p, o = generate_action_event_triple(memo_thought, persona)
       keywords = set([s, p, o])
       thought_poignancy = generate_poig_score(persona, "thought", memo_thought)
       thought_embedding_pair = (memo_thought, get_embedding(memo_thought))
 
-      persona.a_mem.add_thought(created, expiration, s, p, o, 
-                                memo_thought, keywords, thought_poignancy, 
+      persona.a_mem.add_thought(created, expiration, s, p, o,  # type: ignore[arg-type]
+                                memo_thought, keywords, thought_poignancy,  # type: ignore[arg-type]
                                 thought_embedding_pair, evidence)
 
 

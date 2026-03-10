@@ -173,8 +173,8 @@ def generate_new_decomp_schedule(persona: Persona, inserted_act: str, inserted_a
   # <p> is the persona whose schedule we are editing right now.
   p = persona
   # <today_min_pass> indicates the number of minutes that have passed today.
-  today_min_pass = (int(p.scratch.curr_time.hour) * 60
-                    + int(p.scratch.curr_time.minute) + 1)
+  today_min_pass = (int(p.scratch.curr_time.hour) * 60  # type: ignore[union-attr]
+                    + int(p.scratch.curr_time.minute) + 1)  # type: ignore[union-attr]
 
   # Step 2: We need to create <main_act_dur> and <truncated_act_dur>.
   # These are basically a sub-component of <f_daily_schedule> of the persona,
@@ -271,7 +271,7 @@ def revise_identity(persona: Persona) -> None:
   # print (";adjhfno;asdjao;idfjo;af", p_name)
   plan_prompt = statements + "\n"
   plan_prompt += f"Given the statements above, is there anything that {p_name} should remember as they plan for"
-  plan_prompt += f" *{persona.scratch.curr_time.strftime('%A %B %d')}*? "
+  plan_prompt += f" *{persona.scratch.curr_time.strftime('%A %B %d')}*? "  # type: ignore[union-attr]
   plan_prompt += f"If there is any scheduling information, be as specific as possible (include date, time, and location if stated in the statement)\n\n"
   plan_prompt += f"Write the response from {p_name}'s perspective."
   plan_note = ChatGPT_single_request(plan_prompt)
@@ -283,11 +283,11 @@ def revise_identity(persona: Persona) -> None:
   thought_note = ChatGPT_single_request(thought_prompt)
   # print (thought_note)
 
-  currently_prompt = f"{p_name}'s status from {(persona.scratch.curr_time - datetime.timedelta(days=1)).strftime('%A %B %d')}:\n"
+  currently_prompt = f"{p_name}'s status from {(persona.scratch.curr_time - datetime.timedelta(days=1)).strftime('%A %B %d')}:\n"  # type: ignore[operator, union-attr]
   currently_prompt += f"{persona.scratch.currently}\n\n"
-  currently_prompt += f"{p_name}'s thoughts at the end of {(persona.scratch.curr_time - datetime.timedelta(days=1)).strftime('%A %B %d')}:\n"
+  currently_prompt += f"{p_name}'s thoughts at the end of {(persona.scratch.curr_time - datetime.timedelta(days=1)).strftime('%A %B %d')}:\n"  # type: ignore[operator, union-attr]
   currently_prompt += (plan_note + thought_note).replace('\n', '') + "\n\n"
-  currently_prompt += f"It is now {persona.scratch.curr_time.strftime('%A %B %d')}. Given the above, write {p_name}'s status for {persona.scratch.curr_time.strftime('%A %B %d')} that reflects {p_name}'s thoughts at the end of {(persona.scratch.curr_time - datetime.timedelta(days=1)).strftime('%A %B %d')}. Write this in third-person talking about {p_name}."
+  currently_prompt += f"It is now {persona.scratch.curr_time.strftime('%A %B %d')}. Given the above, write {p_name}'s status for {persona.scratch.curr_time.strftime('%A %B %d')} that reflects {p_name}'s thoughts at the end of {(persona.scratch.curr_time - datetime.timedelta(days=1)).strftime('%A %B %d')}. Write this in third-person talking about {p_name}."  # type: ignore[operator, union-attr]
   currently_prompt += f"If there is any scheduling information, be as specific as possible (include date, time, and location if stated in the statement).\n\n"
   currently_prompt += "Follow this format below:\nStatus: <new status>"
   # print ("DEBUG ;adjhfno;asdjao;asdfsidfjo;af", p_name)
@@ -299,7 +299,7 @@ def revise_identity(persona: Persona) -> None:
   persona.scratch.currently = new_currently
 
   daily_req_prompt = persona.scratch.get_str_iss() + "\n"
-  daily_req_prompt += f"Today is {persona.scratch.curr_time.strftime('%A %B %d')}. Here is {persona.scratch.name}'s plan today in broad-strokes (with the time of the day. e.g., have a lunch at 12:00 pm, watch TV from 7 to 8 pm).\n\n"
+  daily_req_prompt += f"Today is {persona.scratch.curr_time.strftime('%A %B %d')}. Here is {persona.scratch.name}'s plan today in broad-strokes (with the time of the day. e.g., have a lunch at 12:00 pm, watch TV from 7 to 8 pm).\n\n"  # type: ignore[union-attr]
   daily_req_prompt += f"Follow this format (the list should have 4~6 items but no more):\n"
   daily_req_prompt += f"1. wake up and complete the morning routine at <time>, 2. ..."
 
@@ -349,16 +349,16 @@ def _long_term_planning(persona: Persona, new_day: Union[str, bool]) -> None:
 
 
   # Added March 4 -- adding plan to the memory.
-  thought = f"This is {persona.scratch.name}'s plan for {persona.scratch.curr_time.strftime('%A %B %d')}:"
+  thought = f"This is {persona.scratch.name}'s plan for {persona.scratch.curr_time.strftime('%A %B %d')}:"  # type: ignore[union-attr]
   for i in persona.scratch.daily_req:
     thought += f" {i},"
   thought = thought[:-1] + "."
   created = persona.scratch.curr_time
-  expiration = persona.scratch.curr_time + datetime.timedelta(days=30)
-  s, p, o = (persona.scratch.name, "plan", persona.scratch.curr_time.strftime('%A %B %d'))
+  expiration = persona.scratch.curr_time + datetime.timedelta(days=30)  # type: ignore[operator]
+  s, p, o = (persona.scratch.name, "plan", persona.scratch.curr_time.strftime('%A %B %d'))  # type: ignore[union-attr]
   keywords = set(["plan"])
   thought_poignancy = 5
   thought_embedding_pair = (thought, get_embedding(thought))
-  persona.a_mem.add_thought(created, expiration, s, p, o,
+  persona.a_mem.add_thought(created, expiration, s, p, o,  # type: ignore[arg-type]
                             thought, keywords, thought_poignancy,
-                            thought_embedding_pair, None)
+                            thought_embedding_pair, None)  # type: ignore[arg-type]

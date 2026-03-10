@@ -3,21 +3,23 @@ Author: Joon Sung Park (joonspk@stanford.edu)
 
 File: reverie.py
 Description: This is the main program for running generative agent simulations
-that defines the ReverieServer class. This class maintains and records all  
-states related to the simulation. The primary mode of interaction for those  
-running the simulation should be through the open_server function, which  
-enables the simulator to input command-line prompts for running and saving  
+that defines the ReverieServer class. This class maintains and records all
+states related to the simulation. The primary mode of interaction for those
+running the simulation should be through the open_server function, which
+enables the simulator to input command-line prompts for running and saving
 the simulation, among other tasks.
 
-Release note (June 14, 2023) -- Reverie implements the core simulation 
-mechanism described in my paper entitled "Generative Agents: Interactive 
-Simulacra of Human Behavior." If you are reading through these lines after 
-having read the paper, you might notice that I use older terms to describe 
-generative agents and their cognitive modules here. Most notably, I use the 
-term "personas" to refer to generative agents, "associative memory" to refer 
-to the memory stream, and "reverie" to refer to the overarching simulation 
+Release note (June 14, 2023) -- Reverie implements the core simulation
+mechanism described in my paper entitled "Generative Agents: Interactive
+Simulacra of Human Behavior." If you are reading through these lines after
+having read the paper, you might notice that I use older terms to describe
+generative agents and their cognitive modules here. Most notably, I use the
+term "personas" to refer to generative agents, "associative memory" to refer
+to the memory stream, and "reverie" to refer to the overarching simulation
 framework.
 """
+from __future__ import annotations
+
 import json
 import datetime
 import time
@@ -25,6 +27,7 @@ import math
 import os
 import shutil
 import traceback
+from typing import Any
 
 from global_methods import copyanything, check_if_file_exists, read_file_to_list
 from constant import fs_storage, fs_temp_storage, maze_assets_loc
@@ -36,10 +39,21 @@ from persona.cognitive_modules.converse import load_history_via_whisper
 #                                  REVERIE                                   #
 ##############################################################################
 
-class ReverieServer: 
-  def __init__(self, 
-               fork_sim_code,
-               sim_code):
+class ReverieServer:
+  fork_sim_code: str
+  sim_code: str
+  start_time: datetime.datetime
+  curr_time: datetime.datetime
+  sec_per_step: int
+  maze: Maze
+  step: int
+  personas: dict[str, Persona]
+  personas_tile: dict[str, tuple[int, int]]
+  server_sleep: float
+
+  def __init__(self,
+               fork_sim_code: str,
+               sim_code: str) -> None:
     # FORKING FROM A PRIOR SIMULATION:
     # <fork_sim_code> indicates the simulation we are forking from. 
     # Interestingly, all simulations must be forked from some initial 
@@ -151,7 +165,7 @@ class ReverieServer:
       outfile.write(json.dumps(curr_step, indent=2))
 
 
-  def save(self): 
+  def save(self) -> None:
     """
     Save all Reverie progress -- this includes Reverie's global state as well
     as all the personas.  
@@ -166,7 +180,7 @@ class ReverieServer:
     sim_folder = f"{fs_storage}/{self.sim_code}"
 
     # Save Reverie meta information.
-    reverie_meta = dict() 
+    reverie_meta: dict[str, Any] = dict()
     reverie_meta["fork_sim_code"] = self.fork_sim_code
     reverie_meta["start_date"] = self.start_time.strftime("%B %d, %Y")
     reverie_meta["curr_time"] = self.curr_time.strftime("%B %d, %Y, %H:%M:%S")
@@ -184,7 +198,7 @@ class ReverieServer:
       persona.save(save_folder)
 
 
-  def start_path_tester_server(self): 
+  def start_path_tester_server(self) -> None:
     """
     Starts the path tester server. This is for generating the spatial memory
     that we need for bootstrapping a persona's state. 
@@ -218,8 +232,8 @@ class ReverieServer:
     # <curr_vision> is the vision radius of the test agent. Recommend 8 as 
     # our default. 
     curr_vision = 8
-    # <s_mem> is our test spatial memory. 
-    s_mem = dict()
+    # <s_mem> is our test spatial memory.
+    s_mem: dict[str, Any] = dict()
 
     # The main while loop for the test agent. 
     while (True): 
@@ -273,7 +287,7 @@ class ReverieServer:
       time.sleep(self.server_sleep * 10)
 
 
-  def start_server(self, int_counter): 
+  def start_server(self, int_counter: int) -> None:
     """
     The main backend server of Reverie. 
     This function retrieves the environment file from the frontend to 
@@ -296,10 +310,10 @@ class ReverieServer:
     # initial state, like this: 
     # e.g., ('double studio[...]:bed', None, None, None)
     # So we need to keep track of which event we added. 
-    # <game_obj_cleanup> is used for that. 
-    game_obj_cleanup = dict()
+    # <game_obj_cleanup> is used for that.
+    game_obj_cleanup: dict[tuple[Any, ...], tuple[int, int]] = dict()
 
-    # The main while loop of Reverie. 
+    # The main while loop of Reverie.
     while (True): 
       # Done with this iteration if <int_counter> reaches 0. 
       if int_counter == 0: 
@@ -369,8 +383,8 @@ class ReverieServer:
         # move. The movement for each of the personas comes in the form of
         # x y coordinates where the persona will move towards. e.g., (50, 34)
         # This is where the core brains of the personas are invoked. 
-        movements = {"persona": dict(), 
-                      "meta": dict()}
+        movements: dict[str, Any] = {"persona": dict(),
+                                     "meta": dict()}
         for persona_name, persona in self.personas.items(): 
           # <next_tile> is a x,y coordinate. e.g., (58, 9)
           # <pronunciatio> is an emoji. e.g., "\ud83d\udca4"
@@ -413,7 +427,7 @@ class ReverieServer:
       time.sleep(self.server_sleep)
 
 
-  def open_server(self): 
+  def open_server(self) -> None:
     """
     Open up an interactive terminal prompt that lets you run the simulation 
     step by step and probe agent state. 
@@ -555,16 +569,16 @@ class ReverieServer:
               in sim_command[:16].lower()): 
           # Print the tile events in the tile specified in the prompt 
           # Ex: print tile event 50, 30
-          cooordinate = [int(i.strip()) for i in sim_command[16:].split(",")]
-          for i in self.maze.access_tile(cooordinate)["events"]: 
+          cooordinate = tuple(int(i.strip()) for i in sim_command[16:].split(","))
+          for i in self.maze.access_tile(cooordinate)["events"]:  # type: ignore[arg-type]
             ret_str += f"{i}\n"
 
         elif ("print tile details" 
               in sim_command.lower()): 
           # Print the tile details of the tile specified in the prompt 
           # Ex: print tile event 50, 30
-          cooordinate = [int(i.strip()) for i in sim_command[18:].split(",")]
-          for key, val in self.maze.access_tile(cooordinate).items(): 
+          cooordinate = tuple(int(i.strip()) for i in sim_command[18:].split(","))
+          for key, val in self.maze.access_tile(cooordinate).items():  # type: ignore[arg-type]
             ret_str += f"{key}: {val}\n"
 
         elif ("call -- analysis" 

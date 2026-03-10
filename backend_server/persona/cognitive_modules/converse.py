@@ -160,7 +160,7 @@ def agent_chat_v2(maze: Maze, init_persona: Persona, target_persona: Persona) ->
     retrieved = new_retrieve(init_persona, focal_points, 15)
     utt, end = generate_one_utterance(maze, init_persona, target_persona, retrieved, curr_chat)
 
-    curr_chat += [[init_persona.scratch.name, utt]]
+    curr_chat += [[init_persona.scratch.name, utt]]  # type: ignore[list-item]
     if end:
       break
 
@@ -182,7 +182,7 @@ def agent_chat_v2(maze: Maze, init_persona: Persona, target_persona: Persona) ->
     retrieved = new_retrieve(target_persona, focal_points, 15)
     utt, end = generate_one_utterance(maze, target_persona, init_persona, retrieved, curr_chat)
 
-    curr_chat += [[target_persona.scratch.name, utt]]
+    curr_chat += [[target_persona.scratch.name, utt]]  # type: ignore[list-item]
     if end:
       break
 
@@ -260,14 +260,14 @@ def load_history_via_whisper(personas: dict[str, Persona], whispers: list[list[s
     thought = generate_inner_thought(persona, whisper)
 
     created = persona.scratch.curr_time
-    expiration = persona.scratch.curr_time + datetime.timedelta(days=30)
+    expiration = persona.scratch.curr_time + datetime.timedelta(days=30)  # type: ignore[operator]
     s, p, o = generate_action_event_triple(thought, persona)
     keywords = set([s, p, o])
     thought_poignancy = generate_poig_score(persona, "event", whisper)
     thought_embedding_pair = (thought, get_embedding(thought))
-    persona.a_mem.add_thought(created, expiration, s, p, o, 
-                              thought, keywords, thought_poignancy, 
-                              thought_embedding_pair, None)
+    persona.a_mem.add_thought(created, expiration, s, p, o,  # type: ignore[arg-type]
+                              thought, keywords, thought_poignancy,  # type: ignore[arg-type]
+                              thought_embedding_pair, None)  # type: ignore[arg-type]
 
 
 def open_convo_session(persona: Persona, convo_mode: str) -> None:
@@ -289,7 +289,7 @@ def open_convo_session(persona: Persona, convo_mode: str) -> None:
         curr_convo += [[interlocutor_desc, line]]
 
         next_line = generate_next_line(persona, interlocutor_desc, curr_convo, summarized_idea)
-        curr_convo += [[persona.scratch.name, next_line]]
+        curr_convo += [[persona.scratch.name, next_line]]  # type: ignore[list-item]
 
 
   elif convo_mode == "whisper": 
@@ -297,14 +297,14 @@ def open_convo_session(persona: Persona, convo_mode: str) -> None:
     thought = generate_inner_thought(persona, whisper)
 
     created = persona.scratch.curr_time
-    expiration = persona.scratch.curr_time + datetime.timedelta(days=30)
+    expiration = persona.scratch.curr_time + datetime.timedelta(days=30)  # type: ignore[operator]
     s, p, o = generate_action_event_triple(thought, persona)
     keywords = set([s, p, o])
     thought_poignancy = generate_poig_score(persona, "event", whisper)
     thought_embedding_pair = (thought, get_embedding(thought))
-    persona.a_mem.add_thought(created, expiration, s, p, o, 
-                              thought, keywords, thought_poignancy, 
-                              thought_embedding_pair, None)
+    persona.a_mem.add_thought(created, expiration, s, p, o,  # type: ignore[arg-type]
+                              thought, keywords, thought_poignancy,  # type: ignore[arg-type]
+                              thought_embedding_pair, None)  # type: ignore[arg-type]
 
 
 

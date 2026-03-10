@@ -226,11 +226,11 @@ def new_retrieve(persona: Persona, focal_points: list[str], n_count: int = 30) -
     # Getting all nodes from the agent's memory (both thoughts and events) and
     # sorting them by the datetime of creation.
     # You could also imagine getting the raw conversation, but for now.
-    node_pairs = [[i.last_accessed, i]
-                  for i in persona.a_mem.seq_event + persona.a_mem.seq_thought
-                  if "idle" not in i.embedding_key]
-    node_pairs = sorted(node_pairs, key=lambda x: x[0])
-    nodes: list[ConceptNode] = [i for created, i in node_pairs]
+    node_list = [(i.last_accessed, i)
+                 for i in persona.a_mem.seq_event + persona.a_mem.seq_thought
+                 if "idle" not in i.embedding_key]
+    node_list = sorted(node_list, key=lambda x: x[0])  # type: ignore[arg-type]
+    nodes: list[ConceptNode] = [i for _, i in node_list]
 
     # Calculating the component dictionaries and normalizing them.
     recency_out = extract_recency(persona, nodes)
@@ -269,7 +269,7 @@ def new_retrieve(persona: Persona, focal_points: list[str], n_count: int = 30) -
                     for key in list(master_out.keys())]
 
     for n in master_nodes: 
-      n.last_accessed = persona.scratch.curr_time
+      n.last_accessed = persona.scratch.curr_time  # type: ignore[assignment]
       
     retrieved[focal_pt] = master_nodes
 

@@ -4,6 +4,8 @@ Author: Joon Sung Park (joonspk@stanford.edu)
 File: global_methods.py
 Description: Contains functions used throughout my projects.
 """
+from __future__ import annotations
+
 import random
 import string
 import csv
@@ -15,10 +17,11 @@ import sys
 import numpy
 import math
 import shutil, errno
+from typing import Literal, Union, overload
 
 from os import listdir
 
-def create_folder_if_not_there(curr_path): 
+def create_folder_if_not_there(curr_path: str) -> bool:
   """
   Checks if a folder in the curr_path exists. If it does not exist, creates
   the folder. 
@@ -34,13 +37,13 @@ def create_folder_if_not_there(curr_path):
     True: if a new folder is created
     False: if a new folder is not created
   """
-  outfolder_name = curr_path.split("/")
-  if len(outfolder_name) != 1: 
-    # This checks if the curr path is a file or a folder. 
-    if "." in outfolder_name[-1]: 
-      outfolder_name = outfolder_name[:-1]
+  outfolder_parts = curr_path.split("/")
+  if len(outfolder_parts) != 1:
+    # This checks if the curr path is a file or a folder.
+    if "." in outfolder_parts[-1]:
+      outfolder_parts = outfolder_parts[:-1]
 
-    outfolder_name = "/".join(outfolder_name)
+    outfolder_name = "/".join(outfolder_parts)
     if not os.path.exists(outfolder_name):
       os.makedirs(outfolder_name)
       return True
@@ -48,7 +51,7 @@ def create_folder_if_not_there(curr_path):
   return False 
 
 
-def write_list_of_list_to_csv(curr_list_of_list, outfile):
+def write_list_of_list_to_csv(curr_list_of_list: list[list[str]], outfile: str) -> None:
   """
   Writes a list of list to csv. 
   Unlike write_list_to_csv_line, it writes the entire csv in one shot. 
@@ -66,7 +69,7 @@ def write_list_of_list_to_csv(curr_list_of_list, outfile):
     writer.writerows(curr_list_of_list)
 
 
-def write_list_to_csv_line(line_list, outfile): 
+def write_list_to_csv_line(line_list: list[str], outfile: str) -> None:
   """
   Writes one line to a csv file.
   Unlike write_list_of_list_to_csv, this opens an existing outfile and then 
@@ -89,7 +92,11 @@ def write_list_to_csv_line(line_list, outfile):
   curr_file.close()
 
 
-def read_file_to_list(curr_file, header=False, strip_trail=True): 
+@overload
+def read_file_to_list(curr_file: str, header: Literal[False] = ..., strip_trail: bool = ...) -> list[list[str]]: ...
+@overload
+def read_file_to_list(curr_file: str, header: Literal[True], strip_trail: bool = ...) -> tuple[list[str], list[list[str]]]: ...
+def read_file_to_list(curr_file: str, header: bool = False, strip_trail: bool = True) -> Union[list[list[str]], tuple[list[str], list[list[str]]]]:
   """
   Reads in a csv file to a list of list. If header is True, it returns a 
   tuple with (header row, all rows)
@@ -118,7 +125,7 @@ def read_file_to_list(curr_file, header=False, strip_trail=True):
     return analysis_list[0], analysis_list[1:]
 
 
-def read_file_to_set(curr_file, col=0): 
+def read_file_to_set(curr_file: str, col: int = 0) -> set[str]:
   """
   Reads in a "single column" of a csv file to a set. 
   ARGS:
@@ -134,7 +141,7 @@ def read_file_to_set(curr_file, col=0):
   return analysis_set
 
 
-def get_row_len(curr_file): 
+def get_row_len(curr_file: str) -> Union[int, bool]:
   """
   Get the number of rows in a csv file 
   ARGS:
@@ -154,7 +161,7 @@ def get_row_len(curr_file):
     return False
 
 
-def check_if_file_exists(curr_file): 
+def check_if_file_exists(curr_file: str) -> bool:
   """
   Checks if a file exists
   ARGS:
@@ -170,7 +177,7 @@ def check_if_file_exists(curr_file):
     return False
 
 
-def find_filenames(path_to_dir, suffix=".csv"):
+def find_filenames(path_to_dir: str, suffix: str = ".csv") -> list[str]:
   """
   Given a directory, find all files that ends with the provided suffix and 
   returns their paths.  
@@ -185,7 +192,7 @@ def find_filenames(path_to_dir, suffix=".csv"):
            for filename in filenames if filename.endswith( suffix ) ]
 
 
-def average(list_of_val): 
+def average(list_of_val: list[float]) -> float:
   """
   Finds the average of the numbers in a list.
   ARGS:
@@ -196,7 +203,7 @@ def average(list_of_val):
   return sum(list_of_val)/float(len(list_of_val))
 
 
-def std(list_of_val): 
+def std(list_of_val: list[float]) -> float:
   """
   Finds the std of the numbers in a list.
   ARGS:
@@ -208,7 +215,7 @@ def std(list_of_val):
   return std
 
 
-def copyanything(src, dst):
+def copyanything(src: str, dst: str) -> None:
   """
   Copy over everything in the src folder to dst folder. 
   ARGS:

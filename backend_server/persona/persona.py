@@ -2,15 +2,18 @@
 Author: Joon Sung Park (joonspk@stanford.edu)
 
 File: persona.py
-Description: Defines the Persona class that powers the agents in Reverie. 
+Description: Defines the Persona class that powers the agents in Reverie.
 
 Note (May 1, 2023) -- this is effectively GenerativeAgent class. Persona was
-the term we used internally back in 2022, taking from our Social Simulacra 
+the term we used internally back in 2022, taking from our Social Simulacra
 paper.
 """
+from __future__ import annotations
+
 import math
 import datetime
 import random
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from persona.memory_structures.spatial_memory import MemoryTree
 from persona.memory_structures.associative_memory import AssociativeMemory
@@ -23,8 +26,16 @@ from persona.cognitive_modules.reflect import reflect
 from persona.cognitive_modules.execute import execute
 from persona.cognitive_modules.converse import open_convo_session
 
-class Persona: 
-  def __init__(self, name, folder_mem_saved=False):
+if TYPE_CHECKING:
+  from maze import Maze
+
+class Persona:
+  name: str
+  s_mem: MemoryTree
+  a_mem: AssociativeMemory
+  scratch: Scratch
+
+  def __init__(self, name: str, folder_mem_saved: Union[str, bool] = False) -> None:
     # PERSONA BASE STATE 
     # <name> is the full name of the persona. This is a unique identifier for
     # the persona within Reverie. 
@@ -44,7 +55,7 @@ class Persona:
     self.scratch = Scratch(scratch_saved)
 
 
-  def save(self, save_folder): 
+  def save(self, save_folder: str) -> None:
     """
     Save persona's current state (i.e., memory). 
 
@@ -74,7 +85,7 @@ class Persona:
     self.scratch.save(f_scratch)
 
 
-  def perceive(self, maze):
+  def perceive(self, maze: Maze) -> list[Any]:
     """
     This function takes the current maze, and returns events that are 
     happening around the persona. Importantly, perceive is guided by 
@@ -103,7 +114,7 @@ class Persona:
     return perceive(self, maze)
 
 
-  def retrieve(self, perceived):
+  def retrieve(self, perceived: list[Any]) -> dict[str, Any]:
     """
     This function takes the events that are perceived by the persona as input
     and returns a set of related events and thoughts that the persona would 
@@ -119,7 +130,7 @@ class Persona:
     return retrieve(self, perceived)
 
 
-  def plan(self, maze, personas, new_day, retrieved):
+  def plan(self, maze: Maze, personas: dict[str, Persona], new_day: Union[bool, str], retrieved: dict[str, Any]) -> Optional[str]:
     """
     Main cognitive function of the chain. It takes the retrieved memory and 
     perception, as well as the maze and the first day state to conduct both 
@@ -144,7 +155,7 @@ class Persona:
     return plan(self, maze, personas, new_day, retrieved)
 
 
-  def execute(self, maze, personas, plan):
+  def execute(self, maze: Maze, personas: dict[str, Persona], plan: Optional[str]) -> tuple[Any, Any, str]:
     """
     This function takes the agent's current plan and outputs a concrete 
     execution (what object to use, and what tile to travel to). 
@@ -163,10 +174,10 @@ class Persona:
         writing her next novel (editing her novel) 
         @ double studio:double studio:common room:sofa
     """
-    return execute(self, maze, personas, plan)
+    return execute(self, maze, personas, plan)  # type: ignore[arg-type]
 
 
-  def reflect(self):
+  def reflect(self) -> None:
     """
     Reviews the persona's memory and create new thoughts based on it. 
 
@@ -178,7 +189,7 @@ class Persona:
     reflect(self)
 
 
-  def move(self, maze, personas, curr_tile, curr_time):
+  def move(self, maze: Maze, personas: dict[str, Persona], curr_tile: tuple[int, int], curr_time: datetime.datetime) -> tuple[Any, Any, str]:
     """
     This is the main cognitive function where our main sequence is called. 
 
@@ -204,10 +215,10 @@ class Persona:
     # day, whether it is the very first day of the simulation. This is 
     # important because we set up the persona's long term plan at the start of
     # a new day. 
-    new_day = False
-    if not self.scratch.curr_time: 
+    new_day: Union[bool, str] = False
+    if not self.scratch.curr_time:
       new_day = "First day"
-    elif (self.scratch.curr_time.strftime('%A %B %d')
+    elif (self.scratch.curr_time.strftime('%A %B %d')  # type: ignore[union-attr]
           != curr_time.strftime('%A %B %d')):
       new_day = "New day"
     self.scratch.curr_time = curr_time
@@ -227,7 +238,7 @@ class Persona:
     return self.execute(maze, personas, plan)
 
 
-  def open_convo_session(self, convo_mode): 
+  def open_convo_session(self, convo_mode: str) -> None:
     open_convo_session(self, convo_mode)
     
 

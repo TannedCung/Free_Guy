@@ -207,7 +207,7 @@ def _determine_action(persona: Persona, maze: Maze) -> None:
     # also invoked during the first hour of the day -- to double up so we can
     # decompose two hours in one go). Of course, we need to have something to
     # decompose as well, so we check for that too.
-    if persona.scratch.curr_time.hour < 23:
+    if persona.scratch.curr_time.hour < 23:  # type: ignore[union-attr]
       # And we don't want to decompose after 11 pm.
       act_desp, act_dura = persona.scratch.f_daily_schedule[curr_index_60]
       if act_dura >= 60:
@@ -240,7 +240,7 @@ def _determine_action(persona: Persona, maze: Maze) -> None:
 
   # Finding the target location of the action and creating action-related
   # variables.
-  act_world = maze.access_tile(persona.scratch.curr_tile)["world"]
+  act_world = maze.access_tile(persona.scratch.curr_tile)["world"]  # type: ignore[arg-type]
   # act_sector = maze.access_tile(persona.scratch.curr_tile)["sector"]
   act_sector = generate_action_sector(act_desp, persona, maze)
   act_arena = generate_action_arena(act_desp, persona, maze, act_world, act_sector)

@@ -7,7 +7,7 @@ Description: This defines the "Act" module for generative agents.
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
   from persona.persona import Persona
@@ -17,7 +17,7 @@ from path_finder import path_finder
 from constant import collision_block_id
 
 
-def execute(persona: Persona, maze: Maze, personas: dict[str, Persona], plan: str) -> tuple[tuple[int, int], str, str]:
+def execute(persona: Persona, maze: Maze, personas: dict[str, Persona], plan: str) -> tuple[Any, Any, str]:
   """
   Given a plan (action's string address), we execute the plan (actually 
   outputs the tile coordinate path and the next coordinate for the 
@@ -84,7 +84,7 @@ def execute(persona: Persona, maze: Maze, personas: dict[str, Persona], plan: st
     elif "<random>" in plan: 
       # Executing a random location action.
       plan = ":".join(plan.split(":")[:-1])
-      target_tiles = maze.address_tiles[plan]
+      target_tiles = list(maze.address_tiles[plan])  # type: ignore[assignment]
       target_tiles = random.sample(list(target_tiles), 1)
 
     else: 
@@ -96,7 +96,7 @@ def execute(persona: Persona, maze: Maze, personas: dict[str, Persona], plan: st
       if plan not in maze.address_tiles: 
         maze.address_tiles["Johnson Park:park:park garden"] #ERRORRRRRRR
       else: 
-        target_tiles = maze.address_tiles[plan]
+        target_tiles = list(maze.address_tiles[plan])  # type: ignore[assignment]
 
     # There are sometimes more than one tile returned from this (e.g., a tabe
     # may stretch many coordinates). So, we sample a few here. And from that

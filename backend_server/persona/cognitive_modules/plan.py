@@ -85,7 +85,7 @@ __all__ = [
 ]
 
 
-def plan(persona: Persona, maze: Maze, personas: dict[str, Persona], new_day: Union[str, bool], retrieved: dict[str, Any]) -> str:
+def plan(persona: Persona, maze: Maze, personas: dict[str, Persona], new_day: Union[str, bool], retrieved: dict[str, Any]) -> Optional[str]:
   """
   Main cognitive function of the chain. It takes the retrieved memory and
   perception, as well as the maze and the first day state to conduct both

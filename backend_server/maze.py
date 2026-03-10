@@ -3,20 +3,32 @@ Author: Joon Sung Park (joonspk@stanford.edu)
 
 File: maze.py
 Description: Defines the Maze class, which represents the map of the simulated
-world in a 2-dimensional matrix. 
+world in a 2-dimensional matrix.
 """
+from __future__ import annotations
+
 import json
 import numpy
 import datetime
 import pickle
 import time
 import math
+from typing import Any
 
 from global_methods import read_file_to_list
 from constant import env_matrix, collision_block_id
 
-class Maze: 
-  def __init__(self, maze_name): 
+class Maze:
+  maze_name: str
+  maze_width: int
+  maze_height: int
+  sq_tile_size: int
+  special_constraint: str
+  collision_maze: list[list[str]]
+  tiles: list[list[dict[str, Any]]]
+  address_tiles: dict[str, set[tuple[int, int]]]
+
+  def __init__(self, maze_name: str) -> None:
     # READING IN THE BASIC META INFORMATION ABOUT THE MAP
     self.maze_name = maze_name
     # Reading in the meta information about the world. If you want tp see the
@@ -53,23 +65,23 @@ class Maze:
    
     _sb = blocks_folder + "/sector_blocks.csv"
     sb_rows = read_file_to_list(_sb, header=False)
-    sb_dict = dict()
-    for i in sb_rows: sb_dict[i[0]] = i[-1]
-    
+    sb_dict: dict[str, str] = dict()
+    for _r in sb_rows: sb_dict[_r[0]] = _r[-1]
+
     _ab = blocks_folder + "/arena_blocks.csv"
     ab_rows = read_file_to_list(_ab, header=False)
-    ab_dict = dict()
-    for i in ab_rows: ab_dict[i[0]] = i[-1]
-    
+    ab_dict: dict[str, str] = dict()
+    for _r in ab_rows: ab_dict[_r[0]] = _r[-1]
+
     _gob = blocks_folder + "/game_object_blocks.csv"
     gob_rows = read_file_to_list(_gob, header=False)
-    gob_dict = dict()
-    for i in gob_rows: gob_dict[i[0]] = i[-1]
-    
+    gob_dict: dict[str, str] = dict()
+    for _r in gob_rows: gob_dict[_r[0]] = _r[-1]
+
     _slb = blocks_folder + "/spawning_location_blocks.csv"
     slb_rows = read_file_to_list(_slb, header=False)
-    slb_dict = dict()
-    for i in slb_rows: slb_dict[i[0]] = i[-1]
+    slb_dict: dict[str, str] = dict()
+    for _r in slb_rows: slb_dict[_r[0]] = _r[-1]
 
     # [SECTION 3] Reading in the matrices 
     # This is your typical two dimensional matrices. It's made up of 0s and 
@@ -97,12 +109,12 @@ class Maze:
     # example format: [['0', '0', ... '25309', '0',...], ['0',...]...]
     # 25309 is the collision bar number right now.
     self.collision_maze = []
-    sector_maze = []
-    arena_maze = []
-    game_object_maze = []
-    spawning_location_maze = []
-    for i in range(0, len(collision_maze_raw), meta_info["maze_width"]): 
-      tw = meta_info["maze_width"]
+    sector_maze: list[list[str]] = []
+    arena_maze: list[list[str]] = []
+    game_object_maze: list[list[str]] = []
+    spawning_location_maze: list[list[str]] = []
+    tw: int = int(meta_info["maze_width"])
+    for i in range(0, len(collision_maze_raw), tw):
       self.collision_maze += [collision_maze_raw[i:i+tw]]
       sector_maze += [sector_maze_raw[i:i+tw]]
       arena_maze += [arena_maze_raw[i:i+tw]]
@@ -125,10 +137,10 @@ class Maze:
     #         'events': {('double studio:double studio:bedroom 2:bed',
     #                    None, None)}} 
     self.tiles = []
-    for i in range(self.maze_height): 
-      row = []
+    for i in range(self.maze_height):
+      row: list[dict[str, Any]] = []
       for j in range(self.maze_width):
-        tile_details = dict()
+        tile_details: dict[str, Any] = dict()
         tile_details["world"] = wb
         
         tile_details["sector"] = ""
@@ -205,7 +217,7 @@ class Maze:
             self.address_tiles[add] = set([(j, i)])
 
 
-  def turn_coordinate_to_tile(self, px_coordinate): 
+  def turn_coordinate_to_tile(self, px_coordinate: tuple[int, int]) -> tuple[int, int]:
     """
     Turns a pixel coordinate to a tile coordinate. 
 
@@ -223,7 +235,7 @@ class Maze:
     return (x, y)
 
 
-  def access_tile(self, tile): 
+  def access_tile(self, tile: tuple[int, int]) -> dict[str, Any]:
     """
     Returns the tiles details dictionary that is stored in self.tiles of the 
     designated x, y location. 
@@ -246,7 +258,7 @@ class Maze:
     return self.tiles[y][x]
 
 
-  def get_tile_path(self, tile, level): 
+  def get_tile_path(self, tile: tuple[int, int], level: str) -> str:
     """
     Get the tile string address given its coordinate. You designate the level
     by giving it a string level description. 
@@ -262,28 +274,28 @@ class Maze:
     """
     x = tile[0]
     y = tile[1]
-    tile = self.tiles[y][x]
+    tile_data = self.tiles[y][x]
 
-    path = f"{tile['world']}"
-    if level == "world": 
+    path = f"{tile_data['world']}"
+    if level == "world":
       return path
-    else: 
-      path += f":{tile['sector']}"
-    
-    if level == "sector": 
-      return path
-    else: 
-      path += f":{tile['arena']}"
+    else:
+      path += f":{tile_data['sector']}"
 
-    if level == "arena": 
+    if level == "sector":
       return path
-    else: 
-      path += f":{tile['game_object']}"
+    else:
+      path += f":{tile_data['arena']}"
+
+    if level == "arena":
+      return path
+    else:
+      path += f":{tile_data['game_object']}"
 
     return path
 
 
-  def get_nearby_tiles(self, tile, vision_r): 
+  def get_nearby_tiles(self, tile: tuple[int, int], vision_r: int) -> list[tuple[int, int]]:
     """
     Given the current tile and vision_r, return a list of tiles that are 
     within the radius. Note that this implementation looks at a square 
@@ -324,7 +336,7 @@ class Maze:
     return nearby_tiles
 
 
-  def add_event_from_tile(self, curr_event, tile): 
+  def add_event_from_tile(self, curr_event: tuple[Any, ...], tile: tuple[int, int]) -> None:
     """
     Add an event triple to a tile.  
 
@@ -339,7 +351,7 @@ class Maze:
     self.tiles[tile[1]][tile[0]]["events"].add(curr_event)
 
 
-  def remove_event_from_tile(self, curr_event, tile):
+  def remove_event_from_tile(self, curr_event: tuple[Any, ...], tile: tuple[int, int]) -> None:
     """
     Remove an event triple from a tile.  
 
@@ -357,7 +369,7 @@ class Maze:
         self.tiles[tile[1]][tile[0]]["events"].remove(event)
 
 
-  def turn_event_from_tile_idle(self, curr_event, tile):
+  def turn_event_from_tile_idle(self, curr_event: tuple[Any, ...], tile: tuple[int, int]) -> None:
     curr_tile_ev_cp = self.tiles[tile[1]][tile[0]]["events"].copy()
     for event in curr_tile_ev_cp: 
       if event == curr_event:  
@@ -366,7 +378,7 @@ class Maze:
         self.tiles[tile[1]][tile[0]]["events"].add(new_event)
 
 
-  def remove_subject_events_from_tile(self, subject, tile):
+  def remove_subject_events_from_tile(self, subject: str, tile: tuple[int, int]) -> None:
     """
     Remove an event triple that has the input subject from a tile. 
 
