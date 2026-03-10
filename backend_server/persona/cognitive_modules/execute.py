@@ -2,14 +2,22 @@
 Author: Joon Sung Park (joonspk@stanford.edu)
 
 File: execute.py
-Description: This defines the "Act" module for generative agents. 
+Description: This defines the "Act" module for generative agents.
 """
+from __future__ import annotations
+
 import random
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from persona.persona import Persona
+  from maze import Maze
 
 from path_finder import path_finder
 from constant import collision_block_id
 
-def execute(persona, maze, personas, plan): 
+
+def execute(persona: Persona, maze: Maze, personas: dict[str, Persona], plan: str) -> tuple[tuple[int, int], str, str]:
   """
   Given a plan (action's string address), we execute the plan (actually 
   outputs the tile coordinate path and the next coordinate for the 
@@ -91,9 +99,11 @@ def execute(persona, maze, personas, plan):
         target_tiles = maze.address_tiles[plan]
 
     # There are sometimes more than one tile returned from this (e.g., a tabe
-    # may stretch many coordinates). So, we sample a few here. And from that 
-    # random sample, we will take the closest ones. 
-    if len(target_tiles) < 4: 
+    # may stretch many coordinates). So, we sample a few here. And from that
+    # random sample, we will take the closest ones.
+    if target_tiles is None:
+      target_tiles = []
+    if len(target_tiles) < 4:
       target_tiles = random.sample(list(target_tiles), len(target_tiles))
     else:
       target_tiles = random.sample(list(target_tiles), 4)
@@ -120,20 +130,20 @@ def execute(persona, maze, personas, plan):
     curr_tile = persona.scratch.curr_tile
     collision_maze = maze.collision_maze
     closest_target_tile = None
-    path = None
-    for i in target_tiles: 
-      # path_finder takes a collision_mze and the curr_tile coordinate as 
+    path: list = []
+    for i in target_tiles:
+      # path_finder takes a collision_mze and the curr_tile coordinate as
       # an input, and returns a list of coordinate tuples that becomes the
-      # path. 
+      # path.
       # e.g., [(0, 1), (1, 1), (1, 2), (1, 3), (1, 4)...]
-      curr_path = path_finder(maze.collision_maze, 
-                              curr_tile, 
-                              i, 
+      curr_path = path_finder(maze.collision_maze,
+                              curr_tile,
+                              i,
                               collision_block_id)
-      if not closest_target_tile: 
+      if not closest_target_tile:
         closest_target_tile = i
         path = curr_path
-      elif len(curr_path) < len(path): 
+      elif len(curr_path) < len(path):
         closest_target_tile = i
         path = curr_path
 

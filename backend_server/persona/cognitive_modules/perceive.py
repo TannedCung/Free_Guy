@@ -2,27 +2,38 @@
 Author: Joon Sung Park (joonspk@stanford.edu)
 
 File: perceive.py
-Description: This defines the "Perceive" module for generative agents. 
+Description: This defines the "Perceive" module for generative agents.
 """
+from __future__ import annotations
 
 import math
 from operator import itemgetter
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+  from persona.persona import Persona
+  from maze import Maze
+
 # from persona.prompt_template.gpt_structure import *
 from persona.prompt_template.llm_bridge import get_embedding
 from persona.prompt_template.prompts.perception import run_gpt_prompt_event_poignancy
 from persona.prompt_template.prompts.conversation import run_gpt_prompt_chat_poignancy
+from persona.memory_structures.associative_memory import ConceptNode
 
-def generate_poig_score(persona, event_type, description): 
-  if "is idle" in description: 
+
+def generate_poig_score(persona: Persona, event_type: str, description: str) -> Optional[int]:
+  if "is idle" in description:
     return 1
 
-  if event_type == "event": 
+  if event_type == "event":
     return run_gpt_prompt_event_poignancy(persona, description)[0]
-  elif event_type == "chat": 
-    return run_gpt_prompt_chat_poignancy(persona, 
+  elif event_type == "chat":
+    return run_gpt_prompt_chat_poignancy(persona,
                            persona.scratch.act_description)[0]
+  return None
 
-def perceive(persona, maze): 
+
+def perceive(persona: Persona, maze: Maze) -> list[ConceptNode]:
   """
   Perceives events around the persona and saves it to the memory, both events 
   and spaces. 

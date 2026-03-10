@@ -2,15 +2,23 @@
 Author: Joon Sung Park (joonspk@stanford.edu)
 
 File: retrieve.py
-Description: This defines the "Retrieve" module for generative agents. 
+Description: This defines the "Retrieve" module for generative agents.
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+  from persona.persona import Persona
 
 from persona.prompt_template.llm_bridge import get_embedding
+from persona.memory_structures.associative_memory import ConceptNode
 
 from numpy import dot
 from numpy.linalg import norm
 
-def retrieve(persona, perceived): 
+
+def retrieve(persona: Persona, perceived: list[ConceptNode]) -> dict[str, dict[str, Any]]:
   """
   This function takes the events that are perceived by the persona as input
   and returns a set of related events and thoughts that the persona would 
@@ -27,8 +35,8 @@ def retrieve(persona, perceived):
                and "thoughts" that are relevant.
   """
   # We rerieve events and thoughts separately. 
-  retrieved = dict()
-  for event in perceived: 
+  retrieved: dict[str, dict[str, Any]] = dict()
+  for event in perceived:
     retrieved[event.description] = dict()
     retrieved[event.description]["curr_event"] = event
     
@@ -43,7 +51,7 @@ def retrieve(persona, perceived):
   return retrieved
 
 
-def cos_sim(a, b): 
+def cos_sim(a: Any, b: Any) -> float:
   """
   This function calculates the cosine similarity between two input vectors 
   'a' and 'b'. Cosine similarity is a measure of similarity between two 
@@ -64,7 +72,7 @@ def cos_sim(a, b):
   return dot(a, b)/(norm(a)*norm(b))
 
 
-def normalize_dict_floats(d, target_min, target_max):
+def normalize_dict_floats(d: dict[str, float], target_min: float, target_max: float) -> dict[str, float]:
   """
   This function normalizes the float values of a given dictionary 'd' between 
   a target minimum and maximum value. The normalization is done by scaling the
@@ -101,7 +109,7 @@ def normalize_dict_floats(d, target_min, target_max):
   return d
 
 
-def top_highest_x_values(d, x):
+def top_highest_x_values(d: dict[str, float], x: int) -> dict[str, float]:
   """
   This function takes a dictionary 'd' and an integer 'x' as input, and 
   returns a new dictionary containing the top 'x' key-value pairs from the 
@@ -126,7 +134,7 @@ def top_highest_x_values(d, x):
   return top_v
 
 
-def extract_recency(persona, nodes):
+def extract_recency(persona: Persona, nodes: list[ConceptNode]) -> dict[str, float]:
   """
   Gets the current Persona object and a list of nodes that are in a 
   chronological order, and outputs a dictionary that has the recency score
@@ -149,7 +157,7 @@ def extract_recency(persona, nodes):
   return recency_out
 
 
-def extract_importance(persona, nodes):
+def extract_importance(persona: Persona, nodes: list[ConceptNode]) -> dict[str, float]:
   """
   Gets the current Persona object and a list of nodes that are in a 
   chronological order, and outputs a dictionary that has the importance score
@@ -169,7 +177,7 @@ def extract_importance(persona, nodes):
   return importance_out
 
 
-def extract_relevance(persona, nodes, focal_pt): 
+def extract_relevance(persona: Persona, nodes: list[ConceptNode], focal_pt: str) -> dict[str, float]:
   """
   Gets the current Persona object, a list of nodes that are in a 
   chronological order, and the focal_pt string and outputs a dictionary 
@@ -193,7 +201,7 @@ def extract_relevance(persona, nodes, focal_pt):
   return relevance_out
 
 
-def new_retrieve(persona, focal_points, n_count=30): 
+def new_retrieve(persona: Persona, focal_points: list[str], n_count: int = 30) -> dict[str, list[ConceptNode]]:
   """
   Given the current persona and focal points (focal points are events or 
   thoughts for which we are retrieving), we retrieve a set of nodes for each
@@ -217,12 +225,12 @@ def new_retrieve(persona, focal_points, n_count=30):
   for focal_pt in focal_points: 
     # Getting all nodes from the agent's memory (both thoughts and events) and
     # sorting them by the datetime of creation.
-    # You could also imagine getting the raw conversation, but for now. 
-    nodes = [[i.last_accessed, i]
-              for i in persona.a_mem.seq_event + persona.a_mem.seq_thought
-              if "idle" not in i.embedding_key]
-    nodes = sorted(nodes, key=lambda x: x[0])
-    nodes = [i for created, i in nodes]
+    # You could also imagine getting the raw conversation, but for now.
+    node_pairs = [[i.last_accessed, i]
+                  for i in persona.a_mem.seq_event + persona.a_mem.seq_thought
+                  if "idle" not in i.embedding_key]
+    node_pairs = sorted(node_pairs, key=lambda x: x[0])
+    nodes: list[ConceptNode] = [i for created, i in node_pairs]
 
     # Calculating the component dictionaries and normalizing them.
     recency_out = extract_recency(persona, nodes)

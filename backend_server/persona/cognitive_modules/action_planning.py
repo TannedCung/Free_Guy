@@ -7,6 +7,14 @@ Handles determining what action the persona will take next: sector/arena/object
 selection, pronunciatio (emoji), event triples, and the _determine_action
 coordinator that decomposes the daily schedule into specific actions.
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+  from persona.persona import Persona
+  from maze import Maze
+
 from constant import debug
 from persona.prompt_template.prompts.action import (
     run_gpt_prompt_action_sector,
@@ -20,7 +28,7 @@ from persona.prompt_template.prompts.reflection import run_gpt_prompt_event_trip
 from persona.cognitive_modules.daily_planning import generate_task_decomp
 
 
-def generate_action_sector(act_desp, persona, maze):
+def generate_action_sector(act_desp: str, persona: Persona, maze: Maze) -> str:
   """TODO
   Given the persona and the task description, choose the action_sector.
 
@@ -38,7 +46,7 @@ def generate_action_sector(act_desp, persona, maze):
   return run_gpt_prompt_action_sector(act_desp, persona, maze)[0]
 
 
-def generate_action_arena(act_desp, persona, maze, act_world, act_sector):
+def generate_action_arena(act_desp: str, persona: Persona, maze: Maze, act_world: str, act_sector: str) -> str:
   """TODO
   Given the persona and the task description, choose the action_arena.
 
@@ -56,7 +64,7 @@ def generate_action_arena(act_desp, persona, maze, act_world, act_sector):
   return run_gpt_prompt_action_arena(act_desp, persona, maze, act_world, act_sector)[0]
 
 
-def generate_action_game_object(act_desp, act_address, persona, maze):
+def generate_action_game_object(act_desp: str, act_address: str, persona: Persona, maze: Maze) -> str:
   """TODO
   Given the action description and the act address (the address where
   we expect the action to task place), choose one of the game objects.
@@ -79,7 +87,7 @@ def generate_action_game_object(act_desp, act_address, persona, maze):
   return run_gpt_prompt_action_game_object(act_desp, persona, maze, act_address)[0]
 
 
-def generate_action_pronunciatio(act_desp, persona):
+def generate_action_pronunciatio(act_desp: str, persona: Persona) -> str:
   """TODO
   Given an action description, creates an emoji string description via a few
   shot prompt.
@@ -105,7 +113,7 @@ def generate_action_pronunciatio(act_desp, persona):
   return x
 
 
-def generate_action_event_triple(act_desp, persona):
+def generate_action_event_triple(act_desp: str, persona: Persona) -> tuple[str, str, str]:
   """TODO
 
   INPUT:
@@ -120,7 +128,7 @@ def generate_action_event_triple(act_desp, persona):
   return run_gpt_prompt_event_triple(act_desp, persona)[0]
 
 
-def generate_act_obj_desc(act_game_object, act_desp, persona):
+def generate_act_obj_desc(act_game_object: str, act_desp: str, persona: Persona) -> str:
   if debug: print ("GNS FUNCTION: <generate_act_obj_desc>")
   ret = run_gpt_prompt_act_obj_desc(act_game_object, act_desp, persona)
   if ret is not None:
@@ -129,12 +137,12 @@ def generate_act_obj_desc(act_game_object, act_desp, persona):
     return "is used"
 
 
-def generate_act_obj_event_triple(act_game_object, act_obj_desc, persona):
+def generate_act_obj_event_triple(act_game_object: str, act_obj_desc: str, persona: Persona) -> tuple[str, str, str]:
   if debug: print ("GNS FUNCTION: <generate_act_obj_event_triple>")
   return run_gpt_prompt_act_obj_event_triple(act_game_object, act_obj_desc, persona)[0]
 
 
-def _determine_action(persona, maze):
+def _determine_action(persona: Persona, maze: Maze) -> None:
   """
   Creates the next action sequence for the persona.
   The main goal of this function is to run "add_new_action" on the persona's

@@ -2,16 +2,22 @@
 Author: Joon Sung Park (joonspk@stanford.edu)
 
 File: reflect.py
-Description: This defines the "Reflect" module for generative agents. 
+Description: This defines the "Reflect" module for generative agents.
 """
+from __future__ import annotations
 
 import datetime
 import random
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+  from persona.persona import Persona
 
 from numpy import dot
 from numpy.linalg import norm
 
 from constant import debug
+from persona.memory_structures.associative_memory import ConceptNode
 from persona.prompt_template.llm_bridge import get_embedding
 from persona.prompt_template.prompts.perception import run_gpt_prompt_event_poignancy
 from persona.prompt_template.prompts.reflection import (
@@ -26,15 +32,15 @@ from persona.prompt_template.prompts.conversation import (
 )
 from persona.cognitive_modules.retrieve import new_retrieve
 
-def generate_focal_points(persona, n=3): 
+def generate_focal_points(persona: Persona, n: int = 3) -> list[str]:
   if debug: print ("GNS FUNCTION: <generate_focal_points>")
   
-  nodes = [[i.last_accessed, i]
-            for i in persona.a_mem.seq_event + persona.a_mem.seq_thought
-            if "idle" not in i.embedding_key]
+  node_pairs = [[i.last_accessed, i]
+                for i in persona.a_mem.seq_event + persona.a_mem.seq_thought
+                if "idle" not in i.embedding_key]
 
-  nodes = sorted(nodes, key=lambda x: x[0])
-  nodes = [i for created, i in nodes]
+  node_pairs = sorted(node_pairs, key=lambda x: x[0])
+  nodes: list[ConceptNode] = [i for created, i in node_pairs]
 
   statements = ""
   for node in nodes[-1*persona.scratch.importance_ele_n:]: 
@@ -43,7 +49,7 @@ def generate_focal_points(persona, n=3):
   return run_gpt_prompt_focal_pt(persona, statements, n)[0]
 
 
-def generate_insights_and_evidence(persona, nodes, n=5): 
+def generate_insights_and_evidence(persona: Persona, nodes: list[ConceptNode], n: int = 5) -> dict[str, Any]:
   if debug: print ("GNS FUNCTION: <generate_insights_and_evidence>")
 
   statements = ""
@@ -63,48 +69,49 @@ def generate_insights_and_evidence(persona, nodes, n=5):
     return {"this is blank": "node_1"} 
 
 
-def generate_action_event_triple(act_desp, persona): 
-  """TODO 
+def generate_action_event_triple(act_desp: str, persona: Persona) -> tuple[str, str, str]:
+  """TODO
 
-  INPUT: 
+  INPUT:
     act_desp: the description of the action (e.g., "sleeping")
     persona: The Persona class instance
-  OUTPUT: 
+  OUTPUT:
     a string of emoji that translates action description.
-  EXAMPLE OUTPUT: 
+  EXAMPLE OUTPUT:
     "🧈🍞"
   """
   if debug: print ("GNS FUNCTION: <generate_action_event_triple>")
   return run_gpt_prompt_event_triple(act_desp, persona)[0]
 
 
-def generate_poig_score(persona, event_type, description): 
+def generate_poig_score(persona: Persona, event_type: str, description: str) -> Optional[int]:
   if debug: print ("GNS FUNCTION: <generate_poig_score>")
 
   if "is idle" in description: 
     return 1
 
-  if event_type == "event" or event_type == "thought": 
+  if event_type == "event" or event_type == "thought":
     return run_gpt_prompt_event_poignancy(persona, description)[0]
-  elif event_type == "chat": 
-    return run_gpt_prompt_chat_poignancy(persona, 
+  elif event_type == "chat":
+    return run_gpt_prompt_chat_poignancy(persona,
                            persona.scratch.act_description)[0]
+  return None
 
 
 
-def generate_planning_thought_on_convo(persona, all_utt):
+def generate_planning_thought_on_convo(persona: Persona, all_utt: str) -> str:
   if debug: print ("GNS FUNCTION: <generate_planning_thought_on_convo>")
   return run_gpt_prompt_planning_thought_on_convo(persona, all_utt)[0]
 
 
-def generate_memo_on_convo(persona, all_utt):
+def generate_memo_on_convo(persona: Persona, all_utt: str) -> str:
   if debug: print ("GNS FUNCTION: <generate_memo_on_convo>")
   return run_gpt_prompt_memo_on_convo(persona, all_utt)[0]
 
 
 
 
-def run_reflect(persona):
+def run_reflect(persona: Persona) -> None:
   """
   Run the actual reflection. We generate the focal points, retrieve any 
   relevant nodes, and generate thoughts and insights. 
@@ -140,7 +147,7 @@ def run_reflect(persona):
                                 thought_embedding_pair, evidence)
 
 
-def reflection_trigger(persona): 
+def reflection_trigger(persona: Persona) -> bool:
   """
   Given the current persona, determine whether the persona should run a 
   reflection. 
@@ -163,7 +170,7 @@ def reflection_trigger(persona):
   return False
 
 
-def reset_reflection_counter(persona): 
+def reset_reflection_counter(persona: Persona) -> None:
   """
   We reset the counters used for the reflection trigger. 
 
@@ -177,7 +184,7 @@ def reset_reflection_counter(persona):
   persona.scratch.importance_ele_n = 0
 
 
-def reflect(persona):
+def reflect(persona: Persona) -> None:
   """
   The main reflection module for the persona. We first check if the trigger 
   conditions are met, and if so, run the reflection and reset any of the 

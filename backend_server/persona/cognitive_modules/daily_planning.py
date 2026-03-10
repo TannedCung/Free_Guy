@@ -6,7 +6,13 @@ Description: Daily and hourly schedule planning functions for generative agents.
 Handles long-term planning: wake-up hour, daily plan, hourly schedule, task
 decomposition, identity revision, and the _long_term_planning coordinator.
 """
+from __future__ import annotations
+
 import datetime
+from typing import TYPE_CHECKING, Optional, Union
+
+if TYPE_CHECKING:
+  from persona.persona import Persona
 
 from constant import debug
 from persona.prompt_template.llm_bridge import ChatGPT_single_request, get_embedding
@@ -20,7 +26,7 @@ from persona.prompt_template.prompts.planning import (
 from persona.cognitive_modules.retrieve import new_retrieve
 
 
-def generate_wake_up_hour(persona):
+def generate_wake_up_hour(persona: Persona) -> int:
   """
   Generates the time when the persona wakes up. This becomes an integral part
   of our process for generating the persona's daily plan.
@@ -38,7 +44,7 @@ def generate_wake_up_hour(persona):
   return int(run_gpt_prompt_wake_up_hour(persona)[0])
 
 
-def generate_first_daily_plan(persona, wake_up_hour):
+def generate_first_daily_plan(persona: Persona, wake_up_hour: int) -> list[str]:
   """
   Generates the daily plan for the persona.
   Basically the long term planning that spans a day. Returns a list of actions
@@ -68,7 +74,7 @@ def generate_first_daily_plan(persona, wake_up_hour):
   return run_gpt_prompt_daily_plan(persona, wake_up_hour)[0]
 
 
-def generate_hourly_schedule(persona, wake_up_hour):
+def generate_hourly_schedule(persona: Persona, wake_up_hour: int) -> list[list]:
   """
   Based on the daily req, creates an hourly schedule -- one hour at a time.
   The form of the action for each of the hour is something like below:
@@ -94,9 +100,9 @@ def generate_hourly_schedule(persona, wake_up_hour):
               "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM",
               "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM", "07:00 PM",
               "08:00 PM", "09:00 PM", "10:00 PM", "11:00 PM"]
-  n_m1_activity = []
+  n_m1_activity: list[str] = []
   diversity_repeat_count = 3
-  for i in range(diversity_repeat_count):
+  for _ in range(diversity_repeat_count):
     n_m1_activity_set = set(n_m1_activity)
     if len(n_m1_activity_set) < 5:
       n_m1_activity = []
@@ -116,14 +122,12 @@ def generate_hourly_schedule(persona, wake_up_hour):
   # ['having lunch', 1], ['working on her painting', 3],
   # ['taking a break', 2], ['working on her painting', 2],
   # ['relaxing and watching TV', 1], ['going to bed', 1], ['sleeping', 2]]
-  _n_m1_hourly_compressed = []
-  prev = None
-  prev_count = 0
-  for i in n_m1_activity:
-    if i != prev:
-      prev_count = 1
-      _n_m1_hourly_compressed += [[i, prev_count]]
-      prev = i
+  _n_m1_hourly_compressed: list[list] = []
+  prev: Optional[str] = None
+  for act in n_m1_activity:
+    if act != prev:
+      _n_m1_hourly_compressed += [[act, 1]]
+      prev = act
     else:
       if _n_m1_hourly_compressed:
         _n_m1_hourly_compressed[-1][1] += 1
@@ -138,7 +142,7 @@ def generate_hourly_schedule(persona, wake_up_hour):
   return n_m1_hourly_compressed
 
 
-def generate_task_decomp(persona, task, duration):
+def generate_task_decomp(persona: Persona, task: str, duration: int) -> list[list]:
   """
   A few shot decomposition of a task given the task description
 
@@ -164,7 +168,7 @@ def generate_task_decomp(persona, task, duration):
   return run_gpt_prompt_task_decomp(persona, task, duration)[0]
 
 
-def generate_new_decomp_schedule(persona, inserted_act, inserted_act_dur,  start_hour, end_hour):
+def generate_new_decomp_schedule(persona: Persona, inserted_act: str, inserted_act_dur: int, start_hour: int, end_hour: int) -> list[list]:
   # Step 1: Setting up the core variables for the function.
   # <p> is the persona whose schedule we are editing right now.
   p = persona
@@ -252,7 +256,7 @@ def generate_new_decomp_schedule(persona, inserted_act, inserted_act_dur,  start
                                             inserted_act_dur)[0]
 
 
-def revise_identity(persona):
+def revise_identity(persona: Persona) -> None:
   p_name = persona.scratch.name
 
   focal_points = [f"{p_name}'s plan for {persona.scratch.get_str_curr_date_str()}.",
@@ -305,7 +309,7 @@ def revise_identity(persona):
   persona.scratch.daily_plan_req = new_daily_req
 
 
-def _long_term_planning(persona, new_day):
+def _long_term_planning(persona: Persona, new_day: Union[str, bool]) -> None:
   """
   Formulates the persona's daily long-term plan if it is the start of a new
   day. This basically has two components: first, we create the wake-up hour,

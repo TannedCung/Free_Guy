@@ -7,9 +7,16 @@ Handles deciding whether to talk/react, conversation generation, choosing which
 retrieved event to focus on, and the reaction coordinators (_should_react,
 _create_react, _chat_react, _wait_react).
 """
+from __future__ import annotations
+
 import datetime
 import math
 import random
+from typing import TYPE_CHECKING, Any, Optional, Union
+
+if TYPE_CHECKING:
+  from persona.persona import Persona
+  from maze import Maze
 
 from constant import debug
 from persona.prompt_template.prompts.conversation import (
@@ -21,7 +28,7 @@ from persona.cognitive_modules.daily_planning import generate_new_decomp_schedul
 from persona.cognitive_modules.converse import agent_chat_v2
 
 
-def generate_convo(maze, init_persona, target_persona):
+def generate_convo(maze: Maze, init_persona: Persona, target_persona: Persona) -> tuple[list[list[str]], int]:
   curr_loc = maze.access_tile(init_persona.scratch.curr_tile)
 
   # convo = run_gpt_prompt_create_conversation(init_persona, target_persona, curr_loc)[0]
@@ -40,12 +47,12 @@ def generate_convo(maze, init_persona, target_persona):
   return convo, convo_length
 
 
-def generate_convo_summary(persona, convo):
+def generate_convo_summary(persona: Persona, convo: list[list[str]]) -> str:
   convo_summary = run_gpt_prompt_summarize_conversation(persona, convo)[0]
   return convo_summary
 
 
-def generate_decide_to_talk(init_persona, target_persona, retrieved):
+def generate_decide_to_talk(init_persona: Persona, target_persona: Persona, retrieved: dict[str, Any]) -> bool:
   x = run_gpt_prompt_decide_to_talk(init_persona, target_persona, retrieved)[0]
   if debug: print ("GNS FUNCTION: <generate_decide_to_talk>")
 
@@ -55,12 +62,12 @@ def generate_decide_to_talk(init_persona, target_persona, retrieved):
     return False
 
 
-def generate_decide_to_react(init_persona, target_persona, retrieved):
+def generate_decide_to_react(init_persona: Persona, target_persona: Persona, retrieved: dict[str, Any]) -> str:
   if debug: print ("GNS FUNCTION: <generate_decide_to_react>")
   return run_gpt_prompt_decide_to_react(init_persona, target_persona, retrieved)[0]
 
 
-def _choose_retrieved(persona, retrieved):
+def _choose_retrieved(persona: Persona, retrieved: dict[str, dict[str, Any]]) -> Optional[dict[str, Any]]:
   """
   Retrieved elements have multiple core "curr_events". We need to choose one
   event to which we are going to react to. We pick that event here.
@@ -85,7 +92,7 @@ def _choose_retrieved(persona, retrieved):
       del retrieved[event_desc]
 
   # Always choose persona first.
-  priority = []
+  priority: list[dict[str, Any]] = []
   for event_desc, rel_ctx in retrieved.items():
     curr_event = rel_ctx["curr_event"]
     if (":" not in curr_event.subject
@@ -104,7 +111,7 @@ def _choose_retrieved(persona, retrieved):
   return None
 
 
-def _should_react(persona, retrieved, personas):
+def _should_react(persona: Persona, retrieved: dict[str, Any], personas: dict[str, Persona]) -> Union[str, bool]:
   """
   Determines what form of reaction the persona should exihibit given the
   retrieved values.
@@ -120,7 +127,7 @@ def _should_react(persona, retrieved, personas):
     personas: A dictionary that contains all persona names as keys, and the
               <Persona> instance as values.
   """
-  def lets_talk(init_persona, target_persona, retrieved):
+  def lets_talk(init_persona: Persona, target_persona: Persona, retrieved: dict[str, Any]) -> bool:
     if (not target_persona.scratch.act_address
         or not target_persona.scratch.act_description
         or not init_persona.scratch.act_address
@@ -151,7 +158,7 @@ def _should_react(persona, retrieved, personas):
 
     return False
 
-  def lets_react(init_persona, target_persona, retrieved):
+  def lets_react(init_persona: Persona, target_persona: Persona, retrieved: dict[str, Any]) -> Union[str, bool]:
     if (not target_persona.scratch.act_address
         or not target_persona.scratch.act_description
         or not init_persona.scratch.act_address
@@ -211,11 +218,15 @@ def _should_react(persona, retrieved, personas):
   return False
 
 
-def _create_react(persona, inserted_act, inserted_act_dur,
-                  act_address, act_event, chatting_with, chat, chatting_with_buffer,
-                  chatting_end_time,
-                  act_pronunciatio, act_obj_description, act_obj_pronunciatio,
-                  act_obj_event, act_start_time=None):
+def _create_react(persona: Persona, inserted_act: str, inserted_act_dur: int,
+                  act_address: str, act_event: tuple[str, str, str],
+                  chatting_with: Optional[str], chat: Optional[list[list[str]]],
+                  chatting_with_buffer: Optional[dict[str, int]],
+                  chatting_end_time: Optional[datetime.datetime],
+                  act_pronunciatio: str, act_obj_description: Optional[str],
+                  act_obj_pronunciatio: Optional[str],
+                  act_obj_event: tuple[Optional[str], Optional[str], Optional[str]],
+                  act_start_time: Optional[datetime.datetime] = None) -> None:
   p = persona
 
   min_sum = 0
@@ -265,7 +276,7 @@ def _create_react(persona, inserted_act, inserted_act_dur,
                            act_start_time)
 
 
-def _chat_react(maze, persona, focused_event, reaction_mode, personas):
+def _chat_react(maze: Maze, persona: Persona, focused_event: dict[str, Any], reaction_mode: str, personas: dict[str, Persona]) -> None:
   # There are two personas -- the persona who is initiating the conversation
   # and the persona who is the target. We get the persona instances here.
   init_persona = persona
@@ -312,7 +323,7 @@ def _chat_react(maze, persona, focused_event, reaction_mode, personas):
       act_obj_event, act_start_time)
 
 
-def _wait_react(persona, reaction_mode):
+def _wait_react(persona: Persona, reaction_mode: str) -> None:
   p = persona
 
   inserted_act = f'waiting to start {p.scratch.act_description.split("(")[-1][:-1]}'

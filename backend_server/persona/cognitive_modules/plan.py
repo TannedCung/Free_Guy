@@ -12,6 +12,14 @@ Sub-modules:
   action_planning  -- action sector/arena/object selection, _determine_action
   reaction_planning -- conversation, reaction decisions, _should_react, _chat_react
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional, Union
+
+if TYPE_CHECKING:
+  from persona.persona import Persona
+  from maze import Maze
+
 # Re-exports for backwards compatibility
 from persona.cognitive_modules.daily_planning import (
     generate_wake_up_hour,
@@ -77,7 +85,7 @@ __all__ = [
 ]
 
 
-def plan(persona, maze, personas, new_day, retrieved):
+def plan(persona: Persona, maze: Maze, personas: dict[str, Persona], new_day: Union[str, bool], retrieved: dict[str, Any]) -> str:
   """
   Main cognitive function of the chain. It takes the retrieved memory and
   perception, as well as the maze and the first day state to conduct both
@@ -116,7 +124,7 @@ def plan(persona, maze, personas, new_day, retrieved):
   #         dictionary {["curr_event"] = <ConceptNode>,
   #                     ["events"] = [<ConceptNode>, ...],
   #                     ["thoughts"] = [<ConceptNode>, ...]}
-  focused_event = False
+  focused_event: Optional[dict[str, Any]] = None
   if retrieved.keys():
     focused_event = _choose_retrieved(persona, retrieved)
 
@@ -128,7 +136,7 @@ def plan(persona, maze, personas, new_day, retrieved):
   #         c) False
   if focused_event:
     reaction_mode = _should_react(persona, focused_event, personas)
-    if reaction_mode:
+    if reaction_mode and isinstance(reaction_mode, str):
       # If we do want to chat, then we generate conversation
       if reaction_mode[:9] == "chat with":
         _chat_react(maze, persona, focused_event, reaction_mode, personas)
