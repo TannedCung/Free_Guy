@@ -31,8 +31,6 @@ from persona.cognitive_modules.converse import agent_chat_v2
 def generate_convo(maze: Maze, init_persona: Persona, target_persona: Persona) -> tuple[list[list[str]], int]:
   curr_loc = maze.access_tile(init_persona.scratch.curr_tile)  # type: ignore[arg-type]
 
-  # convo = run_gpt_prompt_create_conversation(init_persona, target_persona, curr_loc)[0]
-  # convo = agent_chat_v1(maze, init_persona, target_persona)
   convo = agent_chat_v2(maze, init_persona, target_persona)
   all_utt = ""
 

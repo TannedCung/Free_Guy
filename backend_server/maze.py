@@ -8,15 +8,11 @@ world in a 2-dimensional matrix.
 from __future__ import annotations
 
 import json
-import numpy
-import datetime
-import pickle
-import time
 import math
 from typing import Any
 
 from global_methods import read_file_to_list
-from constant import env_matrix, collision_block_id
+from constant import env_matrix
 
 class Maze:
   maze_name: str

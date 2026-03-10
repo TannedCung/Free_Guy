@@ -120,19 +120,7 @@ class ReverieServer:
     # e.g., ["Isabella Rodriguez"] = (58, 39)
     self.personas_tile = dict()
     
-    # # <persona_convo_match> is a dictionary that describes which of the two
-    # # personas are talking to each other. It takes a key of a persona's full
-    # # name, and value of another persona's full name who is talking to the 
-    # # original persona. 
-    # # e.g., dict["Isabella Rodriguez"] = ["Maria Lopez"]
-    # self.persona_convo_match = dict()
-    # # <persona_convo> contains the actual content of the conversations. It
-    # # takes as keys, a pair of persona names, and val of a string convo. 
-    # # Note that the key pairs are *ordered alphabetically*. 
-    # # e.g., dict[("Adam Abraham", "Zane Xu")] = "Adam: baba \n Zane:..."
-    # self.persona_convo = dict()
-
-    # Loading in all personas. 
+    # Loading in all personas.
     init_env_file = f"{sim_folder}/environment/{str(self.step)}.json"
     init_env = json.load(open(init_env_file))
     for persona_name in reverie_meta['persona_names']: 
@@ -617,12 +605,6 @@ class ReverieServer:
 
 
 if __name__ == '__main__':
-  # rs = ReverieServer("base_the_ville_isabella_maria_klaus", 
-  #                    "July1_the_ville_isabella_maria_klaus-step-3-1")
-  # rs = ReverieServer("July1_the_ville_isabella_maria_klaus-step-3-20", 
-  #                    "July1_the_ville_isabella_maria_klaus-step-3-21")
-  # rs.open_server()
-
   origin = input("Enter the name of the forked simulation: ").strip()
   target = input("Enter the name of the new simulation: ").strip()
 

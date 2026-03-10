@@ -4,9 +4,6 @@ Author: Joon Sung Park (joonspk@stanford.edu)
 File: gpt_structure.py
 Description: Wrapper functions for calling OpenAI APIs.
 """
-import json
-import random
-import time
 
 from openai import OpenAI
 

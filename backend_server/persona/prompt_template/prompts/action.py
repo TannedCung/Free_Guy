@@ -105,7 +105,6 @@ def run_gpt_prompt_action_sector(action_description,
   y = f"{maze.access_tile(persona.scratch.curr_tile)['world']}"
   x = [i.strip() for i in persona.s_mem.get_str_accessible_sectors(y).split(",")]
   if output not in x:
-    # output = random.choice(x)
     output = persona.scratch.living_area.split(":")[1]
 
   print ("DEBUG", random.choice(x), "------", output)
@@ -194,7 +193,6 @@ def run_gpt_prompt_action_arena(action_description,
   fail_safe = get_fail_safe()
   output = safe_generate_response(prompt, gpt_param, 5, fail_safe,
                                    __func_validate, __func_clean_up)
-  # print (output)
   if output not in prompt_input[-1]:
     print(f"[ERROR]: Missleading arena {output}")
     output = prompt_input[-1].split(",")[0]

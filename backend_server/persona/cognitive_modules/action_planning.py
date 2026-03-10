@@ -9,7 +9,7 @@ coordinator that decomposes the daily schedule into specific actions.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
   from persona.persona import Persona
@@ -241,7 +241,6 @@ def _determine_action(persona: Persona, maze: Maze) -> None:
   # Finding the target location of the action and creating action-related
   # variables.
   act_world = maze.access_tile(persona.scratch.curr_tile)["world"]  # type: ignore[arg-type]
-  # act_sector = maze.access_tile(persona.scratch.curr_tile)["sector"]
   act_sector = generate_action_sector(act_desp, persona, maze)
   act_arena = generate_action_arena(act_desp, persona, maze, act_world, act_sector)
   act_address = f"{act_world}:{act_sector}:{act_arena}"

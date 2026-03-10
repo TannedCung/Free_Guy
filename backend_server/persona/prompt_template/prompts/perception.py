@@ -3,12 +3,10 @@ Perception-related prompt functions for generative agents.
 
 Functions that score the importance/poignancy of perceived events.
 """
-from constant import debug
 from persona.prompt_template.llm_bridge import (
     generate_prompt,
     ChatGPT_safe_generate_response,
 )
-from persona.prompt_template.print_prompt import print_run_prompts
 
 
 def run_gpt_prompt_event_poignancy(persona, event_description, test_input=None, verbose=False):

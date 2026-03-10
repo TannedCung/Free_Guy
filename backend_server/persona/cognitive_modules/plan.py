@@ -142,8 +142,6 @@ def plan(persona: Persona, maze: Maze, personas: dict[str, Persona], new_day: Un
         _chat_react(maze, persona, focused_event, reaction_mode, personas)
       elif reaction_mode[:4] == "wait":
         _wait_react(persona, reaction_mode)
-      # elif reaction_mode == "do other things":
-      #   _chat_react(persona, focused_event, reaction_mode, personas)
 
   # Step 3: Chat-related state clean up.
   # If the persona is not chatting with anyone, we clean up any of the

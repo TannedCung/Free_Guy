@@ -7,14 +7,11 @@ Description: This defines the "Reflect" module for generative agents.
 from __future__ import annotations
 
 import datetime
-import random
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
   from persona.persona import Persona
 
-from numpy import dot
-from numpy.linalg import norm
 
 from constant import debug
 from persona.memory_structures.associative_memory import ConceptNode
@@ -210,21 +207,6 @@ def reflect(persona: Persona) -> None:
       if persona.scratch.chat: 
         for row in persona.scratch.chat:  
           all_utt += f"{row[0]}: {row[1]}\n"
-
-      # planning_thought = generate_planning_thought_on_convo(persona, all_utt)
-      # print ("init planning: aosdhfpaoisdh90m     ::", f"For {persona.scratch.name}'s planning: {planning_thought}")
-      # planning_thought = generate_planning_thought_on_convo(target_persona, all_utt)
-      # print ("target planning: aosdhfpaodish90m     ::", f"For {target_persona.scratch.name}'s planning: {planning_thought}")
-
-      # memo_thought = generate_memo_on_convo(persona, all_utt)
-      # print ("init memo: aosdhfpaoisdh90m     ::", f"For {persona.scratch.name} {memo_thought}")
-      # memo_thought = generate_memo_on_convo(target_persona, all_utt)
-      # print ("target memo: aosdhfpsaoish90m     ::", f"For {target_persona.scratch.name} {memo_thought}")
-      
-
-      # make sure you set the fillings as well
-
-      # print (persona.a_mem.get_last_chat(persona.scratch.chatting_with).node_id)
 
       evidence = [persona.a_mem.get_last_chat(persona.scratch.chatting_with).node_id]  # type: ignore[arg-type, union-attr]
 

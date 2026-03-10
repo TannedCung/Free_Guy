@@ -10,9 +10,7 @@ paper.
 """
 from __future__ import annotations
 
-import math
 import datetime
-import random
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from persona.memory_structures.spatial_memory import MemoryTree
