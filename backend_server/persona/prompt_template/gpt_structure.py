@@ -54,7 +54,7 @@ def GPT4_request(prompt):
         )
         return completion.choices[0].message.content
 
-    except:
+    except Exception:
         print("ChatGPT ERROR")
         return "ChatGPT ERROR"
 
@@ -79,7 +79,7 @@ def ChatGPT_request(prompt):
         )
         return completion.choices[0].message.content
 
-    except:
+    except Exception:
         print("ChatGPT ERROR")
         return "ChatGPT ERROR"
 
@@ -117,7 +117,7 @@ def GPT4_safe_generate_response(prompt,
                 print(curr_gpt_response)
                 print("~~~~")
 
-        except:
+        except Exception:
             pass
 
     return False
@@ -161,7 +161,7 @@ def ChatGPT_safe_generate_response(prompt,
                 print(curr_gpt_response)
                 print("~~~~")
 
-        except:
+        except Exception:
             pass
 
     return False
@@ -187,7 +187,7 @@ def ChatGPT_safe_generate_response_OLD(prompt,
                 print(curr_gpt_response)
                 print("~~~~")
 
-        except:
+        except Exception:
             pass
     print("FAIL SAFE TRIGGERED")
     return fail_safe_response
@@ -222,7 +222,7 @@ def GPT_request(prompt, gpt_parameter):
             stream=gpt_parameter["stream"],
             stop=gpt_parameter["stop"],)
         return response.choices[0].text
-    except:
+    except Exception:
         print("TOKEN LIMIT EXCEEDED")
         return "TOKEN LIMIT EXCEEDED"
 

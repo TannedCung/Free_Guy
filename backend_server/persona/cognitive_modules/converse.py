@@ -45,11 +45,11 @@ def generate_agent_chat_summarize_ideas(init_persona: Persona,
   for i in all_embedding_keys: 
     all_embedding_key_str += f"{i}\n"
 
-  try: 
+  try:
     summarized_idea = run_gpt_prompt_agent_chat_summarize_ideas(init_persona,
-                        target_persona, all_embedding_key_str, 
+                        target_persona, all_embedding_key_str,
                         curr_context)[0]
-  except:
+  except Exception:
     summarized_idea = ""
   return summarized_idea
 

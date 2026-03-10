@@ -6,6 +6,7 @@ Description: Contains functions used throughout my projects.
 """
 from __future__ import annotations
 
+import logging
 import random
 import string
 import csv
@@ -20,6 +21,8 @@ import shutil, errno
 from typing import Literal, Union, overload
 
 from os import listdir
+
+logger = logging.getLogger(__name__)
 
 def create_folder_if_not_there(curr_path: str) -> bool:
   """
@@ -150,14 +153,15 @@ def get_row_len(curr_file: str) -> Union[int, bool]:
     The number of rows
     False if the file does not exist
   """
-  try: 
+  try:
     analysis_set = set()
-    with open(curr_file) as f_analysis_file: 
+    with open(curr_file) as f_analysis_file:
       data_reader = csv.reader(f_analysis_file, delimiter=",")
-      for count, row in enumerate(data_reader): 
+      for count, row in enumerate(data_reader):
         analysis_set.add(row[0])
     return len(analysis_set)
-  except: 
+  except OSError as e:
+    logger.debug("get_row_len: could not read %s: %s", curr_file, e)
     return False
 
 
@@ -170,10 +174,11 @@ def check_if_file_exists(curr_file: str) -> bool:
     True if the file exists
     False if the file does not exist
   """
-  try: 
-    with open(curr_file) as f_analysis_file: pass
+  try:
+    with open(curr_file) as f_analysis_file:
+      pass
     return True
-  except: 
+  except OSError:
     return False
 
 

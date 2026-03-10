@@ -143,30 +143,31 @@ def get_row_len(curr_file):
     The number of rows
     False if the file does not exist
   """
-  try: 
+  try:
     analysis_set = set()
-    with open(curr_file) as f_analysis_file: 
+    with open(curr_file) as f_analysis_file:
       data_reader = csv.reader(f_analysis_file, delimiter=",")
-      for count, row in enumerate(data_reader): 
+      for count, row in enumerate(data_reader):
         analysis_set.add(row[0])
     return len(analysis_set)
-  except: 
+  except OSError:
     return False
 
 
-def check_if_file_exists(curr_file): 
+def check_if_file_exists(curr_file):
   """
   Checks if a file exists
   ARGS:
-    curr_file: path to the current csv file. 
-  RETURNS: 
+    curr_file: path to the current csv file.
+  RETURNS:
     True if the file exists
     False if the file does not exist
   """
-  try: 
-    with open(curr_file) as f_analysis_file: pass
+  try:
+    with open(curr_file) as f_analysis_file:
+      pass
     return True
-  except: 
+  except OSError:
     return False
 
 

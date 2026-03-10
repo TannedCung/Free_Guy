@@ -64,8 +64,8 @@ def GPT4_request(prompt):
         )
         return completion["choices"][0]["message"]["content"]
 
-    except:
-        print("ChatGPT ERROR")
+    except Exception as e:
+        print(f"ChatGPT ERROR: {e}")
         return "ChatGPT ERROR"
 
 
@@ -130,7 +130,7 @@ def GPT4_safe_generate_response(prompt,
                 print(curr_gpt_response)
                 print("~~~~")
 
-        except:
+        except Exception:
             pass
 
     return False
@@ -197,7 +197,7 @@ def ChatGPT_safe_generate_response_OLD(prompt,
                 print(curr_gpt_response)
                 print("~~~~")
 
-        except:
+        except Exception:
             pass
     print("FAIL SAFE TRIGGERED")
     return fail_safe_response

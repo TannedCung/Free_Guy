@@ -105,7 +105,7 @@ class MemoryTree:
 
     try:
       x = ", ".join(list(self.tree[curr_world][curr_sector][curr_arena]))
-    except:  # noqa: E722
+    except KeyError:
       x = ", ".join(list(self.tree[curr_world][curr_sector][curr_arena.lower()]))
     return x
 

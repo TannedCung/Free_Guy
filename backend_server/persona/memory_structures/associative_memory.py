@@ -255,7 +255,7 @@ class AssociativeMemory:
     try:
       if filling:
         depth += max([self.id_to_node[i].depth for i in filling])
-    except:  # noqa: E722
+    except (KeyError, ValueError):
       pass
 
     # Creating the <ConceptNode> object.

@@ -27,7 +27,7 @@ def run_gpt_prompt_event_poignancy(persona, event_description, test_input=None, 
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   def get_fail_safe():
@@ -42,7 +42,7 @@ def run_gpt_prompt_event_poignancy(persona, event_description, test_input=None, 
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   print("asdhfapsh8p9hfaiafdsi;ldfj as DEBUG 7")  ########

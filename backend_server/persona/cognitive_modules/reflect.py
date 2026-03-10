@@ -59,13 +59,13 @@ def generate_insights_and_evidence(persona: Persona, nodes: list[ConceptNode], n
   ret = run_gpt_prompt_insight_and_guidance(persona, statements, n)[0]
 
   print (ret)
-  try: 
+  try:
 
-    for thought, evi_raw in ret.items(): 
+    for thought, evi_raw in ret.items():
       evidence_node_id = [nodes[i].node_id for i in evi_raw]
       ret[thought] = evidence_node_id
     return ret
-  except: 
+  except Exception:
     return {"this is blank": "node_1"} 
 
 

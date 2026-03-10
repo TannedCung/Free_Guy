@@ -35,8 +35,8 @@ def ChatGPT_request(prompt):
     )
     return completion.choices[0].message.content
 
-  except:
-    print("ChatGPT ERROR")
+  except Exception as e:
+    print(f"ChatGPT ERROR: {e}")
     return "ChatGPT ERROR"
 
 prompt = """

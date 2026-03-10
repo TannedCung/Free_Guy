@@ -22,12 +22,15 @@ from __future__ import annotations
 
 import json
 import datetime
+import logging
 import time
 import math
 import os
 import shutil
 import traceback
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from global_methods import copyanything, check_if_file_exists, read_file_to_list
 from constant import fs_storage, fs_temp_storage, maze_assets_loc
@@ -281,8 +284,8 @@ class ReverieServer:
           outfile.write(json.dumps(s_mem, indent=2))
         print_tree(s_mem)
 
-      except:
-        pass
+      except Exception:
+        logger.debug("path_tester_server: error processing tile, continuing", exc_info=True)
 
       time.sleep(self.server_sleep * 10)
 
@@ -331,13 +334,13 @@ class ReverieServer:
         continue
       # If we have an environment file, it means we have a new perception
       # input to our personas. So we first retrieve it.
-      try: 
+      try:
         # Try and save block for robustness of the while loop.
         with open(curr_env_file) as json_file:
           new_env = json.load(json_file)
           env_retrieved = True
-      except: 
-        pass
+      except Exception:
+        logger.warning("start_server: failed to read env file %s", curr_env_file, exc_info=True)
     
       if env_retrieved: 
         # This is where we go through <game_obj_cleanup> to clean up all 
@@ -607,10 +610,10 @@ class ReverieServer:
 
         print (ret_str)
 
-      except:
+      except Exception:
         traceback.print_exc()
+        logger.error("open_server: command '%s' raised an error", sim_command, exc_info=True)
         print ("Error.")
-        pass
 
 
 if __name__ == '__main__':

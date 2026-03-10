@@ -38,7 +38,7 @@ def run_gpt_prompt_wake_up_hour(persona, test_input=None, verbose=False):
 
   def __func_validate(gpt_response, prompt=""):
     try: __func_clean_up(gpt_response, prompt="")
-    except: return False
+    except Exception: return False
     return True
 
   def get_fail_safe():
@@ -101,7 +101,7 @@ def run_gpt_prompt_daily_plan(persona,
 
   def __func_validate(gpt_response, prompt=""):
     try: __func_clean_up(gpt_response, prompt="")
-    except:
+    except Exception:
       return False
     return True
 
@@ -203,7 +203,7 @@ def run_gpt_prompt_generate_hourly_schedule(persona,
 
   def __func_validate(gpt_response, prompt=""):
     try: __func_clean_up(gpt_response, prompt="")
-    except: return False
+    except Exception: return False
     return True
 
   def get_fail_safe():
@@ -387,7 +387,7 @@ def run_gpt_prompt_task_decomp(persona,
     # TODO -- this sometimes generates error
     try:
       __func_clean_up(gpt_response, prompt=prompt)
-    except:
+    except Exception:
       # pass
       return False
     return gpt_response
@@ -533,7 +533,7 @@ def run_gpt_prompt_new_decomp_schedule(persona,
       if int(dur_sum) != int(delta_min):
         return False
 
-    except:
+    except Exception:
       return False
     return True
 

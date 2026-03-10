@@ -36,7 +36,7 @@ def run_gpt_prompt_event_triple(action_description, persona, verbose=False):
       gpt_response = __func_clean_up(gpt_response, prompt="")
       if len(gpt_response) != 2:
         return False
-    except:
+    except Exception:
       return False
     return True
 
@@ -78,7 +78,7 @@ def run_gpt_prompt_thought_poignancy(persona, event_description, test_input=None
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   def get_fail_safe():
@@ -93,7 +93,7 @@ def run_gpt_prompt_thought_poignancy(persona, event_description, test_input=None
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   print("asdhfapsh8p9hfaiafdsi;ldfj as DEBUG 8")  ########
@@ -129,7 +129,7 @@ def run_gpt_prompt_focal_pt(persona, statements, n, test_input=None, verbose=Fal
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   def get_fail_safe(n):
@@ -144,7 +144,7 @@ def run_gpt_prompt_focal_pt(persona, statements, n, test_input=None, verbose=Fal
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   print("asdhfapsh8p9hfaiafdsi;ldfj as DEBUG 12")  ########
@@ -202,7 +202,7 @@ def run_gpt_prompt_insight_and_guidance(persona, statements, n, test_input=None,
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   def get_fail_safe(n):
@@ -254,7 +254,7 @@ def run_gpt_prompt_extract_keywords(persona, description, test_input=None, verbo
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   def get_fail_safe():
@@ -291,7 +291,7 @@ def run_gpt_prompt_keyword_to_thoughts(persona, keyword, concept_summary, test_i
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   def get_fail_safe():
@@ -339,7 +339,7 @@ def run_gpt_prompt_convo_to_thoughts(persona,
     try:
       __func_clean_up(gpt_response, prompt)
       return True
-    except:
+    except Exception:
       return False
 
   def get_fail_safe():

@@ -282,7 +282,7 @@ def run_gpt_prompt_pronunciatio(action_description, persona, verbose=False):
       __func_clean_up(gpt_response, prompt="")
       if len(gpt_response) == 0:
         return False
-    except: return False
+    except Exception: return False
     return True
 
   def get_fail_safe():
@@ -302,7 +302,7 @@ def run_gpt_prompt_pronunciatio(action_description, persona, verbose=False):
       __func_clean_up(gpt_response, prompt="")
       if len(gpt_response) == 0:
         return False
-    except: return False
+    except Exception: return False
     return True
     return True
 
@@ -340,7 +340,7 @@ def run_gpt_prompt_act_obj_desc(act_game_object, act_desp, persona, verbose=Fals
   def __func_validate(gpt_response, prompt=""):
     try:
       gpt_response = __func_clean_up(gpt_response, prompt="")
-    except:
+    except Exception:
       return False
     return True
 
@@ -357,7 +357,7 @@ def run_gpt_prompt_act_obj_desc(act_game_object, act_desp, persona, verbose=Fals
   def __chat_func_validate(gpt_response, prompt=""): ############
     try:
       gpt_response = __chat_func_clean_up(gpt_response, prompt="")
-    except:
+    except Exception:
       return False
     return True
 
@@ -395,7 +395,7 @@ def run_gpt_prompt_act_obj_event_triple(act_game_object, act_obj_desc, persona, 
       gpt_response = __func_clean_up(gpt_response, prompt="")
       if len(gpt_response) != 2:
         return False
-    except: return False
+    except Exception: return False
     return True
 
   def get_fail_safe(act_game_object):
