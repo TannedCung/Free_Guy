@@ -5,15 +5,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # OpenAI API key loaded from environment variable OPENAI_API_KEY
-openai_api_key = os.environ.get('OPENAI_API_KEY', '')
+openai_api_key = os.environ.get("OPENAI_API_KEY", "")
 if not openai_api_key:
-    raise ValueError(
-        "OPENAI_API_KEY environment variable is required. "
-        "Copy .env.example to .env and set a value."
-    )
+    raise ValueError("OPENAI_API_KEY environment variable is required. Copy .env.example to .env and set a value.")
 
 # Put your name
-key_owner = os.environ.get('KEY_OWNER', 'unknown')
+key_owner = os.environ.get("KEY_OWNER", "unknown")
 
 maze_assets_loc = "..//frontend_server/static_dirs/assets"
 # maze_assets_loc = "frontend_server/static_dirs/assets"
@@ -27,5 +24,5 @@ fs_temp_storage = "..//frontend_server/temp_storage"
 
 collision_block_id = "32125"
 
-# Verbose 
+# Verbose
 debug = True

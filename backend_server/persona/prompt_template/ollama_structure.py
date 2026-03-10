@@ -4,12 +4,14 @@ Author: TannedCung (tando1903@gmail.com)
 File: ollama_structure.py
 Description: Wrapper functions for calling OpenAI APIs.
 """
+
 import json
-import openai
-import time
-from openai import OpenAI
-from ollama._client import Client
 import logging
+import time
+
+import openai
+from ollama._client import Client
+from openai import OpenAI
 
 from constant import openai_api_key
 
@@ -18,10 +20,11 @@ openai.api_key = openai_api_key
 logger = logging.getLogger(__name__)
 
 client = OpenAI(
-    base_url = 'http://localhost:11434/v1',
-    api_key='ollama', # required, but unused
+    base_url="http://localhost:11434/v1",
+    api_key="ollama",  # required, but unused
 )
-ollama_client = Client(host='http://localhost:11434/')
+ollama_client = Client(host="http://localhost:11434/")
+
 
 def temp_sleep(seconds=0.1):
     time.sleep(seconds)
@@ -30,10 +33,7 @@ def temp_sleep(seconds=0.1):
 def ChatGPT_single_request(prompt):
     temp_sleep()
 
-    completion = client.chat.completions.create(
-        model="gemma2",
-        messages=[{"role": "user", "content": prompt}]
-    )
+    completion = client.chat.completions.create(model="gemma2", messages=[{"role": "user", "content": prompt}])
     return completion["choices"][0]["message"]["content"]
 
 
@@ -41,25 +41,23 @@ def ChatGPT_single_request(prompt):
 # #####################[SECTION 1: CHATGPT-3 STRUCTURE] ######################
 # ============================================================================
 
+
 def GPT4_request(prompt):
     """
     Given a prompt and a dictionary of GPT parameters, make a request to OpenAI
-    server and returns the response. 
+    server and returns the response.
     ARGS:
       prompt: a str prompt
-      gpt_parameter: a python dictionary with the keys indicating the names of  
-                     the parameter and the values indicating the parameter 
-                     values.   
-    RETURNS: 
-      a str of GPT-3's response. 
+      gpt_parameter: a python dictionary with the keys indicating the names of
+                     the parameter and the values indicating the parameter
+                     values.
+    RETURNS:
+      a str of GPT-3's response.
     """
     temp_sleep()
 
     try:
-        completion = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}]
-        )
+        completion = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": prompt}])
         return completion["choices"][0]["message"]["content"]
 
     except Exception as e:
@@ -70,23 +68,20 @@ def GPT4_request(prompt):
 def ChatGPT_request(prompt):
     """
     Given a prompt and a dictionary of GPT parameters, make a request to OpenAI
-    server and returns the response. 
+    server and returns the response.
     ARGS:
       prompt: a str prompt
-      gpt_parameter: a python dictionary with the keys indicating the names of  
-                     the parameter and the values indicating the parameter 
-                     values.   
-    RETURNS: 
-      a str of GPT-3's response. 
+      gpt_parameter: a python dictionary with the keys indicating the names of
+                     the parameter and the values indicating the parameter
+                     values.
+    RETURNS:
+      a str of GPT-3's response.
     """
     # temp_sleep()
     logger.debug(f"[Prompt]: {prompt}")
     try:
-        completion = client.chat.completions.create(
-            model="gemma2",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        
+        completion = client.chat.completions.create(model="gemma2", messages=[{"role": "user", "content": prompt}])
+
         logger.debug("[Response]: {}".format(completion.choices[0].message.content))
         return completion.choices[0].message.content
 
@@ -95,14 +90,16 @@ def ChatGPT_request(prompt):
         return "Ollama ERROR"
 
 
-def GPT4_safe_generate_response(prompt,
-                                example_output,
-                                special_instruction,
-                                repeat=3,
-                                fail_safe_response="error",
-                                func_validate=None,
-                                func_clean_up=None,
-                                verbose=False):
+def GPT4_safe_generate_response(
+    prompt,
+    example_output,
+    special_instruction,
+    repeat=3,
+    fail_safe_response="error",
+    func_validate=None,
+    func_clean_up=None,
+    verbose=False,
+):
     prompt = 'Gemma2 Prompt:\n"""\n' + prompt + '\n"""\n'
     prompt += f"Output the response to the prompt above in json. {special_instruction}\n"
     prompt += "Example output json:\n"
@@ -113,10 +110,9 @@ def GPT4_safe_generate_response(prompt,
         print(prompt)
 
     for i in range(repeat):
-
         try:
             curr_gpt_response = GPT4_request(prompt).strip()
-            end_index = curr_gpt_response.rfind('}') + 1
+            end_index = curr_gpt_response.rfind("}") + 1
             curr_gpt_response = curr_gpt_response[:end_index]
             curr_gpt_response = json.loads(curr_gpt_response)["output"]
 
@@ -134,14 +130,16 @@ def GPT4_safe_generate_response(prompt,
     return False
 
 
-def ChatGPT_safe_generate_response(prompt,
-                                   example_output,
-                                   special_instruction,
-                                   repeat=3,
-                                   fail_safe_response="error",
-                                   func_validate=None,
-                                   func_clean_up=None,
-                                   verbose=False):
+def ChatGPT_safe_generate_response(
+    prompt,
+    example_output,
+    special_instruction,
+    repeat=3,
+    fail_safe_response="error",
+    func_validate=None,
+    func_clean_up=None,
+    verbose=False,
+):
     # prompt = 'GPT-3 Prompt:\n"""\n' + prompt + '\n"""\n'
     prompt = '"""\n' + prompt + '\n"""\n'
     prompt += f"Output the response to the prompt above in json. {special_instruction}\n"
@@ -155,8 +153,8 @@ def ChatGPT_safe_generate_response(prompt,
     for i in range(repeat):
         try:
             curr_gpt_response = ChatGPT_request(prompt).strip()
-            start_index = curr_gpt_response.rfind('{')
-            end_index = curr_gpt_response.rfind('}') + 1
+            start_index = curr_gpt_response.rfind("{")
+            end_index = curr_gpt_response.rfind("}") + 1
             curr_gpt_response = curr_gpt_response[start_index:end_index]
             curr_gpt_response = json.loads(curr_gpt_response)["output"]
 
@@ -169,18 +167,15 @@ def ChatGPT_safe_generate_response(prompt,
                 print("~~~~")
 
         except Exception as e:
-            print(f"[ERROR]: ChatGPT_safe_generate_response: {e}") 
+            print(f"[ERROR]: ChatGPT_safe_generate_response: {e}")
             pass
 
     return False
 
 
-def ChatGPT_safe_generate_response_OLD(prompt,
-                                       repeat=3,
-                                       fail_safe_response="error",
-                                       func_validate=None,
-                                       func_clean_up=None,
-                                       verbose=False):
+def ChatGPT_safe_generate_response_OLD(
+    prompt, repeat=3, fail_safe_response="error", func_validate=None, func_clean_up=None, verbose=False
+):
     if verbose:
         print("CHAT GPT PROMPT")
         print(prompt)
@@ -205,16 +200,17 @@ def ChatGPT_safe_generate_response_OLD(prompt,
 # ###################[SECTION 2: ORIGINAL GPT-3 STRUCTURE] ###################
 # ============================================================================
 
+
 def GPT_request(prompt, gpt_parameter):
     """
     Given a prompt and a dictionary of GPT parameters, make a request to OpenAI
-    server and returns the response. 
+    server and returns the response.
     ARGS:
       prompt: a str prompt
-      gpt_parameter: a python dictionaery with the keys indicating the names of  
-                     the parameter and the values indicating the parameter 
-                     values.   
-    RETURNS: 
+      gpt_parameter: a python dictionaery with the keys indicating the names of
+                     the parameter and the values indicating the parameter
+                     values.
+    RETURNS:
       a str of GPT-3's response. Describe subtasks in 5 min increments
     """
     temp_sleep()
@@ -224,8 +220,8 @@ def GPT_request(prompt, gpt_parameter):
             model=gpt_parameter["engine"],
             messages=[
                 {
-                    'role': 'user',
-                    'content': f'{prompt}',
+                    "role": "user",
+                    "content": f"{prompt}",
                 }
             ],
             temperature=gpt_parameter["temperature"],
@@ -234,7 +230,8 @@ def GPT_request(prompt, gpt_parameter):
             frequency_penalty=gpt_parameter["frequency_penalty"],
             presence_penalty=gpt_parameter["presence_penalty"],
             stream=gpt_parameter["stream"],
-            stop=gpt_parameter["stop"],)
+            stop=gpt_parameter["stop"],
+        )
         logger.debug("[Response]: {}".format(response.choices[0].message.content))
         return response.choices[0].message.content
     except Exception as e:
@@ -244,19 +241,19 @@ def GPT_request(prompt, gpt_parameter):
 
 def generate_prompt(curr_input, prompt_lib_file):
     """
-    Takes in the current input (e.g. comment that you want to classifiy) and 
+    Takes in the current input (e.g. comment that you want to classifiy) and
     the path to a prompt file. The prompt file contains the raw str prompt that
-    will be used, which contains the following substr: !<INPUT>! -- this 
-    function replaces this substr with the actual curr_input to produce the 
-    final promopt that will be sent to the GPT3 server. 
+    will be used, which contains the following substr: !<INPUT>! -- this
+    function replaces this substr with the actual curr_input to produce the
+    final promopt that will be sent to the GPT3 server.
     ARGS:
       curr_input: the input we want to feed in (IF THERE ARE MORE THAN ONE
                   INPUT, THIS CAN BE A LIST.)
-      prompt_lib_file: the path to the promopt file. 
-    RETURNS: 
-      a str prompt that will be sent to OpenAI's GPT server.  
+      prompt_lib_file: the path to the promopt file.
+    RETURNS:
+      a str prompt that will be sent to OpenAI's GPT server.
     """
-    if type(curr_input) == type("string"):
+    if isinstance(curr_input, str):
         curr_input = [curr_input]
     curr_input = [str(i) for i in curr_input]
 
@@ -266,18 +263,13 @@ def generate_prompt(curr_input, prompt_lib_file):
     for count, i in enumerate(curr_input):
         prompt = prompt.replace(f"!<INPUT {count}>!", i)
     if "<commentblockmarker>###</commentblockmarker>" in prompt:
-        prompt = prompt.split(
-            "<commentblockmarker>###</commentblockmarker>")[1]
+        prompt = prompt.split("<commentblockmarker>###</commentblockmarker>")[1]
     return prompt.strip()
 
 
-def safe_generate_response(prompt,
-                           gpt_parameter,
-                           repeat=2,
-                           fail_safe_response="error",
-                           func_validate=None,
-                           func_clean_up=None,
-                           verbose=False):
+def safe_generate_response(
+    prompt, gpt_parameter, repeat=2, fail_safe_response="error", func_validate=None, func_clean_up=None, verbose=False
+):
     if verbose:
         print(prompt)
 
@@ -296,15 +288,20 @@ def get_embedding(text, model="nomic-embed-text"):
     text = text.replace("\n", " ")
     if not text:
         text = "this is blank"
-    return ollama_client.embeddings(
-        prompt=text, model=model)
+    return ollama_client.embeddings(prompt=text, model=model)
 
 
-if __name__ == '__main__':
-    gpt_parameter = {"engine": "gemma2", "max_tokens": 4096,
-                     "temperature": 0, "top_p": 1, "stream": False,
-                     "frequency_penalty": 0, "presence_penalty": 0,
-                     "stop": ['"']}
+if __name__ == "__main__":
+    gpt_parameter = {
+        "engine": "gemma2",
+        "max_tokens": 4096,
+        "temperature": 0,
+        "top_p": 1,
+        "stream": False,
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "stop": ['"'],
+    }
     curr_input = ["driving to a friend's house"]
     prompt_lib_file = "persona/prompt_template/v1/test_prompt_July5.txt"
     prompt = generate_prompt(curr_input, prompt_lib_file)
@@ -320,12 +317,6 @@ if __name__ == '__main__':
         cleaned_response = gpt_response.strip()
         return cleaned_response
 
-    output = safe_generate_response(prompt,
-                                    gpt_parameter,
-                                    5,
-                                    "rest",
-                                    __func_validate,
-                                    __func_clean_up,
-                                    True)
+    output = safe_generate_response(prompt, gpt_parameter, 5, "rest", __func_validate, __func_clean_up, True)
 
     print(output)

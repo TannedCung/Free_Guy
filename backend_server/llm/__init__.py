@@ -9,8 +9,9 @@ Provider implementations live in sub-modules (US-020, US-021):
     llm.openai_provider — OpenAIProvider
     llm.ollama_provider — OllamaProvider
 """
-from llm.protocol import LLMConfig, LLMProvider
+
 from llm.factory import get_default_config, get_provider
+from llm.protocol import LLMConfig, LLMProvider
 
 __all__ = [
     "LLMProvider",

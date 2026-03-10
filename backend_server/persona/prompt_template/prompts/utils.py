@@ -1,6 +1,7 @@
 """
 Shared utility functions for prompt modules.
 """
+
 import random
 import string
 
@@ -17,5 +18,5 @@ def get_random_alphanumeric(i=6, j=6):
       an alpha numeric str with the length of somewhere between i and j.
     """
     k = random.randint(i, j)
-    x = ''.join(random.choices(string.ascii_letters + string.digits, k=k))
+    x = "".join(random.choices(string.ascii_letters + string.digits, k=k))
     return x

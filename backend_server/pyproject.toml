@@ -86,3 +86,45 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_return_any = false
 warn_unused_ignores = false
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    "Dockerfile.py",
+    ".git",
+    "__pycache__",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes (includes F401 unused imports)
+    "I",   # isort (import sorting)
+    "E722", # bare except
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Legacy files with complex imports that can't be easily sorted
+"persona/prompt_template/gpt_structure.py" = ["I001"]
+# Cognitive modules use `if debug: print()` single-line pattern throughout
+"persona/cognitive_modules/action_planning.py" = ["E701"]
+"persona/cognitive_modules/converse.py" = ["E701"]
+"persona/cognitive_modules/daily_planning.py" = ["E701"]
+"persona/cognitive_modules/reaction_planning.py" = ["E701"]
+"persona/cognitive_modules/reflect.py" = ["E701"]
+# Prompt modules use single-line validation patterns and `!= False` sentinel checks
+"persona/prompt_template/prompts/action.py" = ["E701", "E712"]
+"persona/prompt_template/prompts/conversation.py" = ["E712"]
+"persona/prompt_template/prompts/perception.py" = ["E712"]
+"persona/prompt_template/prompts/planning.py" = ["E701", "E712"]
+"persona/prompt_template/prompts/reflection.py" = ["E712"]
+# maze.py uses compact for-loop style for dict building
+"maze.py" = ["E701"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

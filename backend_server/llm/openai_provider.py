@@ -11,6 +11,7 @@ Usage::
     provider = get_provider(config)
     reply = provider.chat([{"role": "user", "content": "Hello!"}])
 """
+
 from __future__ import annotations
 
 import logging
@@ -101,7 +102,7 @@ class OpenAIProvider:
                 return content
             except openai.RateLimitError as exc:
                 last_exc = exc
-                sleep = _BASE_SLEEP_SECONDS * (2 ** attempt)
+                sleep = _BASE_SLEEP_SECONDS * (2**attempt)
                 logger.warning(
                     "[OpenAI chat] rate-limited on attempt %d, sleeping %.1fs",
                     attempt,
@@ -110,7 +111,7 @@ class OpenAIProvider:
                 time.sleep(sleep)
             except openai.APIConnectionError as exc:
                 last_exc = exc
-                sleep = _BASE_SLEEP_SECONDS * (2 ** attempt)
+                sleep = _BASE_SLEEP_SECONDS * (2**attempt)
                 logger.warning(
                     "[OpenAI chat] connection error on attempt %d, sleeping %.1fs: %s",
                     attempt,
@@ -122,7 +123,7 @@ class OpenAIProvider:
                 # 5xx server errors → retry; 4xx client errors → raise immediately
                 if exc.status_code >= 500:
                     last_exc = exc
-                    sleep = _BASE_SLEEP_SECONDS * (2 ** attempt)
+                    sleep = _BASE_SLEEP_SECONDS * (2**attempt)
                     logger.warning(
                         "[OpenAI chat] server error %d on attempt %d, sleeping %.1fs",
                         exc.status_code,
@@ -162,7 +163,7 @@ class OpenAIProvider:
                 return response.data[0].embedding
             except openai.RateLimitError as exc:
                 last_exc = exc
-                sleep = _BASE_SLEEP_SECONDS * (2 ** attempt)
+                sleep = _BASE_SLEEP_SECONDS * (2**attempt)
                 logger.warning(
                     "[OpenAI embed] rate-limited on attempt %d, sleeping %.1fs",
                     attempt,
@@ -171,7 +172,7 @@ class OpenAIProvider:
                 time.sleep(sleep)
             except openai.APIConnectionError as exc:
                 last_exc = exc
-                sleep = _BASE_SLEEP_SECONDS * (2 ** attempt)
+                sleep = _BASE_SLEEP_SECONDS * (2**attempt)
                 logger.warning(
                     "[OpenAI embed] connection error on attempt %d, sleeping %.1fs: %s",
                     attempt,
@@ -182,7 +183,7 @@ class OpenAIProvider:
             except openai.APIStatusError as exc:
                 if exc.status_code >= 500:
                     last_exc = exc
-                    sleep = _BASE_SLEEP_SECONDS * (2 ** attempt)
+                    sleep = _BASE_SLEEP_SECONDS * (2**attempt)
                     logger.warning(
                         "[OpenAI embed] server error %d on attempt %d, sleeping %.1fs",
                         exc.status_code,

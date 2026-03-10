@@ -1,0 +1,22 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^backend_server/
+      - id: ruff-format
+        files: ^backend_server/
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        files: ^backend_server/
+        args:
+          - --config-file=backend_server/pyproject.toml
+          - --explicit-package-bases
+          - --ignore-missing-imports
+        additional_dependencies:
+          - types-python-dateutil
+          - types-requests

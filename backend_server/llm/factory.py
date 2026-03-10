@@ -8,6 +8,7 @@ Usage::
     config = get_default_config()   # reads env vars
     provider = get_provider(config) # returns an LLMProvider instance
 """
+
 from __future__ import annotations
 
 import os
@@ -46,9 +47,7 @@ def get_default_config() -> LLMConfig:
 
     embedding_provider = os.environ.get("EMBEDDING_PROVIDER", provider).lower()
     default_embed_model = (
-        _DEFAULT_EMBEDDING_MODEL_OPENAI
-        if embedding_provider == "openai"
-        else _DEFAULT_EMBEDDING_MODEL_OLLAMA
+        _DEFAULT_EMBEDDING_MODEL_OPENAI if embedding_provider == "openai" else _DEFAULT_EMBEDDING_MODEL_OLLAMA
     )
     embedding_model = os.environ.get("EMBEDDING_MODEL", default_embed_model)
 
@@ -65,6 +64,7 @@ def get_default_config() -> LLMConfig:
 # ---------------------------------------------------------------------------
 # Provider factory
 # ---------------------------------------------------------------------------
+
 
 def get_provider(config: LLMConfig) -> LLMProvider:
     """Instantiate and return the :class:`LLMProvider` described by *config*.
@@ -87,13 +87,12 @@ def get_provider(config: LLMConfig) -> LLMProvider:
 
     if provider == "openai":
         from llm.openai_provider import OpenAIProvider
+
         return OpenAIProvider(config)
 
     if provider == "ollama":
         from llm.ollama_provider import OllamaProvider
+
         return OllamaProvider(config)
 
-    raise ValueError(
-        f"Unknown LLM provider: {config.provider!r}. "
-        "Supported values: 'openai', 'ollama'."
-    )
+    raise ValueError(f"Unknown LLM provider: {config.provider!r}. Supported values: 'openai', 'ollama'.")

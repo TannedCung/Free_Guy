@@ -4,6 +4,7 @@ Author: Joon Sung Park (joonspk@stanford.edu)
 File: gpt_structure.py
 Description: Wrapper functions for calling OpenAI APIs.
 """
+
 import json
 import time
 
@@ -21,16 +22,14 @@ def temp_sleep(seconds=0.1):
 def ChatGPT_single_request(prompt):
     temp_sleep()
 
-    completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
+    completion = client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}])
     return completion.choices[0].message.content
 
 
 # ============================================================================
 # #####################[SECTION 1: CHATGPT-3 STRUCTURE] ######################
 # ============================================================================
+
 
 def GPT4_request(prompt):
     """
@@ -47,10 +46,7 @@ def GPT4_request(prompt):
     temp_sleep()
 
     try:
-        completion = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}]
-        )
+        completion = client.chat.completions.create(model="gpt-4", messages=[{"role": "user", "content": prompt}])
         return completion.choices[0].message.content
 
     except Exception:
@@ -73,8 +69,7 @@ def ChatGPT_request(prompt):
     # temp_sleep()
     try:
         completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}]
+            model="gpt-3.5-turbo", messages=[{"role": "user", "content": prompt}]
         )
         return completion.choices[0].message.content
 
@@ -83,14 +78,16 @@ def ChatGPT_request(prompt):
         return "ChatGPT ERROR"
 
 
-def GPT4_safe_generate_response(prompt,
-                                example_output,
-                                special_instruction,
-                                repeat=3,
-                                fail_safe_response="error",
-                                func_validate=None,
-                                func_clean_up=None,
-                                verbose=False):
+def GPT4_safe_generate_response(
+    prompt,
+    example_output,
+    special_instruction,
+    repeat=3,
+    fail_safe_response="error",
+    func_validate=None,
+    func_clean_up=None,
+    verbose=False,
+):
     prompt = 'GPT-3 Prompt:\n"""\n' + prompt + '\n"""\n'
     prompt += f"Output the response to the prompt above in json. {special_instruction}\n"
     prompt += "Example output json:\n"
@@ -101,10 +98,9 @@ def GPT4_safe_generate_response(prompt,
         print(prompt)
 
     for i in range(repeat):
-
         try:
             curr_gpt_response = GPT4_request(prompt).strip()
-            end_index = curr_gpt_response.rfind('}') + 1
+            end_index = curr_gpt_response.rfind("}") + 1
             curr_gpt_response = curr_gpt_response[:end_index]
             curr_gpt_response = json.loads(curr_gpt_response)["output"]
 
@@ -122,14 +118,16 @@ def GPT4_safe_generate_response(prompt,
     return False
 
 
-def ChatGPT_safe_generate_response(prompt,
-                                   example_output,
-                                   special_instruction,
-                                   repeat=3,
-                                   fail_safe_response="error",
-                                   func_validate=None,
-                                   func_clean_up=None,
-                                   verbose=False):
+def ChatGPT_safe_generate_response(
+    prompt,
+    example_output,
+    special_instruction,
+    repeat=3,
+    fail_safe_response="error",
+    func_validate=None,
+    func_clean_up=None,
+    verbose=False,
+):
     # prompt = 'GPT-3 Prompt:\n"""\n' + prompt + '\n"""\n'
     prompt = '"""\n' + prompt + '\n"""\n'
     prompt += f"Output the response to the prompt above in json. {special_instruction}\n"
@@ -141,10 +139,9 @@ def ChatGPT_safe_generate_response(prompt,
         print(prompt)
 
     for i in range(repeat):
-
         try:
             curr_gpt_response = ChatGPT_request(prompt).strip()
-            end_index = curr_gpt_response.rfind('}') + 1
+            end_index = curr_gpt_response.rfind("}") + 1
             curr_gpt_response = curr_gpt_response[:end_index]
             curr_gpt_response = json.loads(curr_gpt_response)["output"]
 
@@ -166,12 +163,9 @@ def ChatGPT_safe_generate_response(prompt,
     return False
 
 
-def ChatGPT_safe_generate_response_OLD(prompt,
-                                       repeat=3,
-                                       fail_safe_response="error",
-                                       func_validate=None,
-                                       func_clean_up=None,
-                                       verbose=False):
+def ChatGPT_safe_generate_response_OLD(
+    prompt, repeat=3, fail_safe_response="error", func_validate=None, func_clean_up=None, verbose=False
+):
     if verbose:
         print("CHAT GPT PROMPT")
         print(prompt)
@@ -196,6 +190,7 @@ def ChatGPT_safe_generate_response_OLD(prompt,
 # ###################[SECTION 2: ORIGINAL GPT-3 STRUCTURE] ###################
 # ============================================================================
 
+
 def GPT_request(prompt, gpt_parameter):
     """
     Given a prompt and a dictionary of GPT parameters, make a request to OpenAI
@@ -219,7 +214,8 @@ def GPT_request(prompt, gpt_parameter):
             frequency_penalty=gpt_parameter["frequency_penalty"],
             presence_penalty=gpt_parameter["presence_penalty"],
             stream=gpt_parameter["stream"],
-            stop=gpt_parameter["stop"],)
+            stop=gpt_parameter["stop"],
+        )
         return response.choices[0].text
     except Exception:
         print("TOKEN LIMIT EXCEEDED")
@@ -240,7 +236,7 @@ def generate_prompt(curr_input, prompt_lib_file):
     RETURNS:
       a str prompt that will be sent to OpenAI's GPT server.
     """
-    if type(curr_input) == type("string"):
+    if isinstance(curr_input, str):
         curr_input = [curr_input]
     curr_input = [str(i) for i in curr_input]
 
@@ -250,18 +246,13 @@ def generate_prompt(curr_input, prompt_lib_file):
     for count, i in enumerate(curr_input):
         prompt = prompt.replace(f"!<INPUT {count}>!", i)
     if "<commentblockmarker>###</commentblockmarker>" in prompt:
-        prompt = prompt.split(
-            "<commentblockmarker>###</commentblockmarker>")[1]
+        prompt = prompt.split("<commentblockmarker>###</commentblockmarker>")[1]
     return prompt.strip()
 
 
-def safe_generate_response(prompt,
-                           gpt_parameter,
-                           repeat=5,
-                           fail_safe_response="error",
-                           func_validate=None,
-                           func_clean_up=None,
-                           verbose=False):
+def safe_generate_response(
+    prompt, gpt_parameter, repeat=5, fail_safe_response="error", func_validate=None, func_clean_up=None, verbose=False
+):
     if verbose:
         print(prompt)
 
@@ -284,11 +275,17 @@ def get_embedding(text, model="text-embedding-ada-002"):
     return response.data[0].embedding
 
 
-if __name__ == '__main__':
-    gpt_parameter = {"engine": "gemma2", "max_tokens": 4096,
-                     "temperature": 0, "top_p": 1, "stream": False,
-                     "frequency_penalty": 0, "presence_penalty": 0,
-                     "stop": ['"']}
+if __name__ == "__main__":
+    gpt_parameter = {
+        "engine": "gemma2",
+        "max_tokens": 4096,
+        "temperature": 0,
+        "top_p": 1,
+        "stream": False,
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "stop": ['"'],
+    }
     curr_input = ["driving to a friend's house"]
     prompt_lib_file = "prompt_template/test_prompt_July5.txt"
     prompt = generate_prompt(curr_input, prompt_lib_file)
@@ -304,12 +301,6 @@ if __name__ == '__main__':
         cleaned_response = gpt_response.strip()
         return cleaned_response
 
-    output = safe_generate_response(prompt,
-                                    gpt_parameter,
-                                    5,
-                                    "rest",
-                                    __func_validate,
-                                    __func_clean_up,
-                                    True)
+    output = safe_generate_response(prompt, gpt_parameter, 5, "rest", __func_validate, __func_clean_up, True)
 
     print(output)

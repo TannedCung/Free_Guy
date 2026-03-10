@@ -5,6 +5,7 @@ Defines the structural interface (Protocol) that all LLM provider
 implementations must satisfy, plus the LLMConfig dataclass used to
 configure provider instances.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

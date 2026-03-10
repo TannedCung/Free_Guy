@@ -9,6 +9,7 @@ changes (LLM_PROVIDER, LLM_MODEL, EMBEDDING_PROVIDER, EMBEDDING_MODEL, etc.).
 Non-LLM utilities (generate_prompt for template file I/O) are also provided here
 so callers only need one import location.
 """
+
 from __future__ import annotations
 
 import json
@@ -130,9 +131,7 @@ def ChatGPT_safe_generate_response(
     """
     provider = _get_provider()
     full_prompt = '"""\n' + prompt + '\n"""\n'
-    full_prompt += (
-        f"Output the response to the prompt above in json. {special_instruction}\n"
-    )
+    full_prompt += f"Output the response to the prompt above in json. {special_instruction}\n"
     full_prompt += "Example output in json string format:\n"
     full_prompt += '{"output": "' + str(example_output) + '"}'
 

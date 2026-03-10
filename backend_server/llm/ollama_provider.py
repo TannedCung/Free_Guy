@@ -16,13 +16,14 @@ Usage::
     provider = get_provider(config)
     reply = provider.chat([{"role": "user", "content": "Hello!"}])
 """
+
 from __future__ import annotations
 
 import logging
 import time
 from typing import Any
 
-from openai import OpenAI, APIConnectionError, APIStatusError
+from openai import APIConnectionError, APIStatusError, OpenAI
 
 from llm.protocol import LLMConfig
 
@@ -64,6 +65,7 @@ class OllamaProvider:
         )
         # Native client for embeddings (ollama Python package)
         from ollama._client import Client as OllamaClient  # type: ignore[import]
+
         self._ollama_client = OllamaClient(host=base_url)
 
     # ------------------------------------------------------------------
@@ -118,7 +120,7 @@ class OllamaProvider:
                 return content
             except APIConnectionError as exc:
                 last_exc = exc
-                sleep = _BASE_SLEEP_SECONDS * (2 ** attempt)
+                sleep = _BASE_SLEEP_SECONDS * (2**attempt)
                 logger.warning(
                     "[Ollama chat] connection error on attempt %d, sleeping %.1fs: %s",
                     attempt,
@@ -130,7 +132,7 @@ class OllamaProvider:
                 # 5xx server errors → retry; 4xx client errors → raise immediately
                 if exc.status_code >= 500:
                     last_exc = exc
-                    sleep = _BASE_SLEEP_SECONDS * (2 ** attempt)
+                    sleep = _BASE_SLEEP_SECONDS * (2**attempt)
                     logger.warning(
                         "[Ollama chat] server error %d on attempt %d, sleeping %.1fs",
                         exc.status_code,
@@ -169,7 +171,7 @@ class OllamaProvider:
                 return embedding
             except Exception as exc:
                 last_exc = exc
-                sleep = _BASE_SLEEP_SECONDS * (2 ** attempt)
+                sleep = _BASE_SLEEP_SECONDS * (2**attempt)
                 logger.warning(
                     "[Ollama embed] error on attempt %d, sleeping %.1fs: %s",
                     attempt,
