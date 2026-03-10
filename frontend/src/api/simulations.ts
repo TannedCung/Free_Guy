@@ -1,0 +1,81 @@
+/**
+ * API client for simulation endpoints.
+ * All endpoints served by the Django backend at /api/v1/
+ */
+
+const API_BASE = '/api/v1'
+
+export interface AgentLocation {
+  maze: string
+  x: number
+  y: number
+}
+
+export interface Agent {
+  id: string
+  name: string
+  first_name: string | null
+  last_name: string | null
+  age: number | null
+  innate: string | null
+  currently: string | null
+  location: AgentLocation | null
+}
+
+export interface SimulationMeta {
+  id: string
+  name: string
+  fork_sim_code: string | null
+  start_date: string | null
+  curr_time: string | null
+  sec_per_step: number | null
+  maze_name: string | null
+  persona_names: string[]
+  step: number
+}
+
+export interface SimulationAgentsResponse {
+  simulation_id: string
+  step: number | null
+  agents: Agent[]
+}
+
+export interface SimulationsListResponse {
+  simulations: SimulationMeta[]
+}
+
+export async function fetchSimulations(): Promise<SimulationsListResponse> {
+  const res = await fetch(`${API_BASE}/simulations/`)
+  if (!res.ok) throw new Error(`Failed to fetch simulations: ${res.status}`)
+  return res.json() as Promise<SimulationsListResponse>
+}
+
+export async function fetchSimulation(simId: string): Promise<SimulationMeta> {
+  const res = await fetch(`${API_BASE}/simulations/${encodeURIComponent(simId)}/`)
+  if (!res.ok) throw new Error(`Failed to fetch simulation: ${res.status}`)
+  return res.json() as Promise<SimulationMeta>
+}
+
+export async function fetchSimulationAgents(simId: string): Promise<SimulationAgentsResponse> {
+  const res = await fetch(`${API_BASE}/simulations/${encodeURIComponent(simId)}/agents/`)
+  if (!res.ok) throw new Error(`Failed to fetch agents: ${res.status}`)
+  return res.json() as Promise<SimulationAgentsResponse>
+}
+
+export async function createSimulation(
+  name: string,
+  forkFrom?: string,
+): Promise<SimulationMeta> {
+  const body: Record<string, string> = { name }
+  if (forkFrom) body.fork_from = forkFrom
+  const res = await fetch(`${API_BASE}/simulations/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const err = (await res.json()) as { error?: string }
+    throw new Error(err.error ?? `Failed to create simulation: ${res.status}`)
+  }
+  return res.json() as Promise<SimulationMeta>
+}
