@@ -130,6 +130,9 @@ STATICFILES_DIRS = (
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(os.path.dirname(BASE_DIR), "media_root")
 
+# React SPA — path to the built frontend (frontend/dist/)
+REACT_DIST_DIR = os.path.join(os.path.dirname(BASE_DIR), "frontend", "dist")
+
 
 # CORS_ALLOWED_ORIGINS = [
 #     'http://127.0.0.1:8080'

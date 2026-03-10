@@ -19,6 +19,15 @@ from .base import *  # noqa: F401, F403
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# Serve the React SPA bundle via whitenoise in dev (when running Django on port 8000
+# directly rather than via the Vite dev server on port 3000).
+INSTALLED_APPS = ['whitenoise.runserver_nostatic'] + INSTALLED_APPS  # noqa: F405
+MIDDLEWARE = [  # noqa: F405
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+] + [m for m in MIDDLEWARE if m != 'django.middleware.security.SecurityMiddleware']  # noqa: F405
+WHITENOISE_ROOT = REACT_DIST_DIR  # noqa: F405
+
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
 
 # Database

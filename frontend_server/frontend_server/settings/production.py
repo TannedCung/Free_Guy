@@ -54,6 +54,10 @@ MIDDLEWARE = [  # noqa: F405
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# Serve the React SPA static bundle (assets/, vite.svg, etc.) at root URL paths.
+# Whitenoise resolves /assets/... directly from this directory before Django routing.
+WHITENOISE_ROOT = REACT_DIST_DIR  # noqa: F405
+
 # Production logging — WARNING level only to reduce noise
 LOGGING = {
     'version': 1,
