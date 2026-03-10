@@ -1,11 +1,19 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import LandingPage from './pages/LandingPage'
+import SimulatePage from './pages/SimulatePage'
+import DemoPage from './pages/DemoPage'
+
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Free Guy</h1>
-        <p className="text-gray-600">Generative Agents Simulation</p>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/simulate" element={<SimulatePage />} />
+        <Route path="/simulate/:id" element={<SimulatePage />} />
+        <Route path="/demo" element={<DemoPage />} />
+        <Route path="/demo/:id" element={<DemoPage />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
