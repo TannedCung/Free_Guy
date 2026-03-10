@@ -77,6 +77,11 @@ dependencies = [
     "zipp==3.21.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0",
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["*"]
@@ -86,6 +91,11 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_return_any = false
 warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
+module = "global_methods"
+# numpy.std() returns numpy.floating[Any] — pre-existing mismatch with float annotation.
+ignore_errors = true
 
 [tool.ruff]
 line-length = 120
@@ -128,3 +138,9 @@ ignore = [
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
