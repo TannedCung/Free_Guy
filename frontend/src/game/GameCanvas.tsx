@@ -43,7 +43,7 @@ function createAgentSprite(
     .setDepth(1)
 
   const label = scene.add
-    .text(target.targetX - 6, target.targetY - 74, target.pronunciatio, {
+    .text(target.targetX, target.targetY - 74, target.pronunciatio, {
       font: '14px monospace',
       color: '#000000',
       padding: { x: 6, y: 4 },
@@ -92,7 +92,7 @@ export default function GameCanvas({ className, agents }: GameCanvasProps) {
       bridge.agentTargets.set(agent.id, {
         targetX,
         targetY,
-        pronunciatio: getInitials(agent.name),
+        pronunciatio: agent.pronunciatio ?? getInitials(agent.name),
       })
     }
     // Phaser's update() will create/move sprites on the next frame
