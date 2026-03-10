@@ -29,9 +29,18 @@ import os
 import shutil
 import time
 import traceback
-from typing import Any
+from typing import Any, Optional
 
 from constant import fs_storage, fs_temp_storage, maze_assets_loc
+from db_persistence import (
+    get_or_create_simulation,
+    init_django,
+    save_agent_memory,
+    save_conversation,
+    save_simulation_step,
+    update_simulation_status,
+    upsert_agent,
+)
 from global_methods import check_if_file_exists, copyanything, read_file_to_list
 from maze import Maze
 from persona.cognitive_modules.converse import load_history_via_whisper
@@ -55,6 +64,12 @@ class ReverieServer:
     personas: dict[str, Persona]
     personas_tile: dict[str, tuple[int, int]]
     server_sleep: float
+    # Optional DB objects (None when Django is not configured).
+    _db_sim: Optional[Any]
+    _db_agents: dict[str, Any]
+    # Tracks how many memory nodes each persona had at the last DB sync, so we
+    # only persist genuinely new nodes rather than re-saving everything.
+    _db_memory_counts: dict[str, int]
 
     def __init__(self, fork_sim_code: str, sim_code: str) -> None:
         # FORKING FROM A PRIOR SIMULATION:
@@ -135,6 +150,45 @@ class ReverieServer:
         # cycle; this is to not kill our machine.
         self.server_sleep = 0.01
 
+        # DATABASE PERSISTENCE (optional):
+        # Initialise Django ORM if DJANGO_SETTINGS_MODULE is configured.
+        # _db_sim holds the Simulation ORM object; _db_agents maps persona
+        # names to Agent ORM objects.  All values may be None when the DB is
+        # not available.
+        self._db_agents: dict[str, Any] = {}
+        init_django()
+        self._db_sim = get_or_create_simulation(
+            self.sim_code,
+            status="running",
+            config={
+                "fork_sim_code": fork_sim_code,
+                "start_time": self.start_time.strftime("%B %d, %Y, %H:%M:%S"),
+                "sec_per_step": self.sec_per_step,
+                "maze_name": self.maze.maze_name,
+            },
+        )
+        # Ensure all personas have Agent records in the DB.
+        self._db_memory_counts: dict[str, int] = {}
+        for persona_name, persona in self.personas.items():
+            scratch = persona.scratch
+            personality = " ".join(
+                filter(
+                    None,
+                    [scratch.innate or "", scratch.learned or "", scratch.currently or ""],
+                )
+            )
+            db_agent = upsert_agent(
+                self._db_sim,
+                persona_name,
+                personality_traits=personality,
+                current_location=scratch.living_area or "",
+                status="active",
+            )
+            if db_agent is not None:
+                self._db_agents[persona_name] = db_agent
+            # Record starting memory count so we only save new nodes each step.
+            self._db_memory_counts[persona_name] = len(persona.a_mem.id_to_node)
+
         # SIGNALING THE FRONTEND SERVER:
         # curr_sim_code.json contains the current simulation code, and
         # curr_step.json contains the current step of the simulation. These are
@@ -182,6 +236,9 @@ class ReverieServer:
         for persona_name, persona in self.personas.items():
             save_folder = f"{sim_folder}/personas/{persona_name}/bootstrap_memory"
             persona.save(save_folder)
+
+        # Persist paused status to the database.
+        update_simulation_status(self._db_sim, "paused")
 
     def start_path_tester_server(self) -> None:
         """
@@ -392,6 +449,59 @@ class ReverieServer:
                 curr_move_file = f"{sim_folder}/movement/{self.step}.json"
                 with open(curr_move_file, "w") as outfile:
                     outfile.write(json.dumps(movements, indent=2))
+
+                # -----------------------------------------------------------
+                # DATABASE PERSISTENCE: save step + agent state + conversations
+                # -----------------------------------------------------------
+                save_simulation_step(
+                    self._db_sim,
+                    step_number=self.step,
+                    timestamp=self.curr_time,
+                    world_state=movements,
+                )
+
+                for persona_name, persona in self.personas.items():
+                    db_agent = self._db_agents.get(persona_name)
+                    scratch = persona.scratch
+                    # Update agent location and status in the DB.
+                    new_location = scratch.act_address or scratch.living_area or ""
+                    new_status = (
+                        "sleeping"
+                        if scratch.act_description and "sleeping" in (scratch.act_description or "").lower()
+                        else "active"
+                    )
+                    db_agent = upsert_agent(
+                        self._db_sim,
+                        persona_name,
+                        current_location=new_location,
+                        status=new_status,
+                    )
+                    if db_agent is not None:
+                        self._db_agents[persona_name] = db_agent
+
+                    # Persist any active conversation.
+                    if scratch.chat and scratch.chatting_with:
+                        partner_agent = self._db_agents.get(scratch.chatting_with)
+                        participants = [a for a in [db_agent, partner_agent] if a is not None]
+                        save_conversation(
+                            self._db_sim,
+                            agent_objs=participants,
+                            started_at=self.curr_time,
+                            transcript=scratch.chat,
+                        )
+
+                    # Persist any new memory nodes created during this step.
+                    prev_count = self._db_memory_counts.get(persona_name, 0)
+                    all_nodes = list(persona.a_mem.id_to_node.values())
+                    new_nodes = all_nodes[prev_count:]
+                    for node in new_nodes:
+                        save_agent_memory(
+                            db_agent,
+                            memory_type=node.type,
+                            content=node.description,
+                            importance_score=float(node.poignancy),
+                        )
+                    self._db_memory_counts[persona_name] = len(all_nodes)
 
                 # After this cycle, the world takes one step forward, and the
                 # current time moves by <sec_per_step> amount.
