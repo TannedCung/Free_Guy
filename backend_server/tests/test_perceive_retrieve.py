@@ -8,13 +8,11 @@ scoring, combined scoring).
 
 from __future__ import annotations
 
-import datetime
 from typing import Any
 
 import pytest
 
 from persona.memory_structures.associative_memory import ConceptNode
-
 
 # ---------------------------------------------------------------------------
 # Helpers

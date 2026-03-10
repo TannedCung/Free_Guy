@@ -1,6 +1,8 @@
 
 
-# Generative Agents: Interactive Simulacra of Human Behavior 
+# Generative Agents: Interactive Simulacra of Human Behavior
+
+[![CI](https://github.com/TannedCung/Free_Guy/actions/workflows/ci.yml/badge.svg)](https://github.com/TannedCung/Free_Guy/actions/workflows/ci.yml)
 
 <p align="center" width="100%">
 <img src="cover.png" alt="Smallville" style="width: 80%; min-width: 300px; display: block; margin: auto;">

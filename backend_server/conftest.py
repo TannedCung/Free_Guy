@@ -15,11 +15,9 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key-for-testing")
 
 import pytest  # noqa: E402
 
-from llm.protocol import LLMProvider  # noqa: E402
 from persona.memory_structures.associative_memory import AssociativeMemory  # noqa: E402
 from persona.memory_structures.scratch import Scratch  # noqa: E402
 from persona.memory_structures.spatial_memory import MemoryTree  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # MockLLMProvider

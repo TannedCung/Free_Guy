@@ -9,10 +9,7 @@ real data files on disk.
 import datetime
 from typing import Any
 
-import pytest
-
 from llm.protocol import LLMProvider
-
 
 # ---------------------------------------------------------------------------
 # mock_llm_provider

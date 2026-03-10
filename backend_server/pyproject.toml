@@ -91,6 +91,8 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_return_any = false
 warn_unused_ignores = false
+explicit_package_bases = true
+exclude = ["Dockerfile\\.py", "test\\.py"]
 
 [[tool.mypy.overrides]]
 module = "global_methods"

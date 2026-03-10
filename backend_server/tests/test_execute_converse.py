@@ -12,7 +12,6 @@ from typing import Any
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -43,11 +42,12 @@ def execute_persona(sample_persona: Any) -> Any:
 @pytest.fixture
 def target_persona(sample_persona: Any) -> Any:
     """Return a second persona for conversation tests."""
-    from persona.persona import Persona
-    from persona.memory_structures.scratch import Scratch
-    from persona.memory_structures.associative_memory import AssociativeMemory
-    from persona.memory_structures.spatial_memory import MemoryTree
     import datetime
+
+    from persona.memory_structures.associative_memory import AssociativeMemory
+    from persona.memory_structures.scratch import Scratch
+    from persona.memory_structures.spatial_memory import MemoryTree
+    from persona.persona import Persona
 
     p2: Persona = object.__new__(Persona)
     p2.name = "Other Agent"
