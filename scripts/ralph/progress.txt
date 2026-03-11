@@ -88,6 +88,21 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - Clearing a RuntimeState entry: use `set_runtime_state(key, None)` — the value is stored as JSON null, and `get_runtime_state` returns None by default anyway; truthy check `if tester_val:` guards against None
 ---
 
+## 2026-03-12 - US-009
+- Refactored `Scratch.__init__` to accept `Optional[str] = None` for legacy file path and `persona_id: Optional[int] = None` for DB mode
+- Added `self._persona_id` to track DB mode; when `persona_id` provided, calls `_load_from_db_row()` instead of file loading
+- Added `@classmethod load_from_db(cls, persona_id)` that returns `cls(persona_id=persona_id)`
+- Added `_load_from_db_row()`: lazy-imports `translator.models.PersonaScratch`, uses `select_related("persona")`, strips timezone from DateTimeFields, converts JSONB lists to 3-tuples for act_event/act_obj_event
+- Added `_save_to_db()`: lazy-imports models, makes naive datetimes timezone-aware via `django.utils.timezone.make_aware`, converts tuples to lists for JSONB, calls `update_or_create` on PersonaScratch and `.update()` on Persona identity fields
+- Modified `save(out_json=None)`: when `out_json is None` and `_persona_id` set, calls `_save_to_db()`; otherwise uses legacy file path
+- Files changed: `backend_server/persona/memory_structures/scratch.py`
+- **Learnings for future iterations:**
+  - Django USE_TZ=True returns timezone-aware datetimes from DateTimeField — must strip tzinfo when loading into naive-datetime codebase (`.replace(tzinfo=None)`) and make_aware when saving
+  - JSON serialization loses tuple types — act_event/act_obj_event stored as lists in JSONB, need `_to_triple()` helper to restore 3-tuple on load
+  - `PersonaScratch.act_address` uses `default=""` (not nullable) — save None as `""`, load `""` as None using `or None` idiom
+  - Identity fields (name, first_name, age, innate, etc.) live on the `Persona` row, not on `PersonaScratch` — load via `select_related("persona")`, save via `PersonaModel.objects.filter(pk=...).update(...)`
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
