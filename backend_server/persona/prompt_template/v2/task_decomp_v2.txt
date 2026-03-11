@@ -1,6 +1,6 @@
 task_decomp_v2.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Commonset
 !<INPUT 1>! -- Reverie date time now
 !<INPUT 2>! -- Persona first name
@@ -10,7 +10,7 @@ Variables:
 !<INPUT 6>! -- Persona first names
 
 <commentblockmarker>###</commentblockmarker>
-Describe subtasks in 5 min increments. 
+Describe subtasks in 5 min increments.
 ---
 Name: Sam Kissin
 Age: 28
@@ -67,5 +67,5 @@ In 5 min increments, list the subtasks Anthony does when Anthony is studying for
 ---
 !<INPUT 0>!
 
-Today is !<INPUT 1>!. In 5 min increments, list the subtasks !<INPUT 2>! does when !<INPUT 3>! is !<INPUT 4>! (total duration in minutes !<INPUT 5>!): 
+Today is !<INPUT 1>!. In 5 min increments, list the subtasks !<INPUT 2>! does when !<INPUT 3>! is !<INPUT 4>! (total duration in minutes !<INPUT 5>!):
 1) !<INPUT 6>! is

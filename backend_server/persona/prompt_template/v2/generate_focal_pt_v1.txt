@@ -1,8 +1,8 @@
 generate_focal_pt_v1.txt
 
-Variables: 
-!<INPUT 0>! -- Event/thought statements 
-!<INPUT 1>! -- Count 
+Variables:
+!<INPUT 0>! -- Event/thought statements
+!<INPUT 1>! -- Count
 
 <commentblockmarker>###</commentblockmarker>
 !<INPUT 0>!

@@ -1,4 +1,4 @@
-Variables: 
+Variables:
 !<INPUT 0>! -- an action phrae
 
 <commentblockmarker>###</commentblockmarker>

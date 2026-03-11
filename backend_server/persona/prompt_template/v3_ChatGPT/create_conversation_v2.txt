@@ -1,6 +1,6 @@
 create_conversation_v2.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- init_persona iss
 !<INPUT 1>! -- target_persona iss
 
@@ -24,16 +24,16 @@ Variables:
 !<INPUT 15>! -- init_persona_name
 
 <commentblockmarker>###</commentblockmarker>
-We have two characters. 
+We have two characters.
 
-Character 1. 
+Character 1.
 !<INPUT 0>!
 
-Character 2. 
+Character 2.
 !<INPUT 1>!
 ---
-Context: 
-Here is what !<INPUT 2>! thinks about !<INPUT 3>!: 
+Context:
+Here is what !<INPUT 2>! thinks about !<INPUT 3>!:
 !<INPUT 4>!
 Here is what !<INPUT 5>! thinks about !<INPUT 6>!:
 !<INPUT 7>!

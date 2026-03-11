@@ -21,26 +21,26 @@ DEBUG = True
 
 # Serve the React SPA bundle via whitenoise in dev (when running Django on port 8000
 # directly rather than via the Vite dev server on port 3000).
-INSTALLED_APPS = ['whitenoise.runserver_nostatic'] + INSTALLED_APPS  # noqa: F405
+INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa: F405
 MIDDLEWARE = [  # noqa: F405
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-] + [m for m in MIDDLEWARE if m != 'django.middleware.security.SecurityMiddleware']  # noqa: F405
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+] + [m for m in MIDDLEWARE if m != "django.middleware.security.SecurityMiddleware"]  # noqa: F405
 WHITENOISE_ROOT = REACT_DIST_DIR  # noqa: F405
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "*"]
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-_database_url = os.environ.get('DATABASE_URL')
+_database_url = os.environ.get("DATABASE_URL")
 if _database_url:
-    DATABASES = {'default': dj_database_url.parse(_database_url)}
+    DATABASES = {"default": dj_database_url.parse(_database_url)}
 else:
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),  # noqa: F405
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),  # noqa: F405
         }
     }
 
@@ -57,52 +57,28 @@ CSRF_COOKIE_SECURE = False
 
 # Verbose logging for development
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '%(asctime)s %(levelname)s %(name)s %(module)s %(lineno)d - %(message)s'
-        },
-        'simple': {
-            'format': '%(levelname)s %(message)s'
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {"format": "%(asctime)s %(levelname)s %(name)s %(module)s %(lineno)d - %(message)s"},
+        "simple": {"format": "%(levelname)s %(message)s"},
+    },
+    "handlers": {
+        "console": {"level": "DEBUG", "class": "logging.StreamHandler", "formatter": "verbose"},
+        "file_daily": {
+            "level": "DEBUG",
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": "./django.log",
+            "when": "D",
+            "interval": 1,
+            "backupCount": 7,
+            "formatter": "verbose",
         },
     },
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
-        },
-        'file_daily': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': './django.log',
-            'when': 'D',
-            'interval': 1,
-            'backupCount': 7,
-            'formatter': 'verbose'
-        }
+    "loggers": {
+        "django": {"handlers": ["file_daily", "console"], "level": "DEBUG", "propagate": True},
+        "django.request": {"handlers": ["file_daily", "console"], "level": "INFO", "propagate": True},
+        "back_end": {"handlers": ["file_daily", "console"], "level": "DEBUG", "propagate": True},
+        "": {"handlers": ["file_daily", "console"], "level": "DEBUG", "propagate": True},
     },
-    'loggers': {
-        'django': {
-            'handlers': ['file_daily', 'console'],
-            'level': 'DEBUG',
-            'propagate': True
-        },
-        'django.request': {
-            'handlers': ['file_daily', 'console'],
-            'level': 'INFO',
-            'propagate': True
-        },
-        'back_end': {
-            'handlers': ['file_daily', 'console'],
-            'level': 'DEBUG',
-            'propagate': True
-        },
-        '': {
-            'handlers': ['file_daily', 'console'],
-            'level': 'DEBUG',
-            'propagate': True
-        },
-    }
 }

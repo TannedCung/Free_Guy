@@ -45,16 +45,19 @@ repos:
         name: ruff (frontend_server)
         args: [--fix, --config, frontend_server/pyproject.toml]
         files: ^frontend_server/
+        exclude: ^frontend_server/Dockerfile\.py$
       - id: ruff-format
         name: ruff-format (frontend_server)
         args: [--config, frontend_server/pyproject.toml]
         files: ^frontend_server/
+        exclude: ^frontend_server/Dockerfile\.py$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.13.0
     hooks:
       - id: mypy
         files: ^backend_server/
+        exclude: ^backend_server/Dockerfile\.py$
         args:
           - --config-file=backend_server/pyproject.toml
           - --explicit-package-bases

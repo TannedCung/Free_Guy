@@ -11,9 +11,9 @@ DJANGO_SETTINGS_MODULE can still be used to bypass this entirely, e.g.:
 
 import os
 
-_env = os.environ.get('DJANGO_ENV', 'development')
+_env = os.environ.get("DJANGO_ENV", "development")
 
-if _env == 'production':
+if _env == "production":
     from .production import *  # noqa: F401, F403
 else:
     from .development import *  # noqa: F401, F403

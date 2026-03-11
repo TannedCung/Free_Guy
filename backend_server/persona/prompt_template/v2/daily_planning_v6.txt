@@ -1,6 +1,6 @@
 daily_planning_v6.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Commonset
 !<INPUT 1>! -- Lifestyle
 !<INPUT 2>! -- Reverie date time now

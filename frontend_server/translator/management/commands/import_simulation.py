@@ -1,15 +1,16 @@
 """Management command to import JSON simulation data into PostgreSQL/SQLite."""
+
 from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime
+from datetime import timezone as dt_timezone
 from pathlib import Path
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-
 from translator.models import Agent, AgentMemory, Conversation, Simulation, SimulationStep
 
 logger = logging.getLogger(__name__)
@@ -85,9 +86,7 @@ class Command(BaseCommand):
         if not movement_dir.exists():
             self.stdout.write("  No movement/ directory; skipping steps.")
         else:
-            movement_files = sorted(
-                movement_dir.glob("*.json"), key=lambda p: int(p.stem)
-            )
+            movement_files = sorted(movement_dir.glob("*.json"), key=lambda p: int(p.stem))
             self.stdout.write(f"  Found {len(movement_files)} movement step(s).")
             for step_file in movement_files:
                 self._import_step(simulation, step_file)

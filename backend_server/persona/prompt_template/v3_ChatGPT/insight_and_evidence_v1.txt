@@ -1,6 +1,6 @@
 insight_and_evidence_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Numbered list of event/thought statements
 !<INPUT 1>! -- target persona name or "the conversation"
 

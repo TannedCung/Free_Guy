@@ -1,6 +1,6 @@
 planning_thought_on_convo_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- All convo utterances
 !<INPUT 1>! -- persona name
 !<INPUT 2>! -- persona name

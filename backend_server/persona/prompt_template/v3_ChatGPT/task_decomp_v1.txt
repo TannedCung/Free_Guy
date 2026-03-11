@@ -1,6 +1,6 @@
 task_decomp_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Persona full name
 !<INPUT 1>! -- Persona age
 !<INPUT 2>! -- Persona backstory
@@ -18,7 +18,7 @@ Variables:
 !<INPUT 12>! -- Persona first names
 
 <commentblockmarker>###</commentblockmarker>
-Describe subtasks in 5 min increments. 
+Describe subtasks in 5 min increments.
 ---
 Name: Sam Kissin
 Age: 28
@@ -77,9 +77,9 @@ Name: !<INPUT 0>!
 Age: !<INPUT 1>!
 Backstory: !<INPUT 2>!
 Personality: !<INPUT 3>!
-Location: !<INPUT 4>! is in !<INPUT 5>! that has the following areas: {!<INPUT 6>!}. 
+Location: !<INPUT 4>! is in !<INPUT 5>! that has the following areas: {!<INPUT 6>!}.
 Currently: !<INPUT 7>!
 Daily plan requirement: !<INPUT 8>!
 
-Today is !<INPUT 9>!. In 5 min increments, list the subtasks !<INPUT 10>! does when !<INPUT 11>! is !<INPUT 12>! (total duration in minutes !<INPUT 13>!): 
+Today is !<INPUT 9>!. In 5 min increments, list the subtasks !<INPUT 10>! does when !<INPUT 11>! is !<INPUT 12>! (total duration in minutes !<INPUT 13>!):
 1) !<INPUT 14>! is

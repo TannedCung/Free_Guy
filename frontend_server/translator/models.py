@@ -34,9 +34,7 @@ class Agent(models.Model):
         IDLE = "idle", "Idle"
         SLEEPING = "sleeping", "Sleeping"
 
-    simulation = models.ForeignKey(
-        Simulation, on_delete=models.CASCADE, related_name="agents", db_index=True
-    )
+    simulation = models.ForeignKey(Simulation, on_delete=models.CASCADE, related_name="agents", db_index=True)
     name = models.CharField(max_length=255)
     personality_traits = models.TextField(blank=True, default="")
     current_location = models.CharField(max_length=255, blank=True, default="")
@@ -55,9 +53,7 @@ class Agent(models.Model):
 
 
 class SimulationStep(models.Model):
-    simulation = models.ForeignKey(
-        Simulation, on_delete=models.CASCADE, related_name="steps", db_index=True
-    )
+    simulation = models.ForeignKey(Simulation, on_delete=models.CASCADE, related_name="steps", db_index=True)
     step_number = models.PositiveIntegerField(db_index=True)
     timestamp = models.DateTimeField(db_index=True)
     world_state = models.JSONField(default=dict)
@@ -76,9 +72,7 @@ class AgentMemory(models.Model):
         THOUGHT = "thought", "Thought"
         CHAT = "chat", "Chat"
 
-    agent = models.ForeignKey(
-        Agent, on_delete=models.CASCADE, related_name="memories", db_index=True
-    )
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name="memories", db_index=True)
     memory_type = models.CharField(
         max_length=20,
         choices=MemoryType.choices,

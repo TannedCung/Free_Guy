@@ -1,10 +1,10 @@
 summarize_conversation_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- init_persona_name
 
 <commentblockmarker>###</commentblockmarker>
-Conversation: 
+Conversation:
 !<INPUT 0>!
 
 Summarize the conversation above in one sentence:

@@ -1,6 +1,6 @@
 next_step_scheduling_v2.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Persona full name
 !<INPUT 1>! -- Persona age
 !<INPUT 2>! -- Persona backstory
@@ -15,7 +15,7 @@ Variables:
 !<INPUT 11>! -- Persona first name
 !<INPUT 12>! -- Daily plan requirement
 !<INPUT 13>! -- Persona first name
-!<INPUT 14>! -- Daily plan 
+!<INPUT 14>! -- Daily plan
 !<INPUT 15>! -- Curr persona time
 !<INPUT 16>! -- Persona first name
 
@@ -24,7 +24,7 @@ Name: !<INPUT 0>!
 Age: !<INPUT 1>!
 Backstory: !<INPUT 2>!
 Personality: !<INPUT 3>!
-Location: !<INPUT 4>! is in !<INPUT 5>! that has the following areas: {!<INPUT 6>!}. 
+Location: !<INPUT 4>! is in !<INPUT 5>! that has the following areas: {!<INPUT 6>!}.
 Currently: !<INPUT 7>!
 Daily plan requirement: !<INPUT 8>!
 

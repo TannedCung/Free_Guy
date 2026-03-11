@@ -185,9 +185,7 @@ class TestGeneratePoigScore:
 
         assert result == 1
 
-    def test_event_type_returns_integer(
-        self, mock_provider_injected: Any, execute_persona: Any
-    ) -> None:
+    def test_event_type_returns_integer(self, mock_provider_injected: Any, execute_persona: Any) -> None:
         """generate_poig_score for 'event' type returns an integer (fail_safe=4)."""
         from persona.cognitive_modules.converse import generate_poig_score
 
@@ -195,9 +193,7 @@ class TestGeneratePoigScore:
 
         assert isinstance(result, int)
 
-    def test_chat_type_returns_integer(
-        self, mock_provider_injected: Any, execute_persona: Any
-    ) -> None:
+    def test_chat_type_returns_integer(self, mock_provider_injected: Any, execute_persona: Any) -> None:
         """generate_poig_score for 'chat' type returns an integer (fail_safe=4)."""
         from persona.cognitive_modules.converse import generate_poig_score
 
@@ -215,9 +211,7 @@ class TestGeneratePoigScore:
 
 
 class TestGenerateActionEventTriple:
-    def test_returns_three_element_tuple(
-        self, mock_provider_injected: Any, sample_persona: Any
-    ) -> None:
+    def test_returns_three_element_tuple(self, mock_provider_injected: Any, sample_persona: Any) -> None:
         """generate_action_event_triple returns a 3-tuple."""
         from persona.cognitive_modules.converse import generate_action_event_triple
 
@@ -226,9 +220,7 @@ class TestGenerateActionEventTriple:
         assert isinstance(result, tuple)
         assert len(result) == 3
 
-    def test_returns_strings(
-        self, mock_provider_injected: Any, sample_persona: Any
-    ) -> None:
+    def test_returns_strings(self, mock_provider_injected: Any, sample_persona: Any) -> None:
         """generate_action_event_triple elements are all strings."""
         from persona.cognitive_modules.converse import generate_action_event_triple
 
@@ -238,9 +230,7 @@ class TestGenerateActionEventTriple:
         assert isinstance(p, str)
         assert isinstance(o, str)
 
-    def test_subject_is_persona_name(
-        self, mock_provider_injected: Any, sample_persona: Any
-    ) -> None:
+    def test_subject_is_persona_name(self, mock_provider_injected: Any, sample_persona: Any) -> None:
         """generate_action_event_triple subject is always the persona's name."""
         from persona.cognitive_modules.converse import generate_action_event_triple
 
@@ -250,9 +240,7 @@ class TestGenerateActionEventTriple:
 
 
 class TestGenerateInnerThought:
-    def test_returns_string(
-        self, mock_provider_injected: Any, sample_persona: Any
-    ) -> None:
+    def test_returns_string(self, mock_provider_injected: Any, sample_persona: Any) -> None:
         """generate_inner_thought returns a string."""
         from persona.cognitive_modules.converse import generate_inner_thought
 
@@ -260,9 +248,7 @@ class TestGenerateInnerThought:
 
         assert isinstance(result, str)
 
-    def test_returns_nonempty_string(
-        self, mock_provider_injected: Any, sample_persona: Any
-    ) -> None:
+    def test_returns_nonempty_string(self, mock_provider_injected: Any, sample_persona: Any) -> None:
         """generate_inner_thought returns a non-empty string."""
         from persona.cognitive_modules.converse import generate_inner_thought
 
@@ -272,9 +258,7 @@ class TestGenerateInnerThought:
 
 
 class TestGenerateNextLine:
-    def test_returns_string(
-        self, mock_provider_injected: Any, sample_persona: Any
-    ) -> None:
+    def test_returns_string(self, mock_provider_injected: Any, sample_persona: Any) -> None:
         """generate_next_line returns a string."""
         from persona.cognitive_modules.converse import generate_next_line
 
@@ -283,9 +267,7 @@ class TestGenerateNextLine:
 
         assert isinstance(result, str)
 
-    def test_handles_empty_convo(
-        self, mock_provider_injected: Any, sample_persona: Any
-    ) -> None:
+    def test_handles_empty_convo(self, mock_provider_injected: Any, sample_persona: Any) -> None:
         """generate_next_line handles an empty conversation history."""
         from persona.cognitive_modules.converse import generate_next_line
 
@@ -293,9 +275,7 @@ class TestGenerateNextLine:
 
         assert isinstance(result, str)
 
-    def test_handles_multi_turn_convo(
-        self, mock_provider_injected: Any, sample_persona: Any
-    ) -> None:
+    def test_handles_multi_turn_convo(self, mock_provider_injected: Any, sample_persona: Any) -> None:
         """generate_next_line works with a multi-turn conversation."""
         from persona.cognitive_modules.converse import generate_next_line
 
@@ -304,8 +284,6 @@ class TestGenerateNextLine:
             [sample_persona.scratch.name, "A software project."],
             ["Interviewer", "Interesting! Tell me more."],
         ]
-        result = generate_next_line(
-            sample_persona, "Interviewer", curr_convo, "working on software"
-        )
+        result = generate_next_line(sample_persona, "Interviewer", curr_convo, "working on software")
 
         assert isinstance(result, str)

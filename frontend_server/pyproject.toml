@@ -86,3 +86,27 @@ dependencies = [
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["*"]
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    ".git",
+    "__pycache__",
+    "*.egg-info",
+    "migrations",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes (includes F401 unused imports)
+    "I",    # isort (import sorting)
+    "E722", # bare except
+]
+ignore = [
+    "E501", # line too long (handled by formatter)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

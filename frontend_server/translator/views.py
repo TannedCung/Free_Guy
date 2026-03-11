@@ -2,8 +2,9 @@
 Author: Joon Sung Park (joonspk@stanford.edu)
 File: views.py
 """
-import os
+
 import json
+import os
 
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
@@ -13,9 +14,9 @@ from global_methods import check_if_file_exists
 
 def spa_index(request):
     """Serve the React SPA index.html for all non-API, non-admin routes."""
-    index_path = os.path.join(settings.REACT_DIST_DIR, 'index.html')
-    with open(index_path, 'rb') as f:
-        return HttpResponse(f.read(), content_type='text/html')
+    index_path = os.path.join(settings.REACT_DIST_DIR, "index.html")
+    with open(index_path, "rb") as f:
+        return HttpResponse(f.read(), content_type="text/html")
 
 
 @csrf_exempt  # Exempt: called from Phaser game loop via XMLHttpRequest (no HTML form/session context)

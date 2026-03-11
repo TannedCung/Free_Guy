@@ -1,6 +1,6 @@
 generate_next_convo_line_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- agent name
 !<INPUT 1>! -- agent iss
 !<INPUT 2>! -- agent name
@@ -13,8 +13,8 @@ Variables:
 Here is some basic information about !<INPUT 0>!.
 !<INPUT 1>!
 
-=== 
-Following is a conversation between !<INPUT 2>! and !<INPUT 3>!. 
+===
+Following is a conversation between !<INPUT 2>! and !<INPUT 3>!.
 
 !<INPUT 4>!
 

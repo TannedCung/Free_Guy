@@ -1,4 +1,4 @@
-Variables: 
+Variables:
 !<INPUT 0>! -- Persona name
 !<INPUT 1>! -- Persona's current arena
 !<INPUT 2>! -- Persona's current sector
@@ -18,7 +18,7 @@ Answer: {kitchen}
 ---
 
 !<INPUT 0>! is going to !<INPUT 1>! that has the following areas: {!<INPUT 2>!}
-* Stay in the current area if the activity can be done there. 
+* Stay in the current area if the activity can be done there.
 * NEVER go into other people's rooms unless necessary.
 !<INPUT 3>! is !<INPUT 4>!. For !<INPUT 5>!, !<INPUT 6>! should go to the following area in !<INPUT 7>! (MUST pick one of {!<INPUT 8>!}):
 Answer: {

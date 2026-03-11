@@ -1,4 +1,4 @@
-Variables: 
+Variables:
 !<INPUT 0>! -- curr action seq
 !<INPUT 1>! -- Objects available
 

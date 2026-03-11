@@ -117,7 +117,6 @@ def run_gpt_prompt_decide_to_talk(persona, target_persona, retrieved, test_input
 
 def run_gpt_prompt_decide_to_react(persona, target_persona, retrieved, test_input=None, verbose=False):
     def create_prompt_input(init_persona, target_persona, retrieved, test_input=None):
-
         context = ""
         for c_node in retrieved["events"]:
             curr_desc = c_node.description.split(" ")
@@ -227,7 +226,6 @@ def run_gpt_prompt_decide_to_react(persona, target_persona, retrieved, test_inpu
 
 def run_gpt_prompt_create_conversation(persona, target_persona, curr_loc, test_input=None, verbose=False):
     def create_prompt_input(init_persona, target_persona, curr_loc, test_input=None):
-
         prev_convo_insert = "\n"
         if init_persona.a_mem.seq_chat:
             for i in init_persona.a_mem.seq_chat:

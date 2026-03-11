@@ -1,6 +1,6 @@
 convo_to_thoughts_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- init persona name
 !<INPUT 1>! -- target persona name
 !<INPUT 2>! -- convo string
@@ -8,7 +8,7 @@ Variables:
 !<INPUT 4>! -- target persona name or "the conversation"
 
 <commentblockmarker>###</commentblockmarker>
-Here is the conversation that happened between !<INPUT 0>! and !<INPUT 1>!. 
+Here is the conversation that happened between !<INPUT 0>! and !<INPUT 1>!.
 
 !<INPUT 2>!
 

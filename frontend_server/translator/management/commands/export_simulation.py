@@ -6,6 +6,7 @@ storage format produced by reverie.py.
 Usage:
     python manage.py export_simulation <sim_name> [--output-dir /path/to/storage]
 """
+
 from __future__ import annotations
 
 import json
@@ -14,7 +15,6 @@ from pathlib import Path
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
-
 from translator.models import Agent, Simulation, SimulationStep
 
 logger = logging.getLogger(__name__)
@@ -64,9 +64,7 @@ class Command(BaseCommand):
             "curr_time": config.get("start_time", "June 25, 2022, 00:00:00"),
             "sec_per_step": config.get("sec_per_step", 10),
             "maze_name": config.get("maze_name", "the_ville"),
-            "persona_names": list(
-                simulation.agents.values_list("name", flat=True)
-            ),
+            "persona_names": list(simulation.agents.values_list("name", flat=True)),
             "step": SimulationStep.objects.filter(simulation=simulation).count(),
         }
         reverie_dir = sim_dir / "reverie"
