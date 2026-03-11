@@ -32,6 +32,19 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - US-004 PersonaScratch → 0008; US-005+006+007 models → need to fit into 0009
 ---
 
+## 2026-03-12 - US-005
+- Created `EnvironmentState` model with simulation FK, step INT, agent_positions JSONB; UNIQUE(simulation, step); indexed on (simulation, step)
+- Created `MovementRecord` model with simulation FK, step INT, sim_curr_time DateTimeField, persona_movements JSONB; UNIQUE(simulation, step); indexed on (simulation, step)
+- Created migration `0009_demo_conversation_tables.py` (name kept to satisfy 0010 dependency)
+- Updated migration `0010` to remove AlterField calls for models not yet created (conceptnode, demo, demomovement, keywordstrength, runtimestate, spatialmemory); those will be added when US-006/007 implement those models
+- Registered both models in Django admin with list_display and search_fields
+- Files changed: `frontend_server/translator/models.py`, `frontend_server/translator/admin.py`, `frontend_server/translator/migrations/0009_demo_conversation_tables.py`, `frontend_server/translator/migrations/0010_alter_conceptnode_id_alter_conversation_id_and_more.py`
+- **Learnings for future iterations:**
+  - Migration 0009 name must be `0009_demo_conversation_tables` to match 0010 dependency — keep this name for future model additions to 0009 or create 0009b, 0009c migrations
+  - Migration 0010 was trimmed to only reference existing models; US-006/007 should create new migrations (0011+) for their AlterField needs
+  - Use `migrations.AddConstraint` with `UniqueConstraint` and `migrations.AddIndex` separately for uniqueness + explicit index on same fields
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
