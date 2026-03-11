@@ -213,6 +213,73 @@ class KeywordStrength(models.Model):
         return f"KeywordStrength({self.persona.name}, {self.keyword}, {self.strength_type}={self.strength})"
 
 
+class SpatialMemory(models.Model):
+    persona = models.OneToOneField(Persona, on_delete=models.CASCADE, related_name="spatial_memory")
+    tree = models.JSONField(default=dict, blank=True)
+
+    def __str__(self) -> str:
+        return f"SpatialMemory({self.persona.name})"
+
+
+class RuntimeState(models.Model):
+    key = models.CharField(max_length=255, unique=True)
+    value = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"RuntimeState({self.key})"
+
+
+class Demo(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    fork_sim_code = models.CharField(max_length=255, blank=True, null=True)
+    start_date = models.DateTimeField(blank=True, null=True)
+    curr_time = models.DateTimeField(blank=True, null=True)
+    sec_per_step = models.IntegerField(blank=True, null=True)
+    maze_name = models.CharField(max_length=255, blank=True, null=True)
+    persona_names = models.JSONField(default=list, blank=True)
+    step = models.IntegerField(default=0)
+    total_steps = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Demo({self.name})"
+
+
+class DemoMovement(models.Model):
+    demo = models.ForeignKey(Demo, on_delete=models.CASCADE, related_name="movements", db_index=True)
+    step = models.IntegerField()
+    agent_movements = models.JSONField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["demo", "step"], name="unique_demomovement_demo_step"),
+        ]
+
+    def __str__(self) -> str:
+        return f"DemoMovement({self.demo.name}, step={self.step})"
+
+
+class ConversationParticipant(models.Model):
+    conversation = models.ForeignKey(
+        "Conversation", on_delete=models.CASCADE, related_name="participants_new", db_index=True
+    )
+    persona = models.ForeignKey(
+        Persona, on_delete=models.CASCADE, related_name="conversation_participants", db_index=True
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["conversation", "persona"], name="unique_conversation_persona"),
+        ]
+
+    def __str__(self) -> str:
+        return f"ConversationParticipant({self.persona.name} in {self.conversation_id})"
+
+
 class Agent(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"

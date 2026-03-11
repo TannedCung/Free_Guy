@@ -5,13 +5,18 @@ from .models import (
     AgentMemory,
     ConceptNode,
     Conversation,
+    ConversationParticipant,
+    Demo,
+    DemoMovement,
     EnvironmentState,
     KeywordStrength,
     MovementRecord,
     Persona,
     PersonaScratch,
+    RuntimeState,
     Simulation,
     SimulationStep,
+    SpatialMemory,
 )
 
 
@@ -79,6 +84,44 @@ class KeywordStrengthAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     list_filter = ("strength_type", "persona__simulation")
     search_fields = ("persona__name", "keyword")
     ordering = ("persona", "keyword")
+
+
+@admin.register(SpatialMemory)
+class SpatialMemoryAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("persona",)
+    list_filter = ("persona__simulation",)
+    search_fields = ("persona__name",)
+    ordering = ("persona",)
+
+
+@admin.register(RuntimeState)
+class RuntimeStateAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("key", "updated_at")
+    search_fields = ("key",)
+    ordering = ("key",)
+
+
+@admin.register(Demo)
+class DemoAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("name", "maze_name", "step", "total_steps", "created_at")
+    search_fields = ("name", "maze_name")
+    ordering = ("-created_at",)
+
+
+@admin.register(DemoMovement)
+class DemoMovementAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("demo", "step")
+    list_filter = ("demo",)
+    search_fields = ("demo__name",)
+    ordering = ("demo", "step")
+
+
+@admin.register(ConversationParticipant)
+class ConversationParticipantAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("conversation", "persona")
+    list_filter = ("persona__simulation",)
+    search_fields = ("persona__name",)
+    ordering = ("conversation",)
 
 
 @admin.register(Agent)
