@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import datetime
 import json
+import logging
 from typing import Any, Optional
 
 from global_methods import check_if_file_exists
+
+logger = logging.getLogger(__name__)
 
 
 class Scratch:
@@ -78,7 +81,10 @@ class Scratch:
     act_path_set: bool
     planned_path: list[tuple[int, int]]
 
-    def __init__(self, f_saved: str) -> None:
+    def __init__(self, f_saved: Optional[str] = None, persona_id: Optional[int] = None) -> None:
+        # DB-mode persona ID — set when loading/saving via PostgreSQL.
+        self._persona_id: Optional[int] = None
+
         # PERSONA HYPERPARAMETERS
         # <vision_r> denotes the number of tiles that the persona can see around
         # them.
@@ -224,7 +230,13 @@ class Scratch:
         # e.g., [(50, 10), (49, 10), (48, 10), ...]
         self.planned_path = []
 
-        if check_if_file_exists(f_saved):
+        if persona_id is not None:
+            # DB mode: load all fields from the PersonaScratch row.
+            self._persona_id = persona_id
+            self._load_from_db_row()
+            return
+
+        if f_saved and check_if_file_exists(f_saved):
             # If we have a bootstrap file, load that here.
             scratch_load = json.load(open(f_saved))
 
@@ -296,15 +308,26 @@ class Scratch:
             self.act_path_set = scratch_load["act_path_set"]
             self.planned_path = scratch_load["planned_path"]
 
-    def save(self, out_json: str) -> None:
+    def save(self, out_json: Optional[str] = None) -> None:
         """
         Save persona's scratch.
 
+        In DB mode (persona_id was provided at construction), pass out_json=None
+        to write to PostgreSQL.  Pass an explicit file path to use the legacy
+        JSON-file path (needed by the import command).
+
         INPUT:
-          out_json: The file where we wil be saving our persona's state.
+          out_json: The file where we will be saving our persona's state,
+                    or None to save to the database.
         OUTPUT:
           None
         """
+        if out_json is None:
+            if self._persona_id is not None:
+                self._save_to_db()
+                return
+            raise ValueError("Scratch.save() called without out_json and without a persona_id")
+
         scratch: dict[str, Any] = dict()
         scratch["vision_r"] = self.vision_r
         scratch["att_bandwidth"] = self.att_bandwidth
@@ -368,6 +391,177 @@ class Scratch:
 
         with open(out_json, "w") as outfile:
             json.dump(scratch, outfile, indent=2)
+
+    # ------------------------------------------------------------------
+    # DB-backed persistence helpers
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def load_from_db(cls, persona_id: int) -> "Scratch":
+        """Return a Scratch instance populated from the PersonaScratch DB row."""
+        return cls(persona_id=persona_id)
+
+    def _load_from_db_row(self) -> None:
+        """Populate all fields from the PersonaScratch (and parent Persona) DB rows."""
+        try:
+            from translator.models import PersonaScratch as PersonaScratchModel
+        except Exception as exc:
+            raise RuntimeError(f"Cannot import translator models: {exc}") from exc
+
+        row = PersonaScratchModel.objects.select_related("persona").get(persona_id=self._persona_id)
+
+        def _strip_tz(dt: Optional[datetime.datetime]) -> Optional[datetime.datetime]:
+            """Return a timezone-naive copy of *dt* (the rest of the codebase uses naive datetimes)."""
+            if dt is None:
+                return None
+            if dt.tzinfo is not None:
+                return dt.replace(tzinfo=None)
+            return dt
+
+        def _to_triple(val: Any, default_name: Optional[str]) -> tuple[Optional[str], Optional[str], Optional[str]]:
+            """Convert a JSON list (possibly empty) to a 3-element tuple."""
+            lst = list(val) if val else []
+            while len(lst) < 3:
+                lst.append(None)
+            return (lst[0], lst[1], lst[2])
+
+        # -- Perception --
+        self.vision_r = row.vision_r
+        self.att_bandwidth = row.att_bandwidth
+        self.retention = row.retention
+
+        # -- Temporal --
+        self.curr_time = _strip_tz(row.curr_time)
+        self.curr_tile = row.curr_tile if row.curr_tile else None
+        self.concept_forget = row.concept_forget
+        self.daily_reflection_time = row.daily_reflection_time
+        self.daily_reflection_size = row.daily_reflection_size
+
+        # -- Core identity (stored on the Persona row) --
+        persona = row.persona
+        self.name = persona.name
+        self.first_name = persona.first_name or None
+        self.last_name = persona.last_name or None
+        self.age = persona.age
+        self.innate = persona.innate or None
+        self.learned = persona.learned or None
+        self.currently = persona.currently or None
+        self.lifestyle = persona.lifestyle or None
+        self.living_area = persona.living_area or None
+        self.daily_plan_req = persona.daily_plan_req or None
+
+        # -- Scoring --
+        self.overlap_reflect_th = row.overlap_reflect_th
+        self.kw_strg_event_reflect_th = row.kw_strg_event_reflect_th
+        self.kw_strg_thought_reflect_th = row.kw_strg_thought_reflect_th
+        self.recency_w = row.recency_w
+        self.relevance_w = row.relevance_w
+        self.importance_w = row.importance_w
+        self.recency_decay = row.recency_decay
+        self.importance_trigger_max = row.importance_trigger_max
+        self.importance_trigger_curr = row.importance_trigger_curr
+        self.importance_ele_n = row.importance_ele_n
+        self.thought_count = row.thought_count
+
+        # -- Schedule --
+        self.daily_req = row.daily_req or []
+        self.f_daily_schedule = row.f_daily_schedule or []
+        self.f_daily_schedule_hourly_org = row.f_daily_schedule_hourly_org or []
+
+        # -- Action --
+        self.act_address = row.act_address or None
+        self.act_start_time = _strip_tz(row.act_start_time)
+        self.act_duration = row.act_duration
+        self.act_description = row.act_description or None
+        self.act_pronunciatio = row.act_pronunciatio or None
+        self.act_event = _to_triple(row.act_event, self.name)
+        self.act_obj_description = row.act_obj_description or None
+        self.act_obj_pronunciatio = row.act_obj_pronunciatio or None
+        self.act_obj_event = _to_triple(row.act_obj_event, self.name)
+
+        # -- Chat --
+        self.chatting_with = row.chatting_with
+        self.chat = row.chat
+        self.chatting_with_buffer = row.chatting_with_buffer or {}
+        self.chatting_end_time = _strip_tz(row.chatting_end_time)
+        self.act_path_set = row.act_path_set
+        self.planned_path = row.planned_path or []
+
+    def _save_to_db(self) -> None:
+        """Write all fields to PersonaScratch via Django ORM and update identity on Persona."""
+        try:
+            from translator.models import Persona as PersonaModel
+            from translator.models import PersonaScratch as PersonaScratchModel
+        except Exception as exc:
+            raise RuntimeError(f"Cannot import translator models: {exc}") from exc
+
+        import django.utils.timezone as dj_tz
+
+        def _make_aware(dt: Optional[datetime.datetime]) -> Optional[datetime.datetime]:
+            """Make a naive datetime timezone-aware for USE_TZ=True Django settings."""
+            if dt is None:
+                return None
+            if dt.tzinfo is None:
+                return dj_tz.make_aware(dt, datetime.timezone.utc)
+            return dt
+
+        PersonaScratchModel.objects.update_or_create(
+            persona_id=self._persona_id,
+            defaults={
+                "vision_r": self.vision_r,
+                "att_bandwidth": self.att_bandwidth,
+                "retention": self.retention,
+                "curr_time": _make_aware(self.curr_time),
+                "curr_tile": self.curr_tile if self.curr_tile is not None else [],
+                "concept_forget": self.concept_forget,
+                "daily_reflection_time": self.daily_reflection_time,
+                "daily_reflection_size": self.daily_reflection_size,
+                "overlap_reflect_th": self.overlap_reflect_th,
+                "kw_strg_event_reflect_th": self.kw_strg_event_reflect_th,
+                "kw_strg_thought_reflect_th": self.kw_strg_thought_reflect_th,
+                "recency_w": self.recency_w,
+                "relevance_w": self.relevance_w,
+                "importance_w": self.importance_w,
+                "recency_decay": self.recency_decay,
+                "importance_trigger_max": self.importance_trigger_max,
+                "importance_trigger_curr": self.importance_trigger_curr,
+                "importance_ele_n": self.importance_ele_n,
+                "thought_count": self.thought_count,
+                "daily_req": self.daily_req,
+                "f_daily_schedule": self.f_daily_schedule,
+                "f_daily_schedule_hourly_org": self.f_daily_schedule_hourly_org,
+                "act_address": self.act_address or "",
+                "act_start_time": _make_aware(self.act_start_time),
+                "act_duration": self.act_duration,
+                "act_description": self.act_description or "",
+                "act_pronunciatio": self.act_pronunciatio or "",
+                "act_event": list(self.act_event) if self.act_event else [],
+                "act_obj_description": self.act_obj_description or "",
+                "act_obj_pronunciatio": self.act_obj_pronunciatio or "",
+                "act_obj_event": list(self.act_obj_event) if self.act_obj_event else [],
+                "chatting_with": self.chatting_with,
+                "chat": self.chat,
+                "chatting_with_buffer": self.chatting_with_buffer or {},
+                "chatting_end_time": _make_aware(self.chatting_end_time),
+                "act_path_set": self.act_path_set,
+                "planned_path": self.planned_path or [],
+            },
+        )
+
+        # Sync identity fields back to the parent Persona row.
+        PersonaModel.objects.filter(pk=self._persona_id).update(
+            name=self.name or "",
+            first_name=self.first_name or "",
+            last_name=self.last_name or "",
+            age=self.age,
+            innate=self.innate or "",
+            learned=self.learned or "",
+            currently=self.currently or "",
+            lifestyle=self.lifestyle or "",
+            living_area=self.living_area or "",
+            daily_plan_req=self.daily_plan_req or "",
+        )
+        logger.debug("Scratch._save_to_db: saved persona_id=%s", self._persona_id)
 
     def get_f_daily_schedule_index(self, advance: int = 0) -> int:
         """
