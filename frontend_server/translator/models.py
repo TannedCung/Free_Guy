@@ -153,6 +153,66 @@ class MovementRecord(models.Model):
         return f"MovementRecord({self.simulation.name}, step={self.step})"
 
 
+class ConceptNode(models.Model):
+    class NodeType(models.TextChoices):
+        EVENT = "event", "Event"
+        THOUGHT = "thought", "Thought"
+        CHAT = "chat", "Chat"
+
+    persona = models.ForeignKey(Persona, on_delete=models.CASCADE, related_name="concept_nodes", db_index=True)
+    node_id = models.IntegerField()
+    node_count = models.IntegerField(default=0)
+    type_count = models.IntegerField(default=0)
+    node_type = models.CharField(max_length=10, choices=NodeType.choices, default=NodeType.EVENT)
+    depth = models.IntegerField(default=0)
+    created = models.DateTimeField(blank=True, null=True)
+    expiration = models.DateTimeField(blank=True, null=True)
+    last_accessed = models.DateTimeField(blank=True, null=True)
+    subject = models.CharField(max_length=255, blank=True, default="")
+    predicate = models.CharField(max_length=255, blank=True, default="")
+    object = models.CharField(max_length=255, blank=True, default="")
+    description = models.TextField(blank=True, default="")
+    embedding_key = models.CharField(max_length=255, blank=True, default="")
+    poignancy = models.FloatField(default=0.0)
+    keywords = models.JSONField(default=list, blank=True)
+    filling = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["persona", "node_id"], name="unique_persona_node_id"),
+        ]
+        indexes = [
+            models.Index(fields=["persona", "node_type"], name="conceptnode_persona_node_type_idx"),
+            models.Index(fields=["persona", "subject"], name="conceptnode_persona_subject_idx"),
+            models.Index(fields=["persona", "-created"], name="conceptnode_persona_created_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"ConceptNode({self.persona.name}, {self.node_type}, {self.node_id})"
+
+
+class KeywordStrength(models.Model):
+    class StrengthType(models.TextChoices):
+        EVENT = "event", "Event"
+        THOUGHT = "thought", "Thought"
+
+    persona = models.ForeignKey(Persona, on_delete=models.CASCADE, related_name="keyword_strengths", db_index=True)
+    keyword = models.CharField(max_length=255)
+    strength_type = models.CharField(max_length=10, choices=StrengthType.choices)
+    strength = models.IntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["persona", "keyword", "strength_type"],
+                name="unique_persona_keyword_strength_type",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"KeywordStrength({self.persona.name}, {self.keyword}, {self.strength_type}={self.strength})"
+
+
 class Agent(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"

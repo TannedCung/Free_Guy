@@ -3,8 +3,10 @@ from django.contrib import admin
 from .models import (
     Agent,
     AgentMemory,
+    ConceptNode,
     Conversation,
     EnvironmentState,
+    KeywordStrength,
     MovementRecord,
     Persona,
     PersonaScratch,
@@ -51,6 +53,32 @@ class MovementRecordAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     list_filter = ("simulation",)
     search_fields = ("simulation__name",)
     ordering = ("simulation", "step")
+
+
+@admin.register(ConceptNode)
+class ConceptNodeAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = (
+        "persona",
+        "node_id",
+        "node_type",
+        "depth",
+        "subject",
+        "predicate",
+        "object",
+        "poignancy",
+        "created",
+    )
+    list_filter = ("node_type", "persona__simulation")
+    search_fields = ("persona__name", "subject", "predicate", "object", "description", "embedding_key")
+    ordering = ("persona", "-created")
+
+
+@admin.register(KeywordStrength)
+class KeywordStrengthAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("persona", "keyword", "strength_type", "strength")
+    list_filter = ("strength_type", "persona__simulation")
+    search_fields = ("persona__name", "keyword")
+    ordering = ("persona", "keyword")
 
 
 @admin.register(Agent)
