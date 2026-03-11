@@ -15,6 +15,23 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - The existing `Agent` model (from 0006) is kept alongside the new `Persona` model; they serve different purposes in the migration path
 ---
 
+## 2026-03-12 - US-004
+- Created `PersonaScratch` model with one-to-one FK to `Persona` and all 40+ fields
+- Perception: vision_r, att_bandwidth, retention
+- Temporal: curr_time, curr_tile (JSONB), concept_forget, daily_reflection_time, daily_reflection_size
+- Scoring: overlap_reflect_th, kw_strg_event_reflect_th, kw_strg_thought_reflect_th, recency_w, relevance_w, importance_w, recency_decay, importance_trigger_max, importance_trigger_curr, importance_ele_n, thought_count
+- Schedule: daily_req (JSONB), f_daily_schedule (JSONB), f_daily_schedule_hourly_org (JSONB)
+- Action: act_address, act_start_time, act_duration, act_description, act_pronunciatio, act_event (JSONB), act_obj_description, act_obj_pronunciatio, act_obj_event (JSONB)
+- Chat: chatting_with, chat (JSONB), chatting_with_buffer (JSONB), chatting_end_time, act_path_set, planned_path (JSONB)
+- Created migration `0008_personascratch.py`
+- Registered in admin with list_display and search_fields
+- Files changed: `frontend_server/translator/models.py`, `frontend_server/translator/admin.py`, `frontend_server/translator/migrations/0008_personascratch.py`
+- **Learnings for future iterations:**
+  - Migration 0010 (already exists) depends on 0009_demo_conversation_tables — US-005/006/007 must create migrations 0008 and 0009 in the correct order
+  - Migration 0010 expects: conceptnode, demo, demomovement, environmentstate, keywordstrength, movementrecord, personascratch, runtimestate, spatialmemory — all must exist by migration 0009
+  - US-004 PersonaScratch → 0008; US-005+006+007 models → need to fit into 0009
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
