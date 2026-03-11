@@ -1,0 +1,48 @@
+# Version control
+.git
+.github
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+venv/
+.venv/
+
+# Node
+frontend/node_modules
+
+# IDE
+.vscode
+.cursor
+.idea
+*.swp
+*.swo
+
+# Environment / secrets
+.env
+.env.local
+
+# Large simulation data (mounted as volumes at runtime)
+frontend_server/storage
+frontend_server/temp_storage
+
+# SQLite dev database
+*.sqlite3
+
+# Logs
+*.log
+django.log
+
+# Build artifacts
+frontend/dist
+
+# Misc
+scripts/
+tasks/
+test/
+*.md
+LICENSE
+Makefile
