@@ -1,0 +1,41 @@
+# Ralph Progress Log
+Started: Thu Mar 12 02:17:17 AM +07 2026
+---
+
+## Codebase Patterns
+- Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
+- `backend_server/pyproject.toml` configures mypy and ruff for the backend
+- `backend_server/requirements.txt` and `frontend_server/requirements.txt` track Python deps
+- Django version differs: backend uses 2.2, frontend uses 4.2.20
+- Use `pre-commit run --files <file>` to typecheck/lint individual files before committing
+- Qdrant point IDs should be deterministic UUIDs (uuid5) derived from (persona_id, embedding_key) to make upserts idempotent
+- `_ensure_collection()` pattern: check existing collections set before creating to avoid errors on repeated calls
+- Module-level `_client: Optional[QdrantClient] = None` + lazy init in `_get_client()` is the singleton pattern used
+
+## 2026-03-12 - US-001
+- Added `qdrant/qdrant` service to `docker-compose.yml` with port 6333, healthcheck, and `qdrant-data` named volume
+- Added `qdrant-client>=1.9.0` to `backend_server/requirements.txt`
+- Added `qdrant-client>=1.9.0` to `frontend_server/requirements.txt`
+- Files changed: `docker-compose.yml`, `backend_server/requirements.txt`, `frontend_server/requirements.txt`
+- **Learnings for future iterations:**
+  - Pre-commit hooks run mypy/ruff on commit; only Python files trigger those checks
+  - `docker-compose.yml` healthcheck for Qdrant uses `/healthz` endpoint
+  - Both backend and frontend have separate requirements.txt — both need qdrant-client
+---
+
+## 2026-03-12 - US-002
+- Created `backend_server/utils/qdrant_utils.py` with 5 public functions:
+  - `store_embedding(persona_id, simulation_id, embedding_key, vector)` — upserts via deterministic UUID5 point ID
+  - `get_embedding(persona_id, embedding_key)` — scroll-based payload filter retrieval
+  - `search_similar(persona_id, query_vector, top_k=20)` — cosine ANN search with persona_id filter
+  - `delete_persona_embeddings(persona_id)` — bulk delete by payload filter
+  - `copy_persona_embeddings(src_persona_id, dst_persona_id, dst_simulation_id)` — paginated scroll+upsert deep-copy
+- Collection `persona_embeddings` auto-created on first use with EMBEDDING_DIMENSION (default 1536) and cosine distance
+- Qdrant client is module-level singleton via `_get_client()` lazy initializer
+- Files changed: `backend_server/utils/qdrant_utils.py`, `scripts/ralph/prd.json`, `scripts/ralph/progress.txt`
+- **Learnings for future iterations:**
+  - `qdrant_client.scroll()` returns `(results, next_offset)` tuple — use next_offset for pagination, break when None
+  - Point vectors returned by scroll() can be `list | dict | None` — check `isinstance(vec, list)` before returning
+  - `models.FilterSelector(filter=...)` is required for `client.delete()` when filtering by payload
+  - mypy ignores missing imports for qdrant_client (configured in pyproject.toml) — no stubs needed
+---
