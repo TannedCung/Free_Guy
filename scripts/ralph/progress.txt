@@ -2,6 +2,19 @@
 Started: Thu Mar 12 02:17:17 AM +07 2026
 ---
 
+## 2026-03-12 - US-003
+- Added missing fields to `Simulation` model: fork_sim_code, start_date, curr_time, sec_per_step, maze_name, step; made `name` unique
+- Created `Persona` model with all required fields (simulation FK, name, first_name, last_name, age, innate, learned, currently, lifestyle, living_area, daily_plan_req, status) with UNIQUE constraint on (simulation_id, name)
+- Updated `admin.py` to register `Persona` with list_display and search_fields
+- Created migration `0007_simulation_extra_fields_persona.py` manually (couldn't run makemigrations due to missing numpy in dev env)
+- Files changed: `frontend_server/translator/models.py`, `frontend_server/translator/admin.py`, `frontend_server/translator/migrations/0007_simulation_extra_fields_persona.py`
+- **Learnings for future iterations:**
+  - `makemigrations` requires full app import chain (numpy, psycopg2, etc.) — create migration files manually when env is incomplete
+  - Migration 0010 references 0009 (which doesn't exist yet) — this will be resolved when US-007 creates migration 0009
+  - ESLint pre-commit hook only triggers on `frontend/src/**` files — Python-only commits skip it safely
+  - The existing `Agent` model (from 0006) is kept alongside the new `Persona` model; they serve different purposes in the migration path
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
