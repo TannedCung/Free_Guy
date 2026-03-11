@@ -120,6 +120,39 @@ class PersonaScratch(models.Model):
         return f"Scratch({self.persona.name})"
 
 
+class EnvironmentState(models.Model):
+    simulation = models.ForeignKey(
+        Simulation, on_delete=models.CASCADE, related_name="environment_states", db_index=True
+    )
+    step = models.IntegerField()
+    agent_positions = models.JSONField()
+
+    class Meta:
+        unique_together = [("simulation", "step")]
+        indexes = [
+            models.Index(fields=["simulation", "step"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"EnvironmentState({self.simulation.name}, step={self.step})"
+
+
+class MovementRecord(models.Model):
+    simulation = models.ForeignKey(Simulation, on_delete=models.CASCADE, related_name="movement_records", db_index=True)
+    step = models.IntegerField()
+    sim_curr_time = models.DateTimeField(blank=True, null=True)
+    persona_movements = models.JSONField()
+
+    class Meta:
+        unique_together = [("simulation", "step")]
+        indexes = [
+            models.Index(fields=["simulation", "step"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"MovementRecord({self.simulation.name}, step={self.step})"
+
+
 class Agent(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"

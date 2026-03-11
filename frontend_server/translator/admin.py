@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import Agent, AgentMemory, Conversation, Persona, PersonaScratch, Simulation, SimulationStep
+from .models import (
+    Agent,
+    AgentMemory,
+    Conversation,
+    EnvironmentState,
+    MovementRecord,
+    Persona,
+    PersonaScratch,
+    Simulation,
+    SimulationStep,
+)
 
 
 @admin.register(Simulation)
@@ -25,6 +35,22 @@ class PersonaScratchAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     list_filter = ("persona__simulation",)
     search_fields = ("persona__name", "act_description", "act_address")
     ordering = ("persona",)
+
+
+@admin.register(EnvironmentState)
+class EnvironmentStateAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("simulation", "step")
+    list_filter = ("simulation",)
+    search_fields = ("simulation__name",)
+    ordering = ("simulation", "step")
+
+
+@admin.register(MovementRecord)
+class MovementRecordAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("simulation", "step", "sim_curr_time")
+    list_filter = ("simulation",)
+    search_fields = ("simulation__name",)
+    ordering = ("simulation", "step")
 
 
 @admin.register(Agent)
