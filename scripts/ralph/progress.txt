@@ -124,6 +124,19 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - `get_or_create` + `F("strength") + 1` in `transaction.atomic()` is the atomic increment pattern for Django without raw SQL
 ---
 
+## 2026-03-12 - US-013
+- Removed `fs_storage` import from `reverie.py` (also removed `json`, `os`, `shutil`, `copyanything`, `check_if_file_exists`, `get_or_create_simulation`, `save_simulation_step`)
+- `__init__`: loads `Simulation` row by `sim_code` via ORM, loads `EnvironmentState` for current step for agent positions, loads all active `Persona` objects via `Persona(persona_id=<id>)` DB mode
+- `save()`: writes Simulation `curr_time`, `step`, `status="paused"` via ORM; calls `persona.save()` (no-arg = DB mode) for each persona
+- `start_server()`: reads `EnvironmentState` table for current step (instead of env JSON file); writes `MovementRecord` table for movements (instead of movement JSON file); removed `sim_folder` local var
+- `open_server()`: removed `sim_folder` local var and `shutil.rmtree` calls; "exit" command just breaks the loop
+- Files changed: `backend_server/reverie.py`
+- **Learnings for future iterations:**
+  - `self._db_sim: Optional[Any]` — always guard `.pk` access with `if self._db_sim is not None:` to satisfy mypy
+  - EnvironmentState is written by frontend; backend polls by checking `EnvironmentStateModel.objects.filter(...).first()` and waits if None
+  - MovementRecord uses `update_or_create(simulation=..., step=..., defaults={...})` for idempotent step writes
+---
+
 ## 2026-03-12 - US-012
 - Updated `Persona.__init__` to accept `persona_id: Optional[int] = None`; when provided, calls `_init_from_db(persona_id)`
 - `_init_from_db`: loads `scratch` via `Scratch.load_from_db(persona_id)`, derives `name` from `scratch.name`, loads `a_mem` via `AssociativeMemory(persona_id=persona_id)`, loads `s_mem` via `MemoryTree(persona_id=persona_id)`
