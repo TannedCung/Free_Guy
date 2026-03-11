@@ -74,6 +74,20 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - ruff-format auto-reformatted the file on first pre-commit run — subsequent run passes clean
 ---
 
+## 2026-03-12 - US-008
+- Created `backend_server/utils/db_utils.py` with `set_runtime_state(key, value)` and `get_runtime_state(key, default=None)` backed by the `RuntimeState` table
+- `reverie.py`: replaced `curr_sim_code.json` and `curr_step.json` temp file writes with `set_runtime_state` calls
+- `reverie.py`: replaced `path_tester_env.json` file read (with `os.remove`) with `get_runtime_state("path_tester_env")` + `set_runtime_state("path_tester_env", None)` to clear after read
+- `reverie.py`: replaced `path_tester_out.json` file write with `set_runtime_state("path_tester_out", s_mem)`
+- `frontend_server/translator/views.py`: `path_tester_update` now calls `RuntimeState.objects.update_or_create` instead of writing to `temp_storage/path_tester_env.json`
+- `backend_server/constant.py`: removed `fs_temp_storage` constant
+- Files changed: `backend_server/constant.py`, `backend_server/reverie.py`, `backend_server/utils/db_utils.py`, `frontend_server/translator/views.py`
+- **Learnings for future iterations:**
+  - `db_utils.py` follows the same lazy-import pattern as `db_persistence.py` (imports `translator.models` inside the function to allow non-Django usage)
+  - `views.py` in the frontend can directly import from `translator.models` since it IS a Django view
+  - Clearing a RuntimeState entry: use `set_runtime_state(key, None)` — the value is stored as JSON null, and `get_runtime_state` returns None by default anyway; truthy check `if tester_val:` guards against None
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
