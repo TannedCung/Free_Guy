@@ -31,7 +31,7 @@ import time
 import traceback
 from typing import Any, Optional
 
-from constant import fs_storage, fs_temp_storage, maze_assets_loc
+from constant import fs_storage, maze_assets_loc
 from db_persistence import (
     get_or_create_simulation,
     init_django,
@@ -45,6 +45,7 @@ from global_methods import check_if_file_exists, copyanything, read_file_to_list
 from maze import Maze
 from persona.cognitive_modules.converse import load_history_via_whisper
 from persona.persona import Persona
+from utils.db_utils import get_runtime_state, set_runtime_state
 
 logger = logging.getLogger(__name__)
 
@@ -195,15 +196,8 @@ class ReverieServer:
         # used to communicate the code and step information to the frontend.
         # Note that step file is removed as soon as the frontend opens up the
         # simulation.
-        curr_sim_code = dict()
-        curr_sim_code["sim_code"] = self.sim_code
-        with open(f"{fs_temp_storage}/curr_sim_code.json", "w") as outfile:
-            outfile.write(json.dumps(curr_sim_code, indent=2))
-
-        curr_step = dict()
-        curr_step["step"] = self.step
-        with open(f"{fs_temp_storage}/curr_step.json", "w") as outfile:
-            outfile.write(json.dumps(curr_step, indent=2))
+        set_runtime_state("curr_sim_code", {"sim_code": self.sim_code})
+        set_runtime_state("curr_step", {"step": self.step})
 
     def save(self) -> None:
         """
@@ -282,11 +276,10 @@ class ReverieServer:
         while True:
             try:
                 curr_dict = {}
-                tester_file = fs_temp_storage + "/path_tester_env.json"
-                if check_if_file_exists(tester_file):
-                    with open(tester_file) as json_file:
-                        curr_dict = json.load(json_file)
-                        os.remove(tester_file)
+                tester_val = get_runtime_state("path_tester_env")
+                if tester_val:
+                    curr_dict = tester_val
+                    set_runtime_state("path_tester_env", None)
 
                     # Current camera location
                     curr_sts = self.maze.sq_tile_size
@@ -316,11 +309,9 @@ class ReverieServer:
                                 if i_det["game_object"] not in s_mem[world][i_det["sector"]][i_det["arena"]]:
                                     s_mem[world][i_det["sector"]][i_det["arena"]] += [i_det["game_object"]]
 
-                # Incrementally outputting the s_mem and saving the json file.
+                # Incrementally outputting the s_mem and persisting to DB.
                 print("= " * 15)
-                out_file = fs_temp_storage + "/path_tester_out.json"
-                with open(out_file, "w") as outfile:
-                    outfile.write(json.dumps(s_mem, indent=2))
+                set_runtime_state("path_tester_out", s_mem)
                 print_tree(s_mem)
 
             except Exception:

@@ -84,7 +84,11 @@ def path_tester_update(request):
     data = json.loads(request.body)
     camera = data["camera"]
 
-    with open("temp_storage/path_tester_env.json", "w") as outfile:
-        outfile.write(json.dumps(camera, indent=2))
+    from translator.models import RuntimeState
+
+    RuntimeState.objects.update_or_create(
+        key="path_tester_env",
+        defaults={"value": camera},
+    )
 
     return HttpResponse("received")
