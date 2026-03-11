@@ -45,6 +45,21 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - Use `migrations.AddConstraint` with `UniqueConstraint` and `migrations.AddIndex` separately for uniqueness + explicit index on same fields
 ---
 
+## 2026-03-12 - US-006
+- Created `ConceptNode` model with all required fields (persona FK, node_id, node_count, type_count, node_type, depth, created, expiration, last_accessed, subject, predicate, object, description, embedding_key, poignancy, keywords JSONB, filling JSONB)
+- UNIQUE constraint on (persona, node_id) via `constraints = [UniqueConstraint(...)]`
+- Indexes on (persona, node_type), (persona, subject), (persona, -created DESC) via Meta.indexes
+- Created `KeywordStrength` model with persona FK, keyword, strength_type ('event'/'thought'), strength (INT default 0)
+- UNIQUE constraint on (persona, keyword, strength_type) via `constraints = [UniqueConstraint(...)]`
+- Created migration `0011_conceptnode_keywordstrength.py` with CreateModel + AddConstraint + AddIndex ops
+- Registered both models in admin.py with list_display, list_filter, search_fields
+- Files changed: `frontend_server/translator/models.py`, `frontend_server/translator/admin.py`, `frontend_server/translator/migrations/0011_conceptnode_keywordstrength.py`
+- **Learnings for future iterations:**
+  - Use `constraints = [UniqueConstraint(...)]` in Meta (not `unique_together`) when using `AddConstraint` in migration — avoids Django state mismatch
+  - Descending index `models.Index(fields=["persona", "-created"])` works in Django 4.2 and renders as DESC in SQL
+  - Migration index names must be <= 30 chars for some backends — keep names concise
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
