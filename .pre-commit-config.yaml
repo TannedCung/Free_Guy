@@ -1,4 +1,38 @@
+default_install_hook_types: [pre-commit]
+
+# Exclude auto-generated simulation storage data from all hooks
+exclude: |
+  (?x)^(
+    frontend_server/storage/.*|
+    frontend_server/compressed_storage/.*|
+    frontend/\.vite/.*
+  )$
+
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        # VS Code launch.json and tsconfig.json files use JSONC (comments allowed)
+        exclude: |
+          (?x)^(
+            .*\.vscode/launch\.json|
+            frontend/tsconfig.*\.json
+          )$
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: detect-private-key
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.0
+    hooks:
+      - id: gitleaks
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.9.0
     hooks:
@@ -7,6 +41,14 @@ repos:
         files: ^backend_server/
       - id: ruff-format
         files: ^backend_server/
+      - id: ruff
+        name: ruff (frontend_server)
+        args: [--fix, --config, frontend_server/pyproject.toml]
+        files: ^frontend_server/
+      - id: ruff-format
+        name: ruff-format (frontend_server)
+        args: [--config, frontend_server/pyproject.toml]
+        files: ^frontend_server/
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.13.0
@@ -20,3 +62,12 @@ repos:
         additional_dependencies:
           - types-python-dateutil
           - types-requests
+
+  - repo: local
+    hooks:
+      - id: eslint-frontend
+        name: ESLint (frontend)
+        language: system
+        entry: bash -c 'cd frontend && npm run lint'
+        files: ^frontend/src/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
