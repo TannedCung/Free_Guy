@@ -124,6 +124,18 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - `get_or_create` + `F("strength") + 1` in `transaction.atomic()` is the atomic increment pattern for Django without raw SQL
 ---
 
+## 2026-03-12 - US-011
+- Refactored `MemoryTree.__init__` to accept `Optional[str] = None` (legacy) and `persona_id: Optional[int] = None` (DB mode)
+- Added `_load_from_db(persona_id)`: uses `get_or_create` to load or create SpatialMemory row, sets `self.tree` from JSONB
+- Modified `save(out_json=None)`: calls `_save_to_db()` when in DB mode (no out_json); legacy file write when out_json provided
+- Added `_save_to_db()`: `update_or_create` on SpatialMemory with current `self.tree`
+- All existing tree navigation methods (`get_str_accessible_sectors`, etc.) unchanged — work with DB-loaded data identically
+- Files changed: `backend_server/persona/memory_structures/spatial_memory.py`
+- **Learnings for future iterations:**
+  - `get_or_create` is the right pattern for SpatialMemory since the row may not exist on first use
+  - `save(out_json=None)` pattern is consistent with Scratch and AssociativeMemory — no-arg means DB mode
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
