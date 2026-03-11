@@ -9,7 +9,7 @@ class Simulation(models.Model):
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, default="")
     status = models.CharField(
         max_length=20,
@@ -17,15 +17,51 @@ class Simulation(models.Model):
         default=Status.PENDING,
         db_index=True,
     )
+    fork_sim_code = models.CharField(max_length=255, blank=True, null=True)
+    start_date = models.DateTimeField(blank=True, null=True)
+    curr_time = models.DateTimeField(blank=True, null=True)
+    sec_per_step = models.IntegerField(blank=True, null=True)
+    maze_name = models.CharField(max_length=255, blank=True, null=True)
+    step = models.IntegerField(default=0)
+    config = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
-    config = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
         return f"{self.name} ({self.status})"
+
+
+class Persona(models.Model):
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        INACTIVE = "inactive", "Inactive"
+
+    simulation = models.ForeignKey(Simulation, on_delete=models.CASCADE, related_name="personas", db_index=True)
+    name = models.CharField(max_length=255)
+    first_name = models.CharField(max_length=255, blank=True, default="")
+    last_name = models.CharField(max_length=255, blank=True, default="")
+    age = models.IntegerField(blank=True, null=True)
+    innate = models.TextField(blank=True, default="")
+    learned = models.TextField(blank=True, default="")
+    currently = models.TextField(blank=True, default="")
+    lifestyle = models.TextField(blank=True, default="")
+    living_area = models.CharField(max_length=500, blank=True, default="")
+    daily_plan_req = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        db_index=True,
+    )
+
+    class Meta:
+        unique_together = [("simulation", "name")]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.simulation.name})"
 
 
 class Agent(models.Model):

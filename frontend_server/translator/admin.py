@@ -1,14 +1,22 @@
 from django.contrib import admin
 
-from .models import Agent, AgentMemory, Conversation, Simulation, SimulationStep
+from .models import Agent, AgentMemory, Conversation, Persona, Simulation, SimulationStep
 
 
 @admin.register(Simulation)
 class SimulationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-    list_display = ("name", "status", "created_at", "updated_at")
+    list_display = ("name", "status", "maze_name", "step", "created_at", "updated_at")
     list_filter = ("status",)
-    search_fields = ("name", "description")
+    search_fields = ("name", "description", "maze_name")
     ordering = ("-created_at",)
+
+
+@admin.register(Persona)
+class PersonaAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("name", "simulation", "first_name", "last_name", "age", "status")
+    list_filter = ("status", "simulation")
+    search_fields = ("name", "first_name", "last_name", "innate", "learned")
+    ordering = ("simulation", "name")
 
 
 @admin.register(Agent)
