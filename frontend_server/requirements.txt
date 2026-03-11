@@ -34,6 +34,7 @@ pandas==2.3.3
 patsy==1.0.2
 Pillow==12.1.1
 psycopg2-binary==2.9.11
+qdrant-client>=1.9.0
 pycparser==2.22
 pyparsing==3.2.3
 PySocks==1.7.1
