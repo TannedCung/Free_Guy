@@ -39,8 +39,6 @@ var/
 *.egg
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
@@ -65,6 +63,7 @@ coverage.xml
 
 # Django stuff:
 *.log
+*.log.*
 local_settings.py
 
 # Flask stuff:
@@ -91,6 +90,8 @@ celerybeat-schedule
 
 # dotenv
 .env
+.env.*
+!.env.example
 
 # virtualenv
 venv/
@@ -101,3 +102,36 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Node / Frontend
+node_modules/
+frontend/.vite/
+frontend/dist/
+
+# Compressed / generated storage (runtime data)
+frontend_server/compressed_storage/
+frontend_server/storage/
+frontend_server/temp_storage/
+backend_server/compressed_storage/
+backend_server/storage/
+compressed_storage/
+storage/
+temp_storage/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / credentials
+*.pem
+*.key
+*.p12
+secrets/
+credentials/

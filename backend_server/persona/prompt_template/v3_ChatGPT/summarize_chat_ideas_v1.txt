@@ -1,6 +1,6 @@
 summarize_chat_ideas_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Current date
 !<INPUT 1>! -- curr_context
 !<INPUT 2>! -- currently

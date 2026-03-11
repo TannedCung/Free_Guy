@@ -1,6 +1,6 @@
 task_decomp_v2.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Commonset
 !<INPUT 1>! -- Surrounding schedule description
 !<INPUT 2>! -- Persona first name
@@ -11,8 +11,8 @@ Variables:
 !<INPUT 7>! -- Persona first names
 
 <commentblockmarker>###</commentblockmarker>
-Describe subtasks in 5 min increments. 
+Describe subtasks in 5 min increments.
 !<INPUT 0>!
 !<INPUT 1>!
-In 5 min increments, list the subtasks !<INPUT 2>! does when !<INPUT 3>! is !<INPUT 4>! from !<INPUT 5>! (total duration in minutes !<INPUT 6>!). Strictly follows this format: <index>) <activity> (duration: <duration_in_minutes>).: 
+In 5 min increments, list the subtasks !<INPUT 2>! does when !<INPUT 3>! is !<INPUT 4>! from !<INPUT 5>! (total duration in minutes !<INPUT 6>!). Strictly follows this format: <index>) <activity> (duration: <duration_in_minutes>).:
 1)

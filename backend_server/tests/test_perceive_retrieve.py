@@ -221,9 +221,7 @@ class TestExtractScoring:
         for node in nodes:
             assert importance[node.node_id] == node.poignancy
 
-    def test_extract_importance_higher_poignancy_scores_higher(
-        self, sample_persona: Any, sample_memory: Any
-    ) -> None:
+    def test_extract_importance_higher_poignancy_scores_higher(self, sample_persona: Any, sample_memory: Any) -> None:
         """Node with higher poignancy scores higher in importance extraction."""
         from persona.cognitive_modules.retrieve import extract_importance
 

@@ -1,11 +1,11 @@
-Variables: 
+Variables:
 !<INPUT 0>! -- Current hour activity
 
 <commentblockmarker>###</commentblockmarker>
 Current activity: "Go to bed"
 Action sequence: [brush teeth -> change to pajama -> lie down in bed]
 ---
-Current activity: "Sleep" 
+Current activity: "Sleep"
 Action sequence: [sleep in bed]
 ---
 Current activity: "Make dinner"

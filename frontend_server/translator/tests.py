@@ -13,10 +13,10 @@ from unittest.mock import patch
 
 from django.test import TestCase
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _build_sim(root: str, sim_code: str, persona_names: list[str] | None = None) -> str:
     """Create a minimal simulation directory under *root* and return its path."""
@@ -108,6 +108,7 @@ def _build_demo(root: str, demo_code: str, persona_names: list[str] | None = Non
 # Simulation list (GET /api/v1/simulations/)
 # ---------------------------------------------------------------------------
 
+
 class SimulationsListGetTests(TestCase):
     def setUp(self) -> None:
         self.storage_dir = tempfile.mkdtemp()
@@ -118,8 +119,10 @@ class SimulationsListGetTests(TestCase):
         shutil.rmtree(self.compressed_dir, ignore_errors=True)
 
     def _get(self):
-        with patch("translator.api_views.STORAGE_DIR", self.storage_dir), \
-             patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir):
+        with (
+            patch("translator.api_views.STORAGE_DIR", self.storage_dir),
+            patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir),
+        ):
             return self.client.get("/api/v1/simulations/")
 
     def test_empty_storage_returns_empty_list(self):
@@ -151,6 +154,7 @@ class SimulationsListGetTests(TestCase):
 # Simulation create (POST /api/v1/simulations/)
 # ---------------------------------------------------------------------------
 
+
 class SimulationsListPostTests(TestCase):
     def setUp(self) -> None:
         self.storage_dir = tempfile.mkdtemp()
@@ -161,8 +165,10 @@ class SimulationsListPostTests(TestCase):
         shutil.rmtree(self.compressed_dir, ignore_errors=True)
 
     def _post(self, data):
-        with patch("translator.api_views.STORAGE_DIR", self.storage_dir), \
-             patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir):
+        with (
+            patch("translator.api_views.STORAGE_DIR", self.storage_dir),
+            patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir),
+        ):
             return self.client.post(
                 "/api/v1/simulations/",
                 data=json.dumps(data),
@@ -175,8 +181,10 @@ class SimulationsListPostTests(TestCase):
         self.assertEqual(resp.json()["id"], "my-new-sim")
 
     def test_create_creates_directory_on_disk(self):
-        with patch("translator.api_views.STORAGE_DIR", self.storage_dir), \
-             patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir):
+        with (
+            patch("translator.api_views.STORAGE_DIR", self.storage_dir),
+            patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir),
+        ):
             self.client.post(
                 "/api/v1/simulations/",
                 data=json.dumps({"name": "disk-check"}),
@@ -215,6 +223,7 @@ class SimulationsListPostTests(TestCase):
 # Simulation state (GET /api/v1/simulations/:id/state/)
 # ---------------------------------------------------------------------------
 
+
 class SimulationStateTests(TestCase):
     def setUp(self) -> None:
         self.storage_dir = tempfile.mkdtemp()
@@ -225,8 +234,10 @@ class SimulationStateTests(TestCase):
         shutil.rmtree(self.compressed_dir, ignore_errors=True)
 
     def _get(self, sim_id):
-        with patch("translator.api_views.STORAGE_DIR", self.storage_dir), \
-             patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir):
+        with (
+            patch("translator.api_views.STORAGE_DIR", self.storage_dir),
+            patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir),
+        ):
             return self.client.get(f"/api/v1/simulations/{sim_id}/state/")
 
     def test_nonexistent_simulation_returns_404(self):
@@ -257,6 +268,7 @@ class SimulationStateTests(TestCase):
 # Simulation agents (GET /api/v1/simulations/:id/agents/)
 # ---------------------------------------------------------------------------
 
+
 class SimulationAgentsTests(TestCase):
     def setUp(self) -> None:
         self.storage_dir = tempfile.mkdtemp()
@@ -267,8 +279,10 @@ class SimulationAgentsTests(TestCase):
         shutil.rmtree(self.compressed_dir, ignore_errors=True)
 
     def _get(self, sim_id):
-        with patch("translator.api_views.STORAGE_DIR", self.storage_dir), \
-             patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir):
+        with (
+            patch("translator.api_views.STORAGE_DIR", self.storage_dir),
+            patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir),
+        ):
             return self.client.get(f"/api/v1/simulations/{sim_id}/agents/")
 
     def test_nonexistent_simulation_returns_404(self):
@@ -277,10 +291,14 @@ class SimulationAgentsTests(TestCase):
 
     def test_returns_agents_from_meta(self):
         sim_dir = _build_sim(self.storage_dir, "agent-sim", persona_names=["Alice", "Bob"])
-        _add_env_step(sim_dir, 0, {
-            "Alice": {"maze": "the_ville", "x": 5, "y": 10},
-            "Bob": {"maze": "the_ville", "x": 6, "y": 11},
-        })
+        _add_env_step(
+            sim_dir,
+            0,
+            {
+                "Alice": {"maze": "the_ville", "x": 5, "y": 10},
+                "Bob": {"maze": "the_ville", "x": 6, "y": 11},
+            },
+        )
         _add_agent_scratch(sim_dir, "Alice", {"first_name": "Alice", "last_name": "Smith", "age": 30})
         _add_agent_scratch(sim_dir, "Bob", {"first_name": "Bob", "last_name": "Jones", "age": 25})
         resp = self._get("agent-sim")
@@ -293,13 +311,17 @@ class SimulationAgentsTests(TestCase):
 
     def test_agent_has_required_fields(self):
         sim_dir = _build_sim(self.storage_dir, "field-check-sim", persona_names=["Carol"])
-        _add_agent_scratch(sim_dir, "Carol", {
-            "first_name": "Carol",
-            "last_name": "White",
-            "age": 35,
-            "innate": "friendly",
-            "currently": "studying",
-        })
+        _add_agent_scratch(
+            sim_dir,
+            "Carol",
+            {
+                "first_name": "Carol",
+                "last_name": "White",
+                "age": 35,
+                "innate": "friendly",
+                "currently": "studying",
+            },
+        )
         resp = self._get("field-check-sim")
         self.assertEqual(resp.status_code, 200)
         agent = resp.json()["agents"][0]
@@ -311,6 +333,7 @@ class SimulationAgentsTests(TestCase):
 # Demo step (GET /api/v1/demos/:id/step/:step/)
 # ---------------------------------------------------------------------------
 
+
 class DemoStepTests(TestCase):
     def setUp(self) -> None:
         self.storage_dir = tempfile.mkdtemp()
@@ -321,8 +344,10 @@ class DemoStepTests(TestCase):
         shutil.rmtree(self.compressed_dir, ignore_errors=True)
 
     def _get(self, demo_id, step):
-        with patch("translator.api_views.STORAGE_DIR", self.storage_dir), \
-             patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir):
+        with (
+            patch("translator.api_views.STORAGE_DIR", self.storage_dir),
+            patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir),
+        ):
             return self.client.get(f"/api/v1/demos/{demo_id}/step/{step}/")
 
     def test_nonexistent_demo_returns_404(self):
@@ -365,6 +390,7 @@ class DemoStepTests(TestCase):
 # Demo list (GET /api/v1/demos/)
 # ---------------------------------------------------------------------------
 
+
 class DemosListTests(TestCase):
     def setUp(self) -> None:
         self.storage_dir = tempfile.mkdtemp()
@@ -375,8 +401,10 @@ class DemosListTests(TestCase):
         shutil.rmtree(self.compressed_dir, ignore_errors=True)
 
     def _get(self):
-        with patch("translator.api_views.STORAGE_DIR", self.storage_dir), \
-             patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir):
+        with (
+            patch("translator.api_views.STORAGE_DIR", self.storage_dir),
+            patch("translator.api_views.COMPRESSED_STORAGE_DIR", self.compressed_dir),
+        ):
             return self.client.get("/api/v1/demos/")
 
     def test_empty_compressed_storage_returns_empty_list(self):

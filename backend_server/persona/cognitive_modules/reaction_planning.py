@@ -185,11 +185,9 @@ def _should_react(persona: Persona, retrieved: dict[str, Any], personas: dict[st
 
         if react_mode == "1":
             wait_until = (
-                (
-                    target_persona.scratch.act_start_time  # type: ignore[operator]
-                    + datetime.timedelta(minutes=target_persona.scratch.act_duration - 1)  # type: ignore[operator]
-                ).strftime("%B %d, %Y, %H:%M:%S")  # type: ignore[union-attr]
-            )
+                target_persona.scratch.act_start_time  # type: ignore[operator]
+                + datetime.timedelta(minutes=target_persona.scratch.act_duration - 1)  # type: ignore[operator]
+            ).strftime("%B %d, %Y, %H:%M:%S")  # type: ignore[union-attr]
             return f"wait: {wait_until}"
         elif react_mode == "2":
             return False

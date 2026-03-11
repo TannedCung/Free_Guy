@@ -1,6 +1,6 @@
 summarize_chat_relationship_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Statements
 !<INPUT 1>! -- curr persona name
 !<INPUT 2>! -- target_persona.scratch.name

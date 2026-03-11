@@ -1,6 +1,6 @@
 task_decomp_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Persona first name
 !<INPUT 1>! -- Detailed day schedule
 !<INPUT 2>! -- Persona first name

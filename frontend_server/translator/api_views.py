@@ -16,14 +16,12 @@ import json
 import os
 import shutil
 import string
-import random
 
 from django.conf import settings
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.response import Response
-
 
 STORAGE_DIR = os.path.join(settings.BASE_DIR, "storage")
 COMPRESSED_STORAGE_DIR = os.path.join(settings.BASE_DIR, "compressed_storage")
@@ -207,9 +205,7 @@ def simulation_state(request: Request, sim_id: str) -> Response:
 
 def _load_scratch(sim_code: str, agent_name: str) -> dict:
     """Return scratch.json for an agent, or {} if missing."""
-    scratch_path = os.path.join(
-        STORAGE_DIR, sim_code, "personas", agent_name, "bootstrap_memory", "scratch.json"
-    )
+    scratch_path = os.path.join(STORAGE_DIR, sim_code, "personas", agent_name, "bootstrap_memory", "scratch.json")
     if os.path.exists(scratch_path):
         with open(scratch_path) as f:
             return json.load(f)

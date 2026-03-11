@@ -1,9 +1,9 @@
 task_decomp_v1.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Commonset
 !<INPUT 1>! -- Persona first name
-!<INPUT 2>! -- Day summary string 
+!<INPUT 2>! -- Day summary string
 !<INPUT 3>! -- Persona first name
 !<INPUT 3>! -- Persona first name
 

@@ -1,13 +1,13 @@
 next_step_scheduling_v3.txt
 
-Variables: 
+Variables:
 !<INPUT 0>! -- Commonset
 !<INPUT 1>! -- Persona first name
 !<INPUT 2>! -- Schedule so far
 !<INPUT 3>! -- Persona first name
 !<INPUT 4>! -- Daily plan requirement
 !<INPUT 5>! -- Persona first name
-!<INPUT 6>! -- Daily plan 
+!<INPUT 6>! -- Daily plan
 !<INPUT 7>! -- Curr persona time
 !<INPUT 8>! -- Persona first name
 

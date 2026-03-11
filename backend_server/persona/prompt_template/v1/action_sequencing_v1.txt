@@ -1,4 +1,4 @@
-Variables: 
+Variables:
 !<INPUT 0>! -- Persona full name
 !<INPUT 1>! -- Persona age
 !<INPUT 2>! -- Persona backstory

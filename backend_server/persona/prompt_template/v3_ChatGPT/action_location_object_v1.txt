@@ -1,4 +1,4 @@
-Variables: 
+Variables:
 !<INPUT 0>! -- Persona name
 !<INPUT 1>! -- Persona's current arena
 !<INPUT 2>! -- Persona's current sector

@@ -1,4 +1,4 @@
-Variables: 
+Variables:
 !<INPUT 0>! -- next_step_scheduling_v1 prompt
 !<INPUT 0>! -- next_step_scheduling_v1 output
 

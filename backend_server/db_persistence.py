@@ -12,6 +12,7 @@ Usage from reverie.py (or any non-Django process):
     from db_persistence import init_django, get_or_create_simulation, ...
     init_django()  # must be called before any DB functions
 """
+
 from __future__ import annotations
 
 import datetime
@@ -47,8 +48,7 @@ def init_django() -> bool:
     if not settings_module:
         if not _warned_unavailable:
             logger.warning(
-                "db_persistence: DJANGO_SETTINGS_MODULE is not set — "
-                "simulation will not be persisted to the database."
+                "db_persistence: DJANGO_SETTINGS_MODULE is not set — simulation will not be persisted to the database."
             )
             _warned_unavailable = True
         return False
