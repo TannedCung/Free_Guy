@@ -60,6 +60,20 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - Migration index names must be <= 30 chars for some backends — keep names concise
 ---
 
+## 2026-03-12 - US-007
+- Created `SpatialMemory` model: OneToOne to Persona, `tree` JSONB (default dict)
+- Created `RuntimeState` model: key VARCHAR UNIQUE, value JSONB, updated_at auto_now
+- Created `Demo` model: name UNIQUE, all simulation-like fields, persona_names JSONB, step, total_steps
+- Created `DemoMovement` model: demo FK, step INT, agent_movements JSONB, UNIQUE(demo, step)
+- Created `ConversationParticipant` model: FK to Conversation (string ref) and Persona, UNIQUE(conversation, persona)
+- Created migration `0012_spatialmemory_runtimestate_demo_demomovement_conversationparticipant.py`
+- All models registered in Django admin with list_display and search_fields
+- Files changed: `frontend_server/translator/models.py`, `frontend_server/translator/admin.py`, `frontend_server/translator/migrations/0012_*.py`
+- **Learnings for future iterations:**
+  - `ConversationParticipant` is placed before `Conversation` in models.py — must use string reference `"Conversation"` for the FK to avoid F821 undefined name error
+  - ruff-format auto-reformatted the file on first pre-commit run — subsequent run passes clean
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
