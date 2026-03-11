@@ -9,18 +9,68 @@ memory that aids in grounding their behavior in the game world.
 from __future__ import annotations
 
 import json
-from typing import Any
+import logging
+from typing import Any, Optional
 
 from global_methods import check_if_file_exists
+
+logger = logging.getLogger(__name__)
 
 
 class MemoryTree:
     tree: dict[str, Any]
 
-    def __init__(self, f_saved: str) -> None:
+    def __init__(self, f_saved: Optional[str] = None, persona_id: Optional[int] = None) -> None:
+        self._persona_id: Optional[int] = persona_id
         self.tree = {}
-        if check_if_file_exists(f_saved):
+
+        if persona_id is not None:
+            self._load_from_db(persona_id)
+        elif f_saved is not None and check_if_file_exists(f_saved):
             self.tree = json.load(open(f_saved))
+
+    # ── DB persistence ─────────────────────────────────────────────────────────
+
+    def _load_from_db(self, persona_id: int) -> None:
+        """Load tree JSONB from SpatialMemory row; creates the row if missing."""
+        try:
+            from translator.models import SpatialMemory as SpatialMemoryModel
+
+            obj, _ = SpatialMemoryModel.objects.get_or_create(
+                persona_id=persona_id,
+                defaults={"tree": {}},
+            )
+            self.tree = obj.tree or {}
+        except Exception as exc:
+            logger.warning("Could not load SpatialMemory from DB for persona %s: %s", persona_id, exc)
+
+    def save(self, out_json: Optional[str] = None) -> None:
+        """Save tree to DB (DB mode) or to a JSON file (legacy mode)."""
+        if out_json is None:
+            # DB mode
+            if self._persona_id is not None:
+                self._save_to_db()
+            return
+
+        # Legacy file-based save
+        with open(out_json, "w") as outfile:
+            json.dump(self.tree, outfile)
+
+    def _save_to_db(self) -> None:
+        """Write tree JSONB to SpatialMemory row via Django ORM."""
+        if self._persona_id is None:
+            return
+        try:
+            from translator.models import SpatialMemory as SpatialMemoryModel
+
+            SpatialMemoryModel.objects.update_or_create(
+                persona_id=self._persona_id,
+                defaults={"tree": self.tree},
+            )
+        except Exception as exc:
+            logger.warning("Could not save SpatialMemory to DB for persona %s: %s", self._persona_id, exc)
+
+    # ── Tree navigation ────────────────────────────────────────────────────────
 
     def print_tree(self) -> None:
         def _print_tree(tree: Any, depth: int) -> None:
@@ -36,10 +86,6 @@ class MemoryTree:
                 _print_tree(val, depth + 1)
 
         _print_tree(self.tree, 0)
-
-    def save(self, out_json: str) -> None:
-        with open(out_json, "w") as outfile:
-            json.dump(self.tree, outfile)
 
     def get_str_accessible_sectors(self, curr_world: str) -> str:
         """
