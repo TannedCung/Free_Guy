@@ -103,6 +103,27 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - Identity fields (name, first_name, age, innate, etc.) live on the `Persona` row, not on `PersonaScratch` — load via `select_related("persona")`, save via `PersonaModel.objects.filter(pk=...).update(...)`
 ---
 
+## 2026-03-12 - US-010
+- Refactored `AssociativeMemory.__init__` to accept `Optional[str] = None` for legacy file path and `persona_id: Optional[int] = None` for DB mode
+- Added `_loading: bool` flag to suppress DB/Qdrant writes during init loading phase — `add_*` methods check `if not self._loading` before persisting
+- Added `_load_from_db(persona_id)`: loads embeddings from Qdrant via scroll, then loads ConceptNode rows ordered by node_count, then overrides kw_strength from KeywordStrength table
+- Added `_load_embeddings_from_qdrant(persona_id)`: scrolls all Qdrant points for persona_id and builds `self.embeddings` dict in memory
+- Added `_save_node_to_db(node)`: upserts ConceptNode row using node_id int (extracted from "node_N" string) with timezone-aware datetimes
+- Added `_store_embedding_in_qdrant(embedding_key, vector)`: calls `qdrant_utils.store_embedding()` for DB mode
+- Added `_update_keyword_strength_in_db(keywords, predicate, object_str, strength_type)`: uses `get_or_create` + `F()` atomic increment within `transaction.atomic()`
+- Added `_embedding_key_to_node: dict[str, ConceptNode]` cache populated in `add_*` methods
+- Added `retrieve_similar_nodes(query_vector, top_k)`: uses `qdrant_utils.search_similar()` and resolves embedding_keys via `_embedding_key_to_node` cache
+- Modified `save(out_json=None)`: no-op in DB mode (incremental saves), file-based save when out_json provided
+- Updated `conftest.py` and `test_execute_converse.py` to set new `_persona_id`, `_simulation_id`, `_loading`, `_embedding_key_to_node` when using `object.__new__()`
+- Files changed: `backend_server/persona/memory_structures/associative_memory.py`, `backend_server/conftest.py`, `backend_server/tests/test_execute_converse.py`
+- **Learnings for future iterations:**
+  - Use `_loading = True` during `__init__` to suppress side effects in methods called during loading — set to False after loading completes
+  - `ConceptNode.node_id` in DB is IntegerField storing the N from "node_N"; convert with `int(node.node_id.replace("node_", ""))`
+  - When using `object.__new__()` in tests to bypass `__init__`, must set ALL new instance attributes added to `__init__` — or tests will get AttributeError
+  - Qdrant scroll for embeddings: `point.vector` can be list or dict — check `isinstance(vec, list)` before using
+  - `get_or_create` + `F("strength") + 1` in `transaction.atomic()` is the atomic increment pattern for Django without raw SQL
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
@@ -112,6 +133,8 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
 - Qdrant point IDs should be deterministic UUIDs (uuid5) derived from (persona_id, embedding_key) to make upserts idempotent
 - `_ensure_collection()` pattern: check existing collections set before creating to avoid errors on repeated calls
 - Module-level `_client: Optional[QdrantClient] = None` + lazy init in `_get_client()` is the singleton pattern used
+- Use `_loading = True` flag in `__init__` to suppress DB/Qdrant writes during loading; set False after loading completes
+- When using `object.__new__()` in tests, always set ALL instance attributes introduced by `__init__` to avoid AttributeError
 
 ## 2026-03-12 - US-001
 - Added `qdrant/qdrant` service to `docker-compose.yml` with port 6333, healthcheck, and `qdrant-data` named volume
