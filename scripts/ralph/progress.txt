@@ -124,6 +124,17 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - `get_or_create` + `F("strength") + 1` in `transaction.atomic()` is the atomic increment pattern for Django without raw SQL
 ---
 
+## 2026-03-12 - US-012
+- Updated `Persona.__init__` to accept `persona_id: Optional[int] = None`; when provided, calls `_init_from_db(persona_id)`
+- `_init_from_db`: loads `scratch` via `Scratch.load_from_db(persona_id)`, derives `name` from `scratch.name`, loads `a_mem` via `AssociativeMemory(persona_id=persona_id)`, loads `s_mem` via `MemoryTree(persona_id=persona_id)`
+- `save(save_folder=None)` now accepts optional save_folder; when None calls DB-mode save on all three memory structures; when provided uses legacy file paths
+- Legacy `Persona(name, folder_mem_saved)` call site in `reverie.py` still works unchanged (positional args compatible)
+- Files changed: `backend_server/persona/persona.py`
+- **Learnings for future iterations:**
+  - `Persona.name` in DB mode is loaded from `scratch.name` (which reads from the Persona DB row via select_related)
+  - `Persona.save(None)` vs `Persona.save(folder)` pattern: None = DB mode, string = file mode
+---
+
 ## 2026-03-12 - US-011
 - Refactored `MemoryTree.__init__` to accept `Optional[str] = None` (legacy) and `persona_id: Optional[int] = None` (DB mode)
 - Added `_load_from_db(persona_id)`: uses `get_or_create` to load or create SpatialMemory row, sets `self.tree` from JSONB
