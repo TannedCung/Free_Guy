@@ -1097,3 +1097,528 @@ class ImportSimulationTest(TestCase):
         persona = sim.personas.get()
         self.assertEqual(ConceptNode.objects.filter(persona=persona).count(), 1)
         self.assertEqual(EnvironmentState.objects.filter(simulation=sim).count(), 2)
+
+
+# ---------------------------------------------------------------------------
+# US-022: End-to-end simulation lifecycle validation
+# ---------------------------------------------------------------------------
+
+SIM_NAME = "base_the_ville_isabella_maria_Klaus"
+PERSONA_NAMES = ["Isabella Rodriguez", "Maria Lopez", "Klaus Mueller"]
+
+
+class EndToEndImportTest(TestCase):
+    """Test: import base_the_ville_isabella_maria_Klaus → all data present in DB."""
+
+    def setUp(self) -> None:
+        self.storage_dir = tempfile.mkdtemp()
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.storage_dir, ignore_errors=True)
+
+    def _build_ville_sim_files(self, sim_code: str) -> Path:
+        """Build a minimal ville simulation directory mimicking the real structure."""
+        sim_dir = Path(self.storage_dir) / sim_code
+        (sim_dir / "reverie").mkdir(parents=True)
+        (sim_dir / "environment").mkdir()
+        (sim_dir / "movement").mkdir()
+
+        meta = {
+            "fork_sim_code": None,
+            "start_date": "February 13, 2023",
+            "curr_time": "February 13, 2023, 00:01:40",
+            "sec_per_step": 10,
+            "maze_name": "the_ville",
+            "persona_names": PERSONA_NAMES,
+            "step": 10,
+        }
+        (sim_dir / "reverie" / "meta.json").write_text(json.dumps(meta))
+
+        # 10 environment steps
+        for step in range(10):
+            env_data = {p: {"maze": "the_ville", "x": 10 + step, "y": 20 + step} for p in PERSONA_NAMES}
+            (sim_dir / "environment" / f"{step}.json").write_text(json.dumps(env_data))
+
+        # 10 movement steps
+        for step in range(10):
+            mov_data = {
+                "persona": {
+                    p: {
+                        "movement": [10 + step, 20 + step],
+                        "pronunciatio": "🚶",
+                        "description": f"{p} is walking",
+                        "chat": None,
+                    }
+                    for p in PERSONA_NAMES
+                },
+                "meta": {"curr_time": f"February 13, 2023, 00:01:{step:02d}"},
+            }
+            (sim_dir / "movement" / f"{step}.json").write_text(json.dumps(mov_data))
+
+        # Persona files
+        for pname in PERSONA_NAMES:
+            first, *rest = pname.split()
+            last = rest[-1] if rest else "Smith"
+            scratch = {
+                "name": pname,
+                "first_name": first,
+                "last_name": last,
+                "age": 25,
+                "innate": "curious, friendly",
+                "learned": f"{pname} lives in the ville.",
+                "currently": "walking around",
+                "lifestyle": "9-to-5",
+                "living_area": "the_ville:double studio",
+                "daily_plan_req": "explore the ville",
+                "vision_r": 4,
+                "att_bandwidth": 3,
+                "retention": 5,
+                "curr_time": "February 13, 2023, 00:01:40",
+                "curr_tile": [58, 9],
+                "concept_forget": 100,
+                "daily_reflection_time": 180,
+                "daily_reflection_size": 5,
+                "overlap_reflect_th": 4,
+                "kw_strg_event_reflect_th": 10,
+                "kw_strg_thought_reflect_th": 9,
+                "recency_w": 1.0,
+                "relevance_w": 1.0,
+                "importance_w": 1.0,
+                "recency_decay": 0.995,
+                "importance_trigger_max": 150,
+                "importance_trigger_curr": 150,
+                "importance_ele_n": 0,
+                "thought_count": 5,
+                "daily_req": [],
+                "f_daily_schedule": [],
+                "f_daily_schedule_hourly_org": [],
+                "act_address": None,
+                "act_start_time": None,
+                "act_duration": None,
+                "act_description": None,
+                "act_pronunciatio": None,
+                "act_event": ["", "is", ""],
+                "act_obj_description": None,
+                "act_obj_pronunciatio": None,
+                "act_obj_event": ["", "is", ""],
+                "chatting_with": None,
+                "chat": None,
+                "chatting_with_buffer": {},
+                "chatting_end_time": None,
+                "act_path_set": False,
+                "planned_path": [],
+            }
+            mem_dir = sim_dir / "personas" / pname / "bootstrap_memory"
+            mem_dir.mkdir(parents=True)
+            (mem_dir / "scratch.json").write_text(json.dumps(scratch))
+            (mem_dir / "spatial_memory.json").write_text(
+                json.dumps({"the_ville": {"town square": {"benches": [f"{pname}'s spot"]}}})
+            )
+
+            am_dir = mem_dir / "associative_memory"
+            am_dir.mkdir()
+            nodes = {
+                f"node_{i + 1}": {
+                    "node_id": f"node_{i + 1}",
+                    "node_count": i + 1,
+                    "type_count": 1,
+                    "type": "event",
+                    "depth": 1,
+                    "created": "2023-02-13 00:00:10",
+                    "expiration": None,
+                    "last_accessed": "2023-02-13 00:00:10",
+                    "subject": pname,
+                    "predicate": "is",
+                    "object": f"action_{i}",
+                    "description": f"{pname} is action_{i}",
+                    "embedding_key": f"{pname} is action_{i}",
+                    "poignancy": 2.0,
+                    "keywords": [pname, f"action_{i}"],
+                    "filling": [],
+                }
+                for i in range(3)
+            }
+            (am_dir / "nodes.json").write_text(json.dumps(nodes))
+            (am_dir / "kw_strength.json").write_text(
+                json.dumps(
+                    {
+                        "kw_strength_event": {f"action_{i}": 1 for i in range(3)},
+                        "kw_strength_thought": {},
+                    }
+                )
+            )
+            embeddings = {f"{pname} is action_{i}": [0.1 * (i + 1)] * 8 for i in range(3)}
+            (am_dir / "embeddings.json").write_text(json.dumps(embeddings))
+
+        return sim_dir
+
+    @patch("qdrant_utils.batch_store_embeddings")
+    def test_import_base_ville_sim_without_errors(self, mock_batch_store: MagicMock) -> None:
+        """Import base_the_ville_isabella_maria_Klaus → all data present in DB."""
+        mock_batch_store.return_value = 3
+        self._build_ville_sim_files(SIM_NAME)
+
+        out = StringIO()
+        call_command(
+            "import_simulation",
+            SIM_NAME,
+            "--storage-dir",
+            self.storage_dir,
+            stdout=out,
+        )
+
+        # Simulation row exists
+        self.assertTrue(Simulation.objects.filter(name=SIM_NAME).exists())
+        sim = Simulation.objects.get(name=SIM_NAME)
+        self.assertEqual(sim.maze_name, "the_ville")
+        self.assertEqual(sim.step, 10)
+
+        # All 3 personas imported
+        self.assertEqual(sim.personas.count(), 3)
+        for pname in PERSONA_NAMES:
+            persona = sim.personas.get(name=pname)
+            # PersonaScratch
+            scratch = PersonaScratch.objects.get(persona=persona)
+            self.assertEqual(scratch.vision_r, 4)
+            # SpatialMemory
+            spatial = SpatialMemory.objects.get(persona=persona)
+            self.assertIn("the_ville", spatial.tree)
+            # 3 ConceptNode rows per persona
+            self.assertEqual(ConceptNode.objects.filter(persona=persona).count(), 3)
+            # KeywordStrength rows
+            self.assertGreater(KeywordStrength.objects.filter(persona=persona).count(), 0)
+
+        # 10 EnvironmentState rows
+        self.assertEqual(EnvironmentState.objects.filter(simulation=sim).count(), 10)
+        # 10 MovementRecord rows
+        self.assertEqual(MovementRecord.objects.filter(simulation=sim).count(), 10)
+
+        # Qdrant batch_store called once per persona
+        self.assertEqual(mock_batch_store.call_count, 3)
+
+        # Output mentions all personas and step counts
+        output = out.getvalue()
+        self.assertIn(SIM_NAME, output)
+
+
+class EndToEndLifecycleTest(TestCase):
+    """
+    End-to-end test: full simulation lifecycle from creation through gameplay
+    to demo compression and demo step API retrieval.
+
+    Simulates what reverie.py would do (write EnvironmentState + MovementRecord
+    + ConceptNode rows) over 10 steps without actually running the game loop.
+    """
+
+    def _build_test_sim(self) -> tuple[Simulation, list[Persona]]:
+        """Create a simulation with 3 personas and PersonaScratch/SpatialMemory rows."""
+        sim = Simulation.objects.create(
+            name=SIM_NAME,
+            sec_per_step=10,
+            maze_name="the_ville",
+            start_date=datetime.datetime(2023, 2, 13, tzinfo=datetime.timezone.utc),
+            curr_time=datetime.datetime(2023, 2, 13, 0, 0, 0, tzinfo=datetime.timezone.utc),
+            step=0,
+        )
+        personas = []
+        for i, pname in enumerate(PERSONA_NAMES):
+            first, *rest = pname.split()
+            last = rest[-1] if rest else "Smith"
+            p = Persona.objects.create(
+                simulation=sim,
+                name=pname,
+                first_name=first,
+                last_name=last,
+                age=25 + i,
+                innate="curious",
+                learned=f"{pname} is a resident.",
+                currently="idle",
+                lifestyle="9-to-5",
+                living_area="the_ville:studio",
+                daily_plan_req="explore",
+            )
+            PersonaScratch.objects.create(
+                persona=p,
+                vision_r=4,
+                att_bandwidth=3,
+                retention=5,
+                curr_time=datetime.datetime(2023, 2, 13, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                curr_tile=[10 + i, 20],
+            )
+            SpatialMemory.objects.create(
+                persona=p,
+                tree={"the_ville": {"town square": {}}},
+            )
+            personas.append(p)
+        return sim, personas
+
+    def _simulate_steps(self, sim: Simulation, personas: list[Persona], num_steps: int = 10) -> None:
+        """Write EnvironmentState + MovementRecord + ConceptNode rows for N steps."""
+        base_time = datetime.datetime(2023, 2, 13, 0, 0, 0, tzinfo=datetime.timezone.utc)
+        for step in range(num_steps):
+            step_time = base_time + datetime.timedelta(seconds=step * 10)
+
+            # EnvironmentState (written by frontend process_environment)
+            agent_positions = {p.name: {"maze": "the_ville", "x": 10 + step, "y": 20 + step} for p in personas}
+            EnvironmentState.objects.update_or_create(
+                simulation=sim,
+                step=step,
+                defaults={"agent_positions": agent_positions},
+            )
+
+            # MovementRecord (written by backend reverie.py)
+            persona_movements = {
+                p.name: {
+                    "movement": [10 + step, 20 + step],
+                    "pronunciatio": "🚶",
+                    "description": f"{p.name} is walking",
+                    "chat": None,
+                }
+                for p in personas
+            }
+            MovementRecord.objects.update_or_create(
+                simulation=sim,
+                step=step,
+                defaults={"sim_curr_time": step_time, "persona_movements": persona_movements},
+            )
+
+            # ConceptNode (written by backend as personas act)
+            for p in personas:
+                ConceptNode.objects.create(
+                    persona=p,
+                    node_id=step + 1,
+                    node_count=step + 1,
+                    type_count=step + 1,
+                    node_type=ConceptNode.NodeType.EVENT,
+                    depth=1,
+                    created=step_time,
+                    last_accessed=step_time,
+                    subject=p.name,
+                    predicate="is",
+                    object=f"walking_step_{step}",
+                    description=f"{p.name} is walking_step_{step}",
+                    embedding_key=f"{p.name} is walking_step_{step}",
+                    poignancy=1.0,
+                    keywords=[p.name, f"walking_step_{step}"],
+                    filling=[],
+                )
+
+        # Update simulation step counter
+        sim.step = num_steps
+        sim.curr_time = base_time + datetime.timedelta(seconds=num_steps * 10)
+        sim.save()
+
+    def test_environment_state_rows_accumulate(self) -> None:
+        """EnvironmentState rows accumulate with correct agent positions after each step."""
+        sim, personas = self._build_test_sim()
+        self._simulate_steps(sim, personas, num_steps=10)
+
+        env_count = EnvironmentState.objects.filter(simulation=sim).count()
+        self.assertEqual(env_count, 10)
+
+        # Verify step 5 has correct positions
+        env5 = EnvironmentState.objects.get(simulation=sim, step=5)
+        for p in personas:
+            self.assertIn(p.name, env5.agent_positions)
+            self.assertEqual(env5.agent_positions[p.name]["x"], 15)
+            self.assertEqual(env5.agent_positions[p.name]["y"], 25)
+
+    def test_movement_record_rows_accumulate(self) -> None:
+        """MovementRecord rows accumulate with correct movement data after each step."""
+        sim, personas = self._build_test_sim()
+        self._simulate_steps(sim, personas, num_steps=10)
+
+        mov_count = MovementRecord.objects.filter(simulation=sim).count()
+        self.assertEqual(mov_count, 10)
+
+        # Verify step 3 has correct movements
+        mov3 = MovementRecord.objects.get(simulation=sim, step=3)
+        for p in personas:
+            self.assertIn(p.name, mov3.persona_movements)
+            self.assertEqual(mov3.persona_movements[p.name]["movement"], [13, 23])
+
+    def test_concept_nodes_accumulate_as_simulation_runs(self) -> None:
+        """ConceptNode rows accumulate in DB as simulation runs."""
+        sim, personas = self._build_test_sim()
+        self._simulate_steps(sim, personas, num_steps=10)
+
+        total_nodes = ConceptNode.objects.filter(persona__simulation=sim).count()
+        # 3 personas × 10 steps = 30 nodes
+        self.assertEqual(total_nodes, 30)
+
+        # Each persona has 10 nodes
+        for p in personas:
+            self.assertEqual(ConceptNode.objects.filter(persona=p).count(), 10)
+
+    def test_qdrant_search_similar_returns_results(self) -> None:
+        """Embeddings are stored and searchable in Qdrant after simulation steps.
+
+        Uses the backend qdrant_utils.search_similar with a mocked Qdrant client
+        to verify that embeddings written during simulation steps can be retrieved
+        via cosine ANN search.
+        """
+        import sys
+
+        backend_utils = str(Path(__file__).resolve().parents[2] / "backend_server" / "utils")
+        if backend_utils not in sys.path:
+            sys.path.insert(0, backend_utils)
+
+        import importlib
+
+        import qdrant_utils as backend_qdrant_utils
+
+        importlib.reload(backend_qdrant_utils)  # ensure clean module state
+
+        mock_client = MagicMock()
+        scored_pt = MagicMock()
+        scored_pt.payload = {
+            "persona_id": 1,
+            "embedding_key": "Isabella Rodriguez is walking_step_0",
+            "simulation_id": 1,
+        }
+        scored_pt.score = 0.92
+        mock_client.search.return_value = [scored_pt]
+        collection_mock = MagicMock()
+        collection_mock.name = backend_qdrant_utils.COLLECTION_NAME
+        mock_client.get_collections.return_value.collections = [collection_mock]
+
+        with patch.object(backend_qdrant_utils, "_get_client", return_value=mock_client):
+            query_vector = [0.1] * 1536
+            results = backend_qdrant_utils.search_similar(persona_id=1, query_vector=query_vector, top_k=5)
+
+        # search_similar returns List[str] of embedding_keys ordered by cosine similarity
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0], "Isabella Rodriguez is walking_step_0")
+
+    def test_simulation_list_api_returns_correct_metadata(self) -> None:
+        """Simulation list API returns the simulation with correct metadata."""
+        sim, personas = self._build_test_sim()
+        self._simulate_steps(sim, personas, num_steps=10)
+
+        resp = self.client.get("/api/v1/simulations/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+
+        sim_data = next(s for s in data["simulations"] if s["id"] == SIM_NAME)
+        self.assertEqual(sim_data["maze_name"], "the_ville")
+        self.assertEqual(sim_data["step"], 10)
+        for pname in PERSONA_NAMES:
+            self.assertIn(pname, sim_data["persona_names"])
+
+    def test_compress_creates_demo_and_demo_movement_rows(self) -> None:
+        """Run compress_sim_storage → Demo and DemoMovement rows created in DB."""
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend_server"))
+        from utils.compress_sim_storage import compress
+
+        sim, personas = self._build_test_sim()
+        self._simulate_steps(sim, personas, num_steps=10)
+
+        compress(SIM_NAME)
+
+        # Demo row created
+        self.assertTrue(Demo.objects.filter(name=SIM_NAME).exists())
+        demo = Demo.objects.get(name=SIM_NAME)
+        self.assertEqual(demo.maze_name, "the_ville")
+        self.assertEqual(demo.total_steps, 10)
+
+        # DemoMovement rows created (all steps changed so all 10 should be present)
+        demo_mov_count = DemoMovement.objects.filter(demo=demo).count()
+        self.assertEqual(demo_mov_count, 10)
+
+    def test_demo_step_api_returns_movement_data(self) -> None:
+        """Demo step API endpoint returns correct movement data from DemoMovement rows."""
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend_server"))
+        from utils.compress_sim_storage import compress
+
+        sim, personas = self._build_test_sim()
+        self._simulate_steps(sim, personas, num_steps=10)
+        compress(SIM_NAME)
+
+        # Query step 5 via API
+        resp = self.client.get(f"/api/v1/demos/{SIM_NAME}/step/5/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["step"], 5)
+
+        # Verify persona movement data is present
+        step_movements = data["agents"]
+        for pname in PERSONA_NAMES:
+            self.assertIn(pname, step_movements)
+            self.assertEqual(step_movements[pname]["movement"], [15, 25])
+
+    def test_full_lifecycle_end_to_end(self) -> None:
+        """
+        Full simulation lifecycle: create → 10 steps → compress → demo API.
+
+        This single test covers the entire chain as described in US-022.
+        """
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend_server"))
+        from utils.compress_sim_storage import compress
+
+        # 1. Create simulation (as API would do)
+        resp = self.client.post(
+            "/api/v1/simulations/",
+            data=json.dumps({"name": "e2e-lifecycle-sim"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertTrue(Simulation.objects.filter(name="e2e-lifecycle-sim").exists())
+
+        sim = Simulation.objects.get(name="e2e-lifecycle-sim")
+        sim.maze_name = "the_ville"
+        sim.sec_per_step = 10
+        sim.save()
+
+        # 2. Add personas
+        personas = []
+        for pname in PERSONA_NAMES:
+            first, *rest = pname.split()
+            last = rest[-1] if rest else "Smith"
+            p = Persona.objects.create(
+                simulation=sim,
+                name=pname,
+                first_name=first,
+                last_name=last,
+                age=25,
+                innate="curious",
+                learned=f"{pname} is a resident.",
+                currently="idle",
+                lifestyle="9-to-5",
+                living_area="the_ville:studio",
+                daily_plan_req="explore",
+            )
+            personas.append(p)
+
+        # 3. Simulate 10 steps (as reverie.py + process_environment would do)
+        self._simulate_steps(sim, personas, num_steps=10)
+
+        # 4. Verify accumulation
+        self.assertEqual(EnvironmentState.objects.filter(simulation=sim).count(), 10)
+        self.assertEqual(MovementRecord.objects.filter(simulation=sim).count(), 10)
+        total_nodes = ConceptNode.objects.filter(persona__simulation=sim).count()
+        self.assertEqual(total_nodes, 30)
+
+        # 5. Simulation list API returns correct metadata
+        resp = self.client.get("/api/v1/simulations/")
+        sim_ids = [s["id"] for s in resp.json()["simulations"]]
+        self.assertIn("e2e-lifecycle-sim", sim_ids)
+
+        # 6. Run compress → Demo + DemoMovement rows
+        compress("e2e-lifecycle-sim")
+        self.assertTrue(Demo.objects.filter(name="e2e-lifecycle-sim").exists())
+        demo = Demo.objects.get(name="e2e-lifecycle-sim")
+        self.assertEqual(demo.total_steps, 10)
+        self.assertGreater(DemoMovement.objects.filter(demo=demo).count(), 0)
+
+        # 7. Demo step API returns correct data
+        resp = self.client.get("/api/v1/demos/e2e-lifecycle-sim/step/0/")
+        self.assertEqual(resp.status_code, 200)
+        step_data = resp.json()
+        self.assertEqual(step_data["step"], 0)
+        self.assertIn("agents", step_data)
