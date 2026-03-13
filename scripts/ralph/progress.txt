@@ -160,6 +160,19 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - `save(out_json=None)` pattern is consistent with Scratch and AssociativeMemory — no-arg means DB mode
 ---
 
+## 2026-03-13 - US-014
+- All DB writes already implemented from US-013; the missing piece was wrapping each simulation step in `django.db.transaction.atomic()`
+- Refactored `start_server()`: consolidated MovementRecord write, agent/conversation/memory persistence, and Simulation step/curr_time update into a single `with transaction.atomic():` block
+- Added `step_committed` flag — `self.step` and `self.curr_time` are updated only after a successful commit to keep in-memory and DB state in sync on failure
+- Pre-computed `next_step`/`next_time` before the transaction so in-memory state is never mutated inside the atomic block (avoids half-applied state on rollback)
+- Added `if self._db_sim is not None:` guard on `self._db_sim.pk` inside the transaction (mypy `union-attr` requirement — consistent with existing pattern)
+- Files changed: `backend_server/reverie.py`
+- **Learnings for future iterations:**
+  - When wrapping a step in `transaction.atomic()`, compute all derived values (next_step, next_time) BEFORE entering the context manager; update in-memory state AFTER the `with` block exits successfully
+  - `step_committed = False` flag pattern is cleaner than try/else for knowing whether a transaction committed
+  - `self._db_sim.pk` guard required any time the field is accessed — even inside a block that logically requires `_db_sim` to be set
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
