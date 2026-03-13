@@ -217,6 +217,24 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - `json` import is kept for `json.loads(request.body)` (request parsing); `os` is kept for `spa_index` path join — neither is "file I/O for storage"
 ---
 
+## 2026-03-13 - US-018
+- Replaced legacy `import_simulation.py` (used `Agent`, `AgentMemory`, `SimulationStep`) with new DB-backed version using `Persona`, `PersonaScratch`, `ConceptNode`, `KeywordStrength`, `SpatialMemory`, `EnvironmentState`, `MovementRecord`
+- Added `batch_store_embeddings(persona_id, simulation_id, embeddings_dict)` to `frontend_server/qdrant_utils.py` for batch upsert of embeddings.json data
+- Command accepts `<sim_code>` positional arg or `--all` flag + optional `--storage-dir`
+- Each simulation wrapped in `transaction.atomic()`; persona Qdrant writes happen outside (Qdrant has no transaction support)
+- Idempotency: `update_or_create` for Simulation/Persona/PersonaScratch/SpatialMemory; pre-checks existing_ids + `ignore_conflicts=True` for bulk rows (ConceptNode, KeywordStrength, EnvironmentState, MovementRecord)
+- `_DEFAULT_STORAGE = Path(__file__).resolve().parents[3] / "storage"` resolves to `frontend_server/storage/`
+- kw_strength.json format: `{"kw_strength_event": {...}, "kw_strength_thought": {...}}`
+- nodes.json key is "node_N" → extract integer for `ConceptNode.node_id` IntegerField
+- movement/*.json format: `{"persona": {...}, "meta": {"curr_time": "..."}}` — store `persona` sub-dict as `persona_movements`
+- Files changed: `frontend_server/qdrant_utils.py`, `frontend_server/translator/management/commands/import_simulation.py`
+- **Learnings for future iterations:**
+  - `batch_store_embeddings` is now the preferred way to bulk-upsert embeddings from file import
+  - `ignore_conflicts=True` in `bulk_create` is the simplest idempotency strategy for bulk imports — combine with pre-checking existing IDs to avoid building objects that will be dropped
+  - kw_strength.json uses "kw_strength_event"/"kw_strength_thought" keys (not "event"/"thought")
+  - The existing `import_simulation.py` used old models (Agent, AgentMemory, SimulationStep) — now replaced with new Persona/ConceptNode etc. models
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
