@@ -235,6 +235,21 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - The existing `import_simulation.py` used old models (Agent, AgentMemory, SimulationStep) — now replaced with new Persona/ConceptNode etc. models
 ---
 
+## 2026-03-13 - US-019
+- Created `frontend_server/translator/management/commands/import_demo.py`: imports compressed demos into Demo + DemoMovement tables
+- Rewrote `frontend_server/translator/management/commands/export_simulation.py`: replaced old Agent/SimulationStep models with Persona/PersonaScratch/ConceptNode/KeywordStrength/SpatialMemory/EnvironmentState/MovementRecord
+- Added `get_all_persona_embeddings(persona_id)` to `frontend_server/qdrant_utils.py` for export use
+- `import_demo`: reads `meta.json` → Demo row (update_or_create); reads `master_movement.json` (dict of step_str → movements) → DemoMovement rows via bulk_create(batch_size=500, ignore_conflicts=True)
+- `import_demo` supports `<demo_code>` positional arg or `--all` + optional `--compressed-dir`; each demo wrapped in `transaction.atomic()`
+- `export_simulation`: produces reverie/meta.json, environment/*.json, movement/*.json, personas/*/bootstrap_memory/{scratch,spatial_memory}.json + associative_memory/{nodes,kw_strength,embeddings,seq_*}.json
+- Files changed: `frontend_server/qdrant_utils.py`, `frontend_server/translator/management/commands/export_simulation.py`, `frontend_server/translator/management/commands/import_demo.py`
+- **Learnings for future iterations:**
+  - `master_movement.json` in compressed_storage uses string step keys ("0", "1", ...) → convert with `int(step_key)`; values are dicts of persona_name → movement data (store directly as `agent_movements`)
+  - `export_simulation` old version used obsolete models (Agent, SimulationStep) — always check model imports match current models.py before modifying management commands
+  - Demo `total_steps` = `len(master_movement)` (count of step entries), `step` = from meta.json (may differ from total_steps)
+  - `get_all_persona_embeddings` uses same scroll pattern as `copy_persona_embeddings` — reuse the `_ensure_collection` + paginated scroll idiom
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
