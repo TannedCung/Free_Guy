@@ -9,7 +9,6 @@ import os
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from global_methods import check_if_file_exists
 
 
 def spa_index(request):
@@ -25,7 +24,7 @@ def process_environment(request):
     <FRONTEND to BACKEND>
     This sends the frontend visual world information to the backend server.
     It does this by writing the current environment representation to
-    "storage/environment.json" file.
+    the EnvironmentState database table.
 
     ARGS:
       request: Django request
@@ -37,8 +36,17 @@ def process_environment(request):
     sim_code = data["sim_code"]
     environment = data["environment"]
 
-    with open(f"storage/{sim_code}/environment/{step}.json", "w") as outfile:
-        outfile.write(json.dumps(environment, indent=2))
+    from translator.models import EnvironmentState, Simulation
+
+    try:
+        sim = Simulation.objects.get(name=sim_code)
+        EnvironmentState.objects.update_or_create(
+            simulation=sim,
+            step=step,
+            defaults={"agent_positions": environment},
+        )
+    except Simulation.DoesNotExist:
+        pass
 
     return HttpResponse("received")
 
@@ -50,7 +58,7 @@ def update_environment(request):
     This sends the backend computation of the persona behavior to the frontend
     visual server.
     It does this by reading the new movement information from
-    "storage/movement.json" file.
+    the MovementRecord database table.
 
     ARGS:
       request: Django request
@@ -61,11 +69,18 @@ def update_environment(request):
     step = data["step"]
     sim_code = data["sim_code"]
 
-    response_data = {"<step>": -1}
-    if check_if_file_exists(f"storage/{sim_code}/movement/{step}.json"):
-        with open(f"storage/{sim_code}/movement/{step}.json") as json_file:
-            response_data = json.load(json_file)
+    response_data: dict = {"<step>": -1}
+
+    from translator.models import MovementRecord, Simulation
+
+    try:
+        sim = Simulation.objects.get(name=sim_code)
+        record = MovementRecord.objects.filter(simulation=sim, step=step).first()
+        if record is not None:
+            response_data = dict(record.persona_movements)
             response_data["<step>"] = step
+    except Simulation.DoesNotExist:
+        pass
 
     return JsonResponse(response_data)
 
