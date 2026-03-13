@@ -84,6 +84,51 @@ def batch_store_embeddings(
     return total
 
 
+def get_all_persona_embeddings(persona_id: int) -> dict:
+    """Retrieve all embeddings for a persona as a {embedding_key: vector} dict.
+
+    Scrolls through the Qdrant collection and returns every embedding stored
+    for the given persona_id.
+
+    Args:
+        persona_id: Primary key of the Persona DB row.
+
+    Returns:
+        Dict mapping embedding_key → float vector list.
+    """
+    _ensure_collection()
+    client = _get_client()
+
+    result: dict = {}
+    offset = None
+    while True:
+        records, next_offset = client.scroll(
+            collection_name=COLLECTION_NAME,
+            scroll_filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="persona_id",
+                        match=models.MatchValue(value=persona_id),
+                    )
+                ]
+            ),
+            with_vectors=True,
+            limit=100,
+            offset=offset,
+        )
+        for point in records:
+            if point.payload is None or point.vector is None:
+                continue
+            key: str = point.payload.get("embedding_key", "")
+            vec = point.vector
+            if isinstance(vec, list):
+                result[key] = vec
+        if next_offset is None:
+            break
+        offset = next_offset
+    return result
+
+
 def copy_persona_embeddings(
     src_persona_id: int,
     dst_persona_id: int,
