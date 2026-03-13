@@ -205,6 +205,18 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - `Demo.total_steps` is stored directly on the model — no need to count DemoMovement rows
 ---
 
+## 2026-03-13 - US-017
+- Refactored `process_environment` to write agent positions to `EnvironmentState` model via `update_or_create(simulation=sim, step=step, defaults={...})`
+- Refactored `update_environment` to read movement data from `MovementRecord` model; returns `persona_movements` dict with `<step>` key added (or `{"<step>": -1}` if no record)
+- `path_tester_update` was already migrated (US-008); no changes needed
+- Removed `check_if_file_exists` import from `global_methods`; `json` and `os` kept for request body parsing and `spa_index` respectively
+- Files changed: `frontend_server/translator/views.py`
+- **Learnings for future iterations:**
+  - `update_or_create(simulation=sim, step=step, defaults={...})` is the idempotent write pattern for EnvironmentState and MovementRecord
+  - `response_data: dict = {"<step>": -1}` default preserves the pre-migration "no data yet" response format
+  - `json` import is kept for `json.loads(request.body)` (request parsing); `os` is kept for `spa_index` path join — neither is "file I/O for storage"
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
