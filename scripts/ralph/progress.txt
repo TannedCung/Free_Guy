@@ -250,6 +250,23 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - `get_all_persona_embeddings` uses same scroll pattern as `copy_persona_embeddings` — reuse the `_ensure_collection` + paginated scroll idiom
 ---
 
+## 2026-03-13 - US-020
+- Refactored `compress_sim_storage.py` to query DB (Simulation, Persona, MovementRecord) instead of scanning `storage/`
+- Compression writes Demo + DemoMovement rows to DB instead of `compressed_storage/` files
+- Removed all file path references (`sim_storage`, `compressed_storage`, `move_folder`, `meta_file`) from `compress_sim_storage.py`
+- Removed `json`, `shutil`, `global_methods` imports; compress() now only imports from `translator.models`
+- Removed `fs_storage` constant (and commented-out duplicate) from `backend_server/constant.py`
+- Docker `simulation-storage`/`simulation-temp` volumes: not present in docker-compose.yml (already clean)
+- Dockerfile `mkdir storage temp_storage`: not present in Dockerfiles (already clean)
+- `if __name__ == "__main__"` block in compress_sim_storage.py initializes Django via `DJANGO_SETTINGS_MODULE` env var before calling `compress()`
+- Files changed: `backend_server/utils/compress_sim_storage.py`, `backend_server/constant.py`
+- **Learnings for future iterations:**
+  - `compress()` is now purely DB-backed; the caller must ensure Django is initialized (or run as `__main__` which does it automatically)
+  - DemoMovement idempotency: delete existing rows then bulk_create (simpler than update_conflicts for this use case)
+  - `MovementRecord.persona_movements` already stores the persona name → movement dict directly (same format as `compress_sim_storage.py` expected from `i_move_dict["persona"]`)
+  - Frontend_server settings path: `frontend_server.settings.development` — set `DJANGO_SETTINGS_MODULE` before calling `django.setup()` in standalone scripts
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
