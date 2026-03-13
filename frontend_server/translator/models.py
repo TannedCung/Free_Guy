@@ -182,9 +182,9 @@ class ConceptNode(models.Model):
             models.UniqueConstraint(fields=["persona", "node_id"], name="unique_persona_node_id"),
         ]
         indexes = [
-            models.Index(fields=["persona", "node_type"], name="conceptnode_persona_node_type_idx"),
-            models.Index(fields=["persona", "subject"], name="conceptnode_persona_subject_idx"),
-            models.Index(fields=["persona", "-created"], name="conceptnode_persona_created_idx"),
+            models.Index(fields=["persona", "node_type"], name="cn_per_node_type_idx"),
+            models.Index(fields=["persona", "subject"], name="cn_per_subject_idx"),
+            models.Index(fields=["persona", "-created"], name="cn_per_created_idx"),
         ]
 
     def __str__(self) -> str:
