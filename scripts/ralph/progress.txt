@@ -267,6 +267,32 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - Frontend_server settings path: `frontend_server.settings.development` — set `DJANGO_SETTINGS_MODULE` before calling `django.setup()` in standalone scripts
 ---
 
+## 2026-03-13 - US-021
+- Rewrote `frontend_server/translator/tests.py` from scratch: replaced all file-based helpers and STORAGE_DIR patches with fully DB-backed Django TestCase tests
+- Added 41 integration tests covering the full simulation lifecycle:
+  - SimulationsListGetTests, SimulationsListPostTests (DB-backed GET/POST)
+  - SimulationStateTests (EnvironmentState query), SimulationAgentsTests (Persona query)
+  - DemoStepTests (DemoMovement query), DemosListTests (Demo query)
+  - ProcessEnvironmentTest (process_environment view → EnvironmentState)
+  - UpdateEnvironmentTest (update_environment view → MovementRecord)
+  - PersonaScratchRoundTripTest (all 40+ fields round-trip)
+  - SpatialMemoryRoundTripTest (tree JSONB round-trip)
+  - AssociativeMemoryDbTest (ConceptNode + KeywordStrength DB round-trip + mocked Qdrant retrieval)
+  - ForkSimulationTest (all rows copied, Qdrant mocked)
+  - QdrantSearchSimilarTest (mocked search returns ordered results)
+  - ExportSimulationTest (export_simulation command produces correct file layout; Qdrant mocked)
+  - ImportSimulationTest (import_simulation from temp files; idempotency; Qdrant mocked)
+- Fixed ConceptNode index names exceeding 30 chars (models.E034); created migration 0013 to rename them
+- Run tests with: `python3 manage.py test translator.tests` from `frontend_server/` directory
+- Files changed: `frontend_server/translator/tests.py`, `frontend_server/translator/models.py`, `frontend_server/translator/migrations/0013_rename_conceptnode_indexes.py`
+- **Learnings for future iterations:**
+  - Django tests must be run as `python3 manage.py test translator.tests` (not `translator`) from inside the `frontend_server/` directory; using just `translator` causes Django to prepend the package name and fail
+  - ConceptNode index names exceeded 30 chars — Django's models.E034 system check enforces this; always use ≤ 30 char index names in migrations
+  - `pre-commit run --files ...` only runs hooks for the given files — must specify all modified files to get full coverage
+  - Qdrant-dependent tests should mock `qdrant_utils` module functions; patch at the import path used by the code (`qdrant_utils.copy_persona_embeddings`, not `translator.api_views.qdrant_utils.copy_persona_embeddings`)
+  - `call_command("export_simulation", ...)` works in Django tests; `call_command("import_simulation", ...)` requires `--storage-dir` to override the default path
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
@@ -279,6 +305,8 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
 - Use `_loading = True` flag in `__init__` to suppress DB/Qdrant writes during loading; set False after loading completes
 - When using `object.__new__()` in tests, always set ALL instance attributes introduced by `__init__` to avoid AttributeError
 - Frontend server uses `frontend_server/` root as Python path — top-level modules (e.g. `qdrant_utils.py`, `global_methods.py`) are directly importable from views/api_views
+- Django tests: run as `python3 manage.py test translator.tests` from `frontend_server/` dir; using `translator` (without `.tests`) causes module prefix confusion
+- ConceptNode index names must be ≤ 30 chars (Django models.E034 check); new names: `cn_per_node_type_idx`, `cn_per_subject_idx`, `cn_per_created_idx`
 
 ## 2026-03-12 - US-001
 - Added `qdrant/qdrant` service to `docker-compose.yml` with port 6333, healthcheck, and `qdrant-data` named volume
