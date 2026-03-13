@@ -386,80 +386,112 @@ class ReverieServer:
                 # movements dictionary.
                 movements["meta"]["curr_time"] = self.curr_time.strftime("%B %d, %Y, %H:%M:%S")
 
-                # Write persona movements to the MovementRecord table.
-                # The frontend reads from there to animate the simulation.
-                # Example movements dict:
-                # {"persona": {"Maria Lopez": {"movement": [58, 9]}},
-                #  "meta": {"curr_time": "..."}}
+                # Compute next step/time before entering the transaction so that
+                # self.step and self.curr_time are only updated after a successful commit.
+                next_step = self.step + 1
+                next_time = self.curr_time + datetime.timedelta(seconds=self.sec_per_step)
+
+                # Wrap all DB writes for this step in a single atomic transaction.
+                # This ensures the step is fully committed or fully rolled back.
+                step_committed = False
                 try:
+                    from django.db import transaction
                     from django.utils import timezone
                     from translator.models import MovementRecord as MovementRecordModel
+                    from translator.models import Simulation as SimulationModel
 
                     curr_time_aware = (
                         timezone.make_aware(self.curr_time) if self.curr_time.tzinfo is None else self.curr_time
                     )
-                    MovementRecordModel.objects.update_or_create(
-                        simulation=self._db_sim,
-                        step=self.step,
-                        defaults={
-                            "sim_curr_time": curr_time_aware,
-                            "persona_movements": movements,
-                        },
-                    )
+                    next_time_aware = timezone.make_aware(next_time) if next_time.tzinfo is None else next_time
+                    with transaction.atomic():
+                        # Write persona movements to the MovementRecord table.
+                        # The frontend reads from there to animate the simulation.
+                        # Example movements dict:
+                        # {"persona": {"Maria Lopez": {"movement": [58, 9]}},
+                        #  "meta": {"curr_time": "..."}}
+                        MovementRecordModel.objects.update_or_create(
+                            simulation=self._db_sim,
+                            step=self.step,
+                            defaults={
+                                "sim_curr_time": curr_time_aware,
+                                "persona_movements": movements,
+                            },
+                        )
+
+                        # -----------------------------------------------------------
+                        # DATABASE PERSISTENCE: agent state + conversations
+                        # -----------------------------------------------------------
+
+                        for persona_name, persona in self.personas.items():
+                            db_agent = self._db_agents.get(persona_name)
+                            scratch = persona.scratch
+                            # Update agent location and status in the DB.
+                            new_location = scratch.act_address or scratch.living_area or ""
+                            new_status = (
+                                "sleeping"
+                                if scratch.act_description and "sleeping" in (scratch.act_description or "").lower()
+                                else "active"
+                            )
+                            db_agent = upsert_agent(
+                                self._db_sim,
+                                persona_name,
+                                current_location=new_location,
+                                status=new_status,
+                            )
+                            if db_agent is not None:
+                                self._db_agents[persona_name] = db_agent
+
+                            # Persist any active conversation.
+                            if scratch.chat and scratch.chatting_with:
+                                partner_agent = self._db_agents.get(scratch.chatting_with)
+                                participants = [a for a in [db_agent, partner_agent] if a is not None]
+                                save_conversation(
+                                    self._db_sim,
+                                    agent_objs=participants,
+                                    started_at=self.curr_time,
+                                    transcript=scratch.chat,
+                                )
+
+                            # Persist any new memory nodes created during this step.
+                            prev_count = self._db_memory_counts.get(persona_name, 0)
+                            all_nodes = list(persona.a_mem.id_to_node.values())
+                            new_nodes = all_nodes[prev_count:]
+                            for node in new_nodes:
+                                save_agent_memory(
+                                    db_agent,
+                                    memory_type=node.type,
+                                    content=node.description,
+                                    importance_score=float(node.poignancy),
+                                )
+                            self._db_memory_counts[persona_name] = len(all_nodes)
+
+                        # Persist updated step and curr_time to the Simulation row.
+                        if self._db_sim is not None:
+                            SimulationModel.objects.filter(pk=self._db_sim.pk).update(
+                                step=next_step,
+                                curr_time=next_time_aware,
+                                status="running",
+                            )
+
+                        # Signal the frontend about the new step.
+                        set_runtime_state("curr_sim_code", {"sim_code": self.sim_code})
+                        set_runtime_state("curr_step", {"step": next_step})
+
+                    step_committed = True
+
                 except Exception:
-                    logger.warning("start_server: failed to write MovementRecord for step %d", self.step, exc_info=True)
-
-                # -----------------------------------------------------------
-                # DATABASE PERSISTENCE: agent state + conversations
-                # -----------------------------------------------------------
-
-                for persona_name, persona in self.personas.items():
-                    db_agent = self._db_agents.get(persona_name)
-                    scratch = persona.scratch
-                    # Update agent location and status in the DB.
-                    new_location = scratch.act_address or scratch.living_area or ""
-                    new_status = (
-                        "sleeping"
-                        if scratch.act_description and "sleeping" in (scratch.act_description or "").lower()
-                        else "active"
+                    logger.warning(
+                        "start_server: transaction failed for step %d, rolling back",
+                        self.step,
+                        exc_info=True,
                     )
-                    db_agent = upsert_agent(
-                        self._db_sim,
-                        persona_name,
-                        current_location=new_location,
-                        status=new_status,
-                    )
-                    if db_agent is not None:
-                        self._db_agents[persona_name] = db_agent
 
-                    # Persist any active conversation.
-                    if scratch.chat and scratch.chatting_with:
-                        partner_agent = self._db_agents.get(scratch.chatting_with)
-                        participants = [a for a in [db_agent, partner_agent] if a is not None]
-                        save_conversation(
-                            self._db_sim,
-                            agent_objs=participants,
-                            started_at=self.curr_time,
-                            transcript=scratch.chat,
-                        )
-
-                    # Persist any new memory nodes created during this step.
-                    prev_count = self._db_memory_counts.get(persona_name, 0)
-                    all_nodes = list(persona.a_mem.id_to_node.values())
-                    new_nodes = all_nodes[prev_count:]
-                    for node in new_nodes:
-                        save_agent_memory(
-                            db_agent,
-                            memory_type=node.type,
-                            content=node.description,
-                            importance_score=float(node.poignancy),
-                        )
-                    self._db_memory_counts[persona_name] = len(all_nodes)
-
-                # After this cycle, the world takes one step forward, and the
-                # current time moves by <sec_per_step> amount.
-                self.step += 1
-                self.curr_time += datetime.timedelta(seconds=self.sec_per_step)
+                # After this cycle, the world takes one step forward only if the
+                # DB transaction committed successfully.
+                if step_committed:
+                    self.step = next_step
+                    self.curr_time = next_time
 
                 int_counter -= 1
 
