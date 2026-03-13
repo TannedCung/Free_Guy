@@ -173,6 +173,20 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - `self._db_sim.pk` guard required any time the field is accessed — even inside a block that logically requires `_db_sim` to be set
 ---
 
+## 2026-03-13 - US-015
+- Refactored `simulations_list` GET to query `Simulation.objects.all()` via ORM
+- Refactored `simulations_list` POST (create) to use `Simulation.objects.create()` with no file I/O
+- Added `_fork_simulation(src_name, new_name)`: deep-copies Simulation, all Persona + PersonaScratch + SpatialMemory rows, bulk_creates ConceptNode + KeywordStrength, calls `qdrant_utils.copy_persona_embeddings()` per persona — all in `transaction.atomic()`
+- Created `frontend_server/qdrant_utils.py` (copy of backend qdrant_utils) to provide `copy_persona_embeddings()` to the frontend server
+- Kept file-based helpers (`_sim_exists`, `_load_meta`, etc.) for functions not yet migrated (US-016)
+- Removed `shutil` import from `api_views.py`
+- Files changed: `frontend_server/translator/api_views.py`, `frontend_server/qdrant_utils.py`
+- **Learnings for future iterations:**
+  - Frontend server uses `frontend_server/` root as the Python path — top-level modules like `qdrant_utils.py` and `global_methods.py` are directly importable
+  - US-016 should remove `_sim_exists`, `_load_meta`, `_latest_env_step`, `_simulation_summary` (file-based helpers still present for US-016 endpoints)
+  - `_sim_summary_from_orm` converts DateTimeField to ISO strings via `.isoformat()` — this is the canonical format going forward
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
@@ -184,6 +198,7 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
 - Module-level `_client: Optional[QdrantClient] = None` + lazy init in `_get_client()` is the singleton pattern used
 - Use `_loading = True` flag in `__init__` to suppress DB/Qdrant writes during loading; set False after loading completes
 - When using `object.__new__()` in tests, always set ALL instance attributes introduced by `__init__` to avoid AttributeError
+- Frontend server uses `frontend_server/` root as Python path — top-level modules (e.g. `qdrant_utils.py`, `global_methods.py`) are directly importable from views/api_views
 
 ## 2026-03-12 - US-001
 - Added `qdrant/qdrant` service to `docker-compose.yml` with port 6333, healthcheck, and `qdrant-data` named volume
