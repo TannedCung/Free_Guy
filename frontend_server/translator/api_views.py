@@ -14,17 +14,31 @@ Endpoints:
 
 import json
 import os
-import shutil
 import string
 
+import qdrant_utils
 from django.conf import settings
+from django.db import transaction
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.response import Response
+from translator.models import (
+    ConceptNode,
+    KeywordStrength,
+    Persona,
+    PersonaScratch,
+    Simulation,
+    SpatialMemory,
+)
 
 STORAGE_DIR = os.path.join(settings.BASE_DIR, "storage")
 COMPRESSED_STORAGE_DIR = os.path.join(settings.BASE_DIR, "compressed_storage")
+
+
+# ---------------------------------------------------------------------------
+# File-based helpers (kept for US-016 endpoints not yet migrated)
+# ---------------------------------------------------------------------------
 
 
 def _sim_exists(sim_code: str) -> bool:
@@ -70,6 +84,156 @@ def _simulation_summary(sim_code: str) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# DB-based helpers
+# ---------------------------------------------------------------------------
+
+
+def _sim_summary_from_orm(sim: Simulation) -> dict:
+    """Return summary dict from a Simulation ORM object."""
+    persona_names = list(sim.personas.values_list("name", flat=True))
+    return {
+        "id": sim.name,
+        "name": sim.name,
+        "fork_sim_code": sim.fork_sim_code,
+        "start_date": sim.start_date.isoformat() if sim.start_date else None,
+        "curr_time": sim.curr_time.isoformat() if sim.curr_time else None,
+        "sec_per_step": sim.sec_per_step,
+        "maze_name": sim.maze_name,
+        "persona_names": persona_names,
+        "step": sim.step,
+    }
+
+
+def _fork_simulation(src_name: str, new_name: str) -> Simulation:
+    """Deep-copy a simulation including all personas, memory, and Qdrant embeddings."""
+    src_sim = Simulation.objects.get(name=src_name)
+    with transaction.atomic():
+        new_sim = Simulation.objects.create(
+            name=new_name,
+            description=src_sim.description,
+            status=Simulation.Status.PENDING,
+            fork_sim_code=src_name,
+            start_date=src_sim.start_date,
+            curr_time=src_sim.curr_time,
+            sec_per_step=src_sim.sec_per_step,
+            maze_name=src_sim.maze_name,
+            step=src_sim.step,
+            config=src_sim.config,
+        )
+        for persona in src_sim.personas.all():
+            old_pk = persona.pk
+            new_persona = Persona.objects.create(
+                simulation=new_sim,
+                name=persona.name,
+                first_name=persona.first_name,
+                last_name=persona.last_name,
+                age=persona.age,
+                innate=persona.innate,
+                learned=persona.learned,
+                currently=persona.currently,
+                lifestyle=persona.lifestyle,
+                living_area=persona.living_area,
+                daily_plan_req=persona.daily_plan_req,
+                status=persona.status,
+            )
+            # Copy PersonaScratch
+            try:
+                s = PersonaScratch.objects.get(persona=persona)
+                PersonaScratch.objects.create(
+                    persona=new_persona,
+                    vision_r=s.vision_r,
+                    att_bandwidth=s.att_bandwidth,
+                    retention=s.retention,
+                    curr_time=s.curr_time,
+                    curr_tile=s.curr_tile,
+                    concept_forget=s.concept_forget,
+                    daily_reflection_time=s.daily_reflection_time,
+                    daily_reflection_size=s.daily_reflection_size,
+                    overlap_reflect_th=s.overlap_reflect_th,
+                    kw_strg_event_reflect_th=s.kw_strg_event_reflect_th,
+                    kw_strg_thought_reflect_th=s.kw_strg_thought_reflect_th,
+                    recency_w=s.recency_w,
+                    relevance_w=s.relevance_w,
+                    importance_w=s.importance_w,
+                    recency_decay=s.recency_decay,
+                    importance_trigger_max=s.importance_trigger_max,
+                    importance_trigger_curr=s.importance_trigger_curr,
+                    importance_ele_n=s.importance_ele_n,
+                    thought_count=s.thought_count,
+                    daily_req=s.daily_req,
+                    f_daily_schedule=s.f_daily_schedule,
+                    f_daily_schedule_hourly_org=s.f_daily_schedule_hourly_org,
+                    act_address=s.act_address,
+                    act_start_time=s.act_start_time,
+                    act_duration=s.act_duration,
+                    act_description=s.act_description,
+                    act_pronunciatio=s.act_pronunciatio,
+                    act_event=s.act_event,
+                    act_obj_description=s.act_obj_description,
+                    act_obj_pronunciatio=s.act_obj_pronunciatio,
+                    act_obj_event=s.act_obj_event,
+                    chatting_with=s.chatting_with,
+                    chat=s.chat,
+                    chatting_with_buffer=s.chatting_with_buffer,
+                    chatting_end_time=s.chatting_end_time,
+                    act_path_set=s.act_path_set,
+                    planned_path=s.planned_path,
+                )
+            except PersonaScratch.DoesNotExist:
+                pass
+            # Copy SpatialMemory
+            try:
+                sm = SpatialMemory.objects.get(persona=persona)
+                SpatialMemory.objects.create(persona=new_persona, tree=sm.tree)
+            except SpatialMemory.DoesNotExist:
+                pass
+            # Bulk copy ConceptNodes
+            src_nodes = list(ConceptNode.objects.filter(persona=persona))
+            if src_nodes:
+                ConceptNode.objects.bulk_create(
+                    [
+                        ConceptNode(
+                            persona=new_persona,
+                            node_id=n.node_id,
+                            node_count=n.node_count,
+                            type_count=n.type_count,
+                            node_type=n.node_type,
+                            depth=n.depth,
+                            created=n.created,
+                            expiration=n.expiration,
+                            last_accessed=n.last_accessed,
+                            subject=n.subject,
+                            predicate=n.predicate,
+                            object=n.object,
+                            description=n.description,
+                            embedding_key=n.embedding_key,
+                            poignancy=n.poignancy,
+                            keywords=n.keywords,
+                            filling=n.filling,
+                        )
+                        for n in src_nodes
+                    ]
+                )
+            # Bulk copy KeywordStrengths
+            src_kws = list(KeywordStrength.objects.filter(persona=persona))
+            if src_kws:
+                KeywordStrength.objects.bulk_create(
+                    [
+                        KeywordStrength(
+                            persona=new_persona,
+                            keyword=kw.keyword,
+                            strength_type=kw.strength_type,
+                            strength=kw.strength,
+                        )
+                        for kw in src_kws
+                    ]
+                )
+            # Copy Qdrant embeddings
+            qdrant_utils.copy_persona_embeddings(old_pk, new_persona.pk, new_sim.pk)
+    return new_sim
+
+
 @api_view(["GET", "POST"])
 def simulations_list(request: Request) -> Response:
     """
@@ -77,12 +241,7 @@ def simulations_list(request: Request) -> Response:
     POST - create a new simulation or fork from an existing one.
     """
     if request.method == "GET":
-        if not os.path.isdir(STORAGE_DIR):
-            return Response({"simulations": []})
-        sims = []
-        for name in sorted(os.listdir(STORAGE_DIR)):
-            if os.path.isdir(os.path.join(STORAGE_DIR, name)):
-                sims.append(_simulation_summary(name))
+        sims = [_sim_summary_from_orm(s) for s in Simulation.objects.all()]
         return Response({"simulations": sims})
 
     # POST — create or fork
@@ -103,49 +262,29 @@ def simulations_list(request: Request) -> Response:
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    new_sim_code = sim_name
-    new_sim_dir = os.path.join(STORAGE_DIR, new_sim_code)
-
-    if os.path.exists(new_sim_dir):
+    if Simulation.objects.filter(name=sim_name).exists():
         return Response(
-            {"error": f"simulation '{new_sim_code}' already exists"},
+            {"error": f"simulation '{sim_name}' already exists"},
             status=status.HTTP_409_CONFLICT,
         )
 
     if fork_from:
-        if not _sim_exists(fork_from):
+        if not Simulation.objects.filter(name=fork_from).exists():
             return Response(
                 {"error": f"fork_from simulation '{fork_from}' not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        shutil.copytree(os.path.join(STORAGE_DIR, fork_from), new_sim_dir)
-        # Update meta to record the fork
-        meta = _load_meta(new_sim_code)
-        meta["fork_sim_code"] = fork_from
-        meta_path = os.path.join(new_sim_dir, "reverie", "meta.json")
-        with open(meta_path, "w") as f:
-            json.dump(meta, f, indent=2)
+        new_sim = _fork_simulation(fork_from, sim_name)
     else:
-        # Minimal scaffold for a brand-new simulation
-        os.makedirs(os.path.join(new_sim_dir, "reverie"))
-        os.makedirs(os.path.join(new_sim_dir, "environment"))
-        os.makedirs(os.path.join(new_sim_dir, "movement"))
-        os.makedirs(os.path.join(new_sim_dir, "personas"))
-        meta = {
-            "fork_sim_code": None,
-            "start_date": None,
-            "curr_time": None,
-            "sec_per_step": 10,
-            "maze_name": "the_ville",
-            "persona_names": [],
-            "step": 0,
-        }
-        meta_path = os.path.join(new_sim_dir, "reverie", "meta.json")
-        with open(meta_path, "w") as f:
-            json.dump(meta, f, indent=2)
+        new_sim = Simulation.objects.create(
+            name=sim_name,
+            fork_sim_code=None,
+            sec_per_step=10,
+            maze_name="the_ville",
+        )
 
     return Response(
-        _simulation_summary(new_sim_code),
+        _sim_summary_from_orm(new_sim),
         status=status.HTTP_201_CREATED,
     )
 
