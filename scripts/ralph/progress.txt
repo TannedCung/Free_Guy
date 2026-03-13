@@ -187,6 +187,24 @@ Started: Thu Mar 12 02:17:17 AM +07 2026
   - `_sim_summary_from_orm` converts DateTimeField to ISO strings via `.isoformat()` — this is the canonical format going forward
 ---
 
+## 2026-03-13 - US-016
+- Refactored `simulation_detail` to query `Simulation.objects.get(name=sim_id)` and return `_sim_summary_from_orm`
+- Refactored `simulation_state` to query `EnvironmentState.objects.filter(simulation=sim).order_by("-step").first()`
+- Refactored `simulation_agents` to query `sim.personas.select_related("scratch").all()` + latest EnvironmentState for positions
+- Refactored `simulation_agent_detail` to query `Persona` + `PersonaScratch` by name within simulation
+- Added `_demo_summary_from_orm(demo: Demo)` helper for ORM-backed demo summary
+- Refactored `demos_list` to query `Demo.objects.all()`
+- Refactored `demo_step` to query `DemoMovement.objects.get(demo=demo, step=step)`
+- Removed all file-based helpers: `_sim_exists`, `_load_meta`, `_latest_env_step`, `_simulation_summary`, `_load_scratch`, `_agent_summary`, `_demo_exists`, `_load_demo_meta`, `_demo_summary`
+- Removed `STORAGE_DIR`, `COMPRESSED_STORAGE_DIR` constants and all `json`, `os` imports
+- Files changed: `frontend_server/translator/api_views.py`
+- **Learnings for future iterations:**
+  - `select_related("scratch")` on Persona queryset allows accessing `persona.scratch` without extra DB hit
+  - `getattr(persona, "scratch", None)` is the safe pattern when the OneToOne relation may not exist
+  - `EnvironmentState.objects.filter(simulation=sim).order_by("-step").first()` is the canonical "latest step" query
+  - `Demo.total_steps` is stored directly on the model — no need to count DemoMovement rows
+---
+
 ## Codebase Patterns
 - Project uses mypy for typechecking, ruff for linting — run via pre-commit hooks on commit
 - `backend_server/pyproject.toml` configures mypy and ruff for the backend
