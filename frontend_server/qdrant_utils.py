@@ -43,6 +43,47 @@ def _ensure_collection() -> None:
         )
 
 
+def batch_store_embeddings(
+    persona_id: int,
+    simulation_id: int,
+    embeddings: dict,
+    batch_size: int = 500,
+) -> int:
+    """Batch-upsert a dict of {embedding_key: vector} into Qdrant.
+
+    Args:
+        persona_id: Primary key of the Persona DB row.
+        simulation_id: Primary key of the Simulation DB row.
+        embeddings: Mapping from embedding_key string to float vector list.
+        batch_size: Number of points to upsert per API call.
+
+    Returns:
+        Total number of points upserted.
+    """
+    _ensure_collection()
+    client = _get_client()
+
+    items = [(k, v) for k, v in embeddings.items() if isinstance(v, list) and v]
+    total = 0
+    for i in range(0, len(items), batch_size):
+        chunk = items[i : i + batch_size]
+        points: List[models.PointStruct] = [
+            models.PointStruct(
+                id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"{persona_id}:{key}")),
+                vector=vector,
+                payload={
+                    "persona_id": persona_id,
+                    "simulation_id": simulation_id,
+                    "embedding_key": key,
+                },
+            )
+            for key, vector in chunk
+        ]
+        client.upsert(collection_name=COLLECTION_NAME, points=points)
+        total += len(points)
+    return total
+
+
 def copy_persona_embeddings(
     src_persona_id: int,
     dst_persona_id: int,
