@@ -151,3 +151,43 @@ export async function createSimulation(
   }
   return res.json() as Promise<SimulationMeta>
 }
+
+export async function dropCharacter(simId: string, characterId: number): Promise<SimulationMeta> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/drop/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ character_id: characterId }),
+  })
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? 'Failed to drop character')
+  }
+  return res.json() as Promise<SimulationMeta>
+}
+
+export async function startSimulation(simId: string): Promise<SimulationMeta> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/start/`, { method: 'POST' })
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? 'Failed to start simulation')
+  }
+  return res.json() as Promise<SimulationMeta>
+}
+
+export async function pauseSimulation(simId: string): Promise<SimulationMeta> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/pause/`, { method: 'POST' })
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? 'Failed to pause simulation')
+  }
+  return res.json() as Promise<SimulationMeta>
+}
+
+export async function resumeSimulation(simId: string): Promise<SimulationMeta> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/resume/`, { method: 'POST' })
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? 'Failed to resume simulation')
+  }
+  return res.json() as Promise<SimulationMeta>
+}
