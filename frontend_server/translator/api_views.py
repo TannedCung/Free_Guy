@@ -390,6 +390,13 @@ def simulation_agent_detail(request: Request, sim_id: str, agent_id: str) -> Res
 
     curr_time_str = scratch.curr_time.isoformat() if scratch and scratch.curr_time else None
 
+    # Last 5 concept nodes by created date
+    recent_concepts = list(
+        persona.concept_nodes.order_by("-created").values(
+            "node_id", "node_type", "subject", "predicate", "object", "description", "created"
+        )[:5]
+    )
+
     return Response(
         {
             "simulation_id": sim_id,
@@ -409,6 +416,10 @@ def simulation_agent_detail(request: Request, sim_id: str, agent_id: str) -> Res
             "vision_r": scratch.vision_r if scratch else None,
             "att_bandwidth": scratch.att_bandwidth if scratch else None,
             "location": position,
+            "act_description": scratch.act_description if scratch else None,
+            "daily_req": scratch.daily_req if scratch else [],
+            "chatting_with": scratch.chatting_with if scratch else None,
+            "recent_concepts": recent_concepts,
         }
     )
 

@@ -5,11 +5,13 @@ import {
   fetchSimulation,
   fetchSimulationAgents,
   fetchSimulations,
+  fetchAgentDetail,
   dropCharacter,
   startSimulation,
   pauseSimulation,
   resumeSimulation,
   type Agent,
+  type AgentDetail,
   type SimulationMeta,
 } from '../api/simulations'
 import { fetchCharacters, type Character } from '../api/characters'
@@ -268,6 +270,8 @@ function SimulationViewer({ simId }: { simId: string }) {
   const [lastPoll, setLastPoll] = useState<Date | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [wsError, setWsError] = useState<string | null>(null)
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
+  const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null)
 
   const loadMeta = useCallback(() => {
     fetchSimulation(simId)
@@ -306,6 +310,30 @@ function SimulationViewer({ simId }: { simId: string }) {
     onForbidden: () => setWsError('Access denied'),
     onAuthError: () => setWsError('Authentication error — please refresh'),
   })
+
+  const selectAgent = useCallback((agentId: string | null) => {
+    setSelectedAgentId(agentId)
+    if (!agentId) { setAgentDetail(null); return }
+    fetchAgentDetail(simId, agentId)
+      .then(setAgentDetail)
+      .catch(() => setAgentDetail(null))
+  }, [simId])
+
+  // Refresh agent detail on step updates
+  useEffect(() => {
+    if (selectedAgentId) {
+      fetchAgentDetail(simId, selectedAgentId)
+        .then(setAgentDetail)
+        .catch(() => {/* ignore */})
+    }
+  }, [step, simId, selectedAgentId])
+
+  // Close panel on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') selectAgent(null) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [selectAgent])
 
   // Initial load
   useEffect(() => {
@@ -410,10 +438,79 @@ function SimulationViewer({ simId }: { simId: string }) {
           {agents.length === 0 ? (
             <p className="text-xs text-gray-600">No agents found.</p>
           ) : (
-            agents.map((agent) => <AgentCard key={agent.id} agent={agent} />)
+            agents.map((agent) => (
+              <button
+                key={agent.id}
+                onClick={() => selectAgent(agent.id)}
+                className="w-full text-left"
+              >
+                <AgentCard agent={agent} />
+              </button>
+            ))
           )}
         </aside>
       </div>
+
+      {/* Agent detail panel */}
+      {agentDetail && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40"
+          onClick={() => selectAgent(null)}
+        >
+          <aside
+            className="absolute right-0 top-0 h-full w-80 bg-gray-900 border-l border-gray-700 overflow-y-auto p-4 z-50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-white">{agentDetail.name}</h2>
+              <button
+                onClick={() => selectAgent(null)}
+                className="text-gray-400 hover:text-white text-lg leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            {agentDetail.act_description && (
+              <div className="mb-3">
+                <div className="text-xs font-medium text-gray-400 uppercase mb-1">Current Action</div>
+                <p className="text-xs text-gray-200">{agentDetail.act_description}</p>
+              </div>
+            )}
+
+            {agentDetail.chatting_with && (
+              <div className="mb-3">
+                <div className="text-xs font-medium text-gray-400 uppercase mb-1">Chatting With</div>
+                <p className="text-xs text-gray-200">{agentDetail.chatting_with}</p>
+              </div>
+            )}
+
+            {agentDetail.daily_req.length > 0 && (
+              <div className="mb-3">
+                <div className="text-xs font-medium text-gray-400 uppercase mb-1">Today&apos;s Plan</div>
+                <ul className="text-xs text-gray-300 space-y-0.5 list-disc list-inside">
+                  {agentDetail.daily_req.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {agentDetail.recent_concepts.length > 0 && (
+              <div>
+                <div className="text-xs font-medium text-gray-400 uppercase mb-1">Recent Memories</div>
+                <ul className="text-xs text-gray-400 space-y-1">
+                  {agentDetail.recent_concepts.map((c) => (
+                    <li key={c.node_id} className="border-l-2 border-gray-700 pl-2">
+                      {c.description}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </aside>
+        </div>
+      )}
     </div>
   )
 }

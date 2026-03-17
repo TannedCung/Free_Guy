@@ -321,3 +321,34 @@ export async function fetchReplayStep(simId: string, step: number): Promise<Repl
   }
   return res.json() as Promise<ReplayStepResponse>
 }
+
+export interface ConceptNodeSummary {
+  node_id: number
+  node_type: string
+  subject: string
+  predicate: string
+  object: string
+  description: string
+  created: string | null
+}
+
+export interface AgentDetail extends Agent {
+  simulation_id: string
+  learned: string | null
+  lifestyle: string | null
+  living_area: string | null
+  daily_plan_req: string | null
+  curr_time: string | null
+  act_description: string | null
+  daily_req: string[]
+  chatting_with: string | null
+  recent_concepts: ConceptNodeSummary[]
+}
+
+export async function fetchAgentDetail(simId: string, agentId: string): Promise<AgentDetail> {
+  const res = await apiFetch(
+    `/simulations/${encodeURIComponent(simId)}/agents/${encodeURIComponent(agentId)}/`,
+  )
+  if (!res.ok) throw new Error(`Failed to fetch agent detail: ${res.status}`)
+  return res.json() as Promise<AgentDetail>
+}
