@@ -70,7 +70,11 @@ def sample_memory() -> AssociativeMemory:
     mem: AssociativeMemory = object.__new__(AssociativeMemory)
 
     # Initialise all internal fields (mirrors AssociativeMemory.__init__ setup).
+    mem._persona_id = None
+    mem._simulation_id = None
+    mem._loading = False
     mem.id_to_node = {}
+    mem._embedding_key_to_node = {}
     mem.seq_event = []
     mem.seq_thought = []
     mem.seq_chat = []

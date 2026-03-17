@@ -69,7 +69,11 @@ def target_persona(sample_persona: Any) -> Any:
     p2.scratch = scratch2
 
     mem2: AssociativeMemory = object.__new__(AssociativeMemory)
+    mem2._persona_id = None
+    mem2._simulation_id = None
+    mem2._loading = False
     mem2.id_to_node = {}
+    mem2._embedding_key_to_node = {}
     mem2.seq_event = []
     mem2.seq_thought = []
     mem2.seq_chat = []

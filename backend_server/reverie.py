@@ -22,29 +22,25 @@ framework.
 from __future__ import annotations
 
 import datetime
-import json
 import logging
 import math
-import os
-import shutil
 import time
 import traceback
 from typing import Any, Optional
 
-from constant import fs_storage, fs_temp_storage, maze_assets_loc
+from constant import maze_assets_loc
 from db_persistence import (
-    get_or_create_simulation,
     init_django,
     save_agent_memory,
     save_conversation,
-    save_simulation_step,
     update_simulation_status,
     upsert_agent,
 )
-from global_methods import check_if_file_exists, copyanything, read_file_to_list
+from global_methods import read_file_to_list
 from maze import Maze
 from persona.cognitive_modules.converse import load_history_via_whisper
 from persona.persona import Persona
+from utils.db_utils import get_runtime_state, set_runtime_state
 
 logger = logging.getLogger(__name__)
 
@@ -74,109 +70,83 @@ class ReverieServer:
     def __init__(self, fork_sim_code: str, sim_code: str) -> None:
         # FORKING FROM A PRIOR SIMULATION:
         # <fork_sim_code> indicates the simulation we are forking from.
-        # Interestingly, all simulations must be forked from some initial
-        # simulation, where the first simulation is "hand-crafted".
         self.fork_sim_code = fork_sim_code
-        fork_folder = f"{fs_storage}/{self.fork_sim_code}"
-
-        # <sim_code> indicates our current simulation. The first step here is to
-        # copy everything that's in <fork_sim_code>, but edit its
-        # reverie/meta/json's fork variable.
         self.sim_code = sim_code
-        sim_folder = f"{fs_storage}/{self.sim_code}"
-        copyanything(fork_folder, sim_folder)
 
-        with open(f"{sim_folder}/reverie/meta.json") as json_file:
-            reverie_meta = json.load(json_file)
+        # Initialise Django ORM (required for all DB operations).
+        init_django()
 
-        with open(f"{sim_folder}/reverie/meta.json", "w") as outfile:
-            reverie_meta["fork_sim_code"] = fork_sim_code
-            outfile.write(json.dumps(reverie_meta, indent=2))
+        # LOADING REVERIE'S GLOBAL VARIABLES FROM DATABASE
+        try:
+            from translator.models import EnvironmentState as EnvironmentStateModel
+            from translator.models import Persona as PersonaModel
+            from translator.models import Simulation as SimulationModel
 
-        # LOADING REVERIE'S GLOBAL VARIABLES
-        # The start datetime of the Reverie:
-        # <start_datetime> is the datetime instance for the start datetime of
-        # the Reverie instance. Once it is set, this is not really meant to
-        # change. It takes a string date in the following example form:
-        # "June 25, 2022"
-        # e.g., ...strptime(June 25, 2022, "%B %d, %Y")
-        self.start_time = datetime.datetime.strptime(f"{reverie_meta['start_date']}, 00:00:00", "%B %d, %Y, %H:%M:%S")
-        # <curr_time> is the datetime instance that indicates the game's current
-        # time. This gets incremented by <sec_per_step> amount everytime the world
-        # progresses (that is, everytime curr_env_file is recieved).
-        self.curr_time = datetime.datetime.strptime(reverie_meta["curr_time"], "%B %d, %Y, %H:%M:%S")
-        # <sec_per_step> denotes the number of seconds in game time that each
-        # step moves foward.
-        self.sec_per_step = reverie_meta["sec_per_step"]
+            sim_db = SimulationModel.objects.get(name=sim_code)
+        except Exception as exc:
+            raise RuntimeError(f"Simulation '{sim_code}' not found in DB: {exc}") from exc
 
-        # <maze> is the main Maze instance. Note that we pass in the maze_name
-        # (e.g., "double_studio") to instantiate Maze.
-        # e.g., Maze("double_studio")
-        self.maze = Maze(reverie_meta["maze_name"])
+        self._db_sim: Optional[Any] = sim_db
 
-        # <step> denotes the number of steps that our game has taken. A step here
-        # literally translates to the number of moves our personas made in terms
-        # of the number of tiles.
-        self.step = reverie_meta["step"]
+        # Strip timezone from datetime fields (codebase uses naive datetimes).
+        def _naive(dt: Optional[datetime.datetime]) -> Optional[datetime.datetime]:
+            if dt is None:
+                return None
+            return dt.replace(tzinfo=None) if dt.tzinfo else dt
+
+        # <start_time> is the datetime instance for the start of the simulation.
+        self.start_time = _naive(sim_db.start_date) or datetime.datetime.now()
+        # <curr_time> is the game's current time, incremented each step.
+        self.curr_time = _naive(sim_db.curr_time) or self.start_time
+        # <sec_per_step> denotes seconds of in-game time per step.
+        self.sec_per_step = sim_db.sec_per_step or 10
+        # <maze> is the main Maze instance.
+        self.maze = Maze(sim_db.maze_name or "")
+        # <step> is the number of steps taken so far.
+        self.step = sim_db.step
 
         # SETTING UP PERSONAS IN REVERIE
-        # <personas> is a dictionary that takes the persona's full name as its
-        # keys, and the actual persona instance as its values.
-        # This dictionary is meant to keep track of all personas who are part of
-        # the Reverie instance.
-        # e.g., ["Isabella Rodriguez"] = Persona("Isabella Rodriguezs")
-        self.personas = dict()
-        # <personas_tile> is a dictionary that contains the tile location of
-        # the personas (!-> NOT px tile, but the actual tile coordinate).
-        # The tile take the form of a set, (row, col).
-        # e.g., ["Isabella Rodriguez"] = (58, 39)
-        self.personas_tile = dict()
+        self.personas: dict[str, Persona] = dict()
+        self.personas_tile: dict[str, tuple[int, int]] = dict()
 
-        # Loading in all personas.
-        init_env_file = f"{sim_folder}/environment/{str(self.step)}.json"
-        init_env = json.load(open(init_env_file))
-        for persona_name in reverie_meta["persona_names"]:
-            persona_folder = f"{sim_folder}/personas/{persona_name}"
-            p_x = init_env[persona_name]["x"]
-            p_y = init_env[persona_name]["y"]
-            curr_persona = Persona(persona_name, persona_folder)
+        # Load initial agent positions from EnvironmentState table.
+        agent_positions: dict[str, Any] = {}
+        try:
+            env_state = EnvironmentStateModel.objects.get(simulation=sim_db, step=self.step)
+            agent_positions = env_state.agent_positions or {}
+        except EnvironmentStateModel.DoesNotExist:
+            logger.warning("No EnvironmentState found for sim '%s' step %d", sim_code, self.step)
+
+        # Load all active Persona objects from the database.
+        persona_rows = PersonaModel.objects.filter(simulation=sim_db, status="active")
+        for persona_row in persona_rows:
+            curr_persona = Persona(persona_id=persona_row.pk)
+            persona_name = curr_persona.name
+
+            pos = agent_positions.get(persona_name, {})
+            p_x = int(pos.get("x", 0))
+            p_y = int(pos.get("y", 0))
 
             self.personas[persona_name] = curr_persona
             self.personas_tile[persona_name] = (p_x, p_y)
             self.maze.tiles[p_y][p_x]["events"].add(curr_persona.scratch.get_curr_event_and_desc())
 
         # REVERIE SETTINGS PARAMETERS:
-        # <server_sleep> denotes the amount of time that our while loop rests each
-        # cycle; this is to not kill our machine.
         self.server_sleep = 0.01
 
-        # DATABASE PERSISTENCE (optional):
-        # Initialise Django ORM if DJANGO_SETTINGS_MODULE is configured.
-        # _db_sim holds the Simulation ORM object; _db_agents maps persona
-        # names to Agent ORM objects.  All values may be None when the DB is
-        # not available.
+        # Mark simulation as running.
+        try:
+            sim_db.status = "running"
+            sim_db.save(update_fields=["status", "updated_at"])
+        except Exception as exc:
+            logger.warning("Could not update simulation status: %s", exc)
+
+        # Legacy agent registry (retained for save_conversation / save_agent_memory calls).
         self._db_agents: dict[str, Any] = {}
-        init_django()
-        self._db_sim = get_or_create_simulation(
-            self.sim_code,
-            status="running",
-            config={
-                "fork_sim_code": fork_sim_code,
-                "start_time": self.start_time.strftime("%B %d, %Y, %H:%M:%S"),
-                "sec_per_step": self.sec_per_step,
-                "maze_name": self.maze.maze_name,
-            },
-        )
-        # Ensure all personas have Agent records in the DB.
         self._db_memory_counts: dict[str, int] = {}
         for persona_name, persona in self.personas.items():
             scratch = persona.scratch
-            personality = " ".join(
-                filter(
-                    None,
-                    [scratch.innate or "", scratch.learned or "", scratch.currently or ""],
-                )
-            )
+            personality = " ".join(filter(None, [scratch.innate or "", scratch.learned or "", scratch.currently or ""]))
             db_agent = upsert_agent(
                 self._db_sim,
                 persona_name,
@@ -186,24 +156,11 @@ class ReverieServer:
             )
             if db_agent is not None:
                 self._db_agents[persona_name] = db_agent
-            # Record starting memory count so we only save new nodes each step.
             self._db_memory_counts[persona_name] = len(persona.a_mem.id_to_node)
 
-        # SIGNALING THE FRONTEND SERVER:
-        # curr_sim_code.json contains the current simulation code, and
-        # curr_step.json contains the current step of the simulation. These are
-        # used to communicate the code and step information to the frontend.
-        # Note that step file is removed as soon as the frontend opens up the
-        # simulation.
-        curr_sim_code = dict()
-        curr_sim_code["sim_code"] = self.sim_code
-        with open(f"{fs_temp_storage}/curr_sim_code.json", "w") as outfile:
-            outfile.write(json.dumps(curr_sim_code, indent=2))
-
-        curr_step = dict()
-        curr_step["step"] = self.step
-        with open(f"{fs_temp_storage}/curr_step.json", "w") as outfile:
-            outfile.write(json.dumps(curr_step, indent=2))
+        # Signal the frontend about the current simulation.
+        set_runtime_state("curr_sim_code", {"sim_code": self.sim_code})
+        set_runtime_state("curr_step", {"step": self.step})
 
     def save(self) -> None:
         """
@@ -214,31 +171,31 @@ class ReverieServer:
           None
         OUTPUT
           None
-          * Saves all relevant data to the designated memory directory
+          * Saves all relevant data to the PostgreSQL database
         """
-        # <sim_folder> points to the current simulation folder.
-        sim_folder = f"{fs_storage}/{self.sim_code}"
+        if self._db_sim is not None:
+            try:
+                from django.utils import timezone
+                from translator.models import Simulation as SimulationModel
 
-        # Save Reverie meta information.
-        reverie_meta: dict[str, Any] = dict()
-        reverie_meta["fork_sim_code"] = self.fork_sim_code
-        reverie_meta["start_date"] = self.start_time.strftime("%B %d, %Y")
-        reverie_meta["curr_time"] = self.curr_time.strftime("%B %d, %Y, %H:%M:%S")
-        reverie_meta["sec_per_step"] = self.sec_per_step
-        reverie_meta["maze_name"] = self.maze.maze_name
-        reverie_meta["persona_names"] = list(self.personas.keys())
-        reverie_meta["step"] = self.step
-        reverie_meta_f = f"{sim_folder}/reverie/meta.json"
-        with open(reverie_meta_f, "w") as outfile:
-            outfile.write(json.dumps(reverie_meta, indent=2))
+                curr_time_aware = (
+                    timezone.make_aware(self.curr_time) if self.curr_time.tzinfo is None else self.curr_time
+                )
+                SimulationModel.objects.filter(pk=self._db_sim.pk).update(
+                    curr_time=curr_time_aware,
+                    step=self.step,
+                    status="paused",
+                )
+            except Exception as exc:
+                logger.warning("save: could not update Simulation row: %s", exc)
+                update_simulation_status(self._db_sim, "paused")
 
-        # Save the personas.
+        # Save all persona memory structures to DB (DB-mode save: no-arg calls).
         for persona_name, persona in self.personas.items():
-            save_folder = f"{sim_folder}/personas/{persona_name}/bootstrap_memory"
-            persona.save(save_folder)
-
-        # Persist paused status to the database.
-        update_simulation_status(self._db_sim, "paused")
+            try:
+                persona.save()
+            except Exception as exc:
+                logger.warning("save: could not save persona '%s': %s", persona_name, exc)
 
     def start_path_tester_server(self) -> None:
         """
@@ -282,11 +239,10 @@ class ReverieServer:
         while True:
             try:
                 curr_dict = {}
-                tester_file = fs_temp_storage + "/path_tester_env.json"
-                if check_if_file_exists(tester_file):
-                    with open(tester_file) as json_file:
-                        curr_dict = json.load(json_file)
-                        os.remove(tester_file)
+                tester_val = get_runtime_state("path_tester_env")
+                if tester_val:
+                    curr_dict = tester_val
+                    set_runtime_state("path_tester_env", None)
 
                     # Current camera location
                     curr_sts = self.maze.sq_tile_size
@@ -316,11 +272,9 @@ class ReverieServer:
                                 if i_det["game_object"] not in s_mem[world][i_det["sector"]][i_det["arena"]]:
                                     s_mem[world][i_det["sector"]][i_det["arena"]] += [i_det["game_object"]]
 
-                # Incrementally outputting the s_mem and saving the json file.
+                # Incrementally outputting the s_mem and persisting to DB.
                 print("= " * 15)
-                out_file = fs_temp_storage + "/path_tester_out.json"
-                with open(out_file, "w") as outfile:
-                    outfile.write(json.dumps(s_mem, indent=2))
+                set_runtime_state("path_tester_out", s_mem)
                 print_tree(s_mem)
 
             except Exception:
@@ -341,9 +295,6 @@ class ReverieServer:
         OUTPUT
           None
         """
-        # <sim_folder> points to the current simulation folder.
-        sim_folder = f"{fs_storage}/{self.sim_code}"
-
         # When a persona arrives at a game object, we give a unique event
         # to that object.
         # e.g., ('double studio[...]:bed', 'is', 'unmade', 'unmade')
@@ -360,25 +311,21 @@ class ReverieServer:
             if int_counter == 0:
                 break
 
-            # <curr_env_file> file is the file that our frontend outputs. When the
-            # frontend has done its job and moved the personas, then it will put a
-            # new environment file that matches our step count. That's when we run
-            # the content of this for loop. Otherwise, we just wait.
-            curr_env_file = f"{sim_folder}/environment/{self.step}.json"
-            if not check_if_file_exists(curr_env_file):
-                # try backoff a step, may the backend exit unexpectedly then the last step was not saved
-                print(f"[ERROR]: curr_env_file: {curr_env_file} not found, waiting...")
-                time.sleep(0.5)
-                continue
-            # If we have an environment file, it means we have a new perception
-            # input to our personas. So we first retrieve it.
+            # Read the current environment state from the EnvironmentState table.
+            # The frontend writes agent positions there; we wait until the row exists.
+            new_env: dict[str, Any] = {}
+            env_retrieved = False
             try:
-                # Try and save block for robustness of the while loop.
-                with open(curr_env_file) as json_file:
-                    new_env = json.load(json_file)
-                    env_retrieved = True
+                from translator.models import EnvironmentState as EnvironmentStateModel
+
+                env_row = EnvironmentStateModel.objects.filter(simulation=self._db_sim, step=self.step).first()
+                if env_row is None:
+                    time.sleep(0.5)
+                    continue
+                new_env = env_row.agent_positions or {}
+                env_retrieved = True
             except Exception:
-                logger.warning("start_server: failed to read env file %s", curr_env_file, exc_info=True)
+                logger.warning("start_server: failed to read EnvironmentState for step %d", self.step, exc_info=True)
 
             if env_retrieved:
                 # This is where we go through <game_obj_cleanup> to clean up all
@@ -439,74 +386,112 @@ class ReverieServer:
                 # movements dictionary.
                 movements["meta"]["curr_time"] = self.curr_time.strftime("%B %d, %Y, %H:%M:%S")
 
-                # We then write the personas' movements to a file that will be sent
-                # to the frontend server.
-                # Example json output:
-                # {"persona": {"Maria Lopez": {"movement": [58, 9]}},
-                #  "persona": {"Klaus Mueller": {"movement": [38, 12]}},
-                #  "meta": {curr_time: <datetime>}}
-                os.makedirs(f"{sim_folder}/movement", exist_ok=True)
-                curr_move_file = f"{sim_folder}/movement/{self.step}.json"
-                with open(curr_move_file, "w") as outfile:
-                    outfile.write(json.dumps(movements, indent=2))
+                # Compute next step/time before entering the transaction so that
+                # self.step and self.curr_time are only updated after a successful commit.
+                next_step = self.step + 1
+                next_time = self.curr_time + datetime.timedelta(seconds=self.sec_per_step)
 
-                # -----------------------------------------------------------
-                # DATABASE PERSISTENCE: save step + agent state + conversations
-                # -----------------------------------------------------------
-                save_simulation_step(
-                    self._db_sim,
-                    step_number=self.step,
-                    timestamp=self.curr_time,
-                    world_state=movements,
-                )
+                # Wrap all DB writes for this step in a single atomic transaction.
+                # This ensures the step is fully committed or fully rolled back.
+                step_committed = False
+                try:
+                    from django.db import transaction
+                    from django.utils import timezone
+                    from translator.models import MovementRecord as MovementRecordModel
+                    from translator.models import Simulation as SimulationModel
 
-                for persona_name, persona in self.personas.items():
-                    db_agent = self._db_agents.get(persona_name)
-                    scratch = persona.scratch
-                    # Update agent location and status in the DB.
-                    new_location = scratch.act_address or scratch.living_area or ""
-                    new_status = (
-                        "sleeping"
-                        if scratch.act_description and "sleeping" in (scratch.act_description or "").lower()
-                        else "active"
+                    curr_time_aware = (
+                        timezone.make_aware(self.curr_time) if self.curr_time.tzinfo is None else self.curr_time
                     )
-                    db_agent = upsert_agent(
-                        self._db_sim,
-                        persona_name,
-                        current_location=new_location,
-                        status=new_status,
-                    )
-                    if db_agent is not None:
-                        self._db_agents[persona_name] = db_agent
-
-                    # Persist any active conversation.
-                    if scratch.chat and scratch.chatting_with:
-                        partner_agent = self._db_agents.get(scratch.chatting_with)
-                        participants = [a for a in [db_agent, partner_agent] if a is not None]
-                        save_conversation(
-                            self._db_sim,
-                            agent_objs=participants,
-                            started_at=self.curr_time,
-                            transcript=scratch.chat,
+                    next_time_aware = timezone.make_aware(next_time) if next_time.tzinfo is None else next_time
+                    with transaction.atomic():
+                        # Write persona movements to the MovementRecord table.
+                        # The frontend reads from there to animate the simulation.
+                        # Example movements dict:
+                        # {"persona": {"Maria Lopez": {"movement": [58, 9]}},
+                        #  "meta": {"curr_time": "..."}}
+                        MovementRecordModel.objects.update_or_create(
+                            simulation=self._db_sim,
+                            step=self.step,
+                            defaults={
+                                "sim_curr_time": curr_time_aware,
+                                "persona_movements": movements,
+                            },
                         )
 
-                    # Persist any new memory nodes created during this step.
-                    prev_count = self._db_memory_counts.get(persona_name, 0)
-                    all_nodes = list(persona.a_mem.id_to_node.values())
-                    new_nodes = all_nodes[prev_count:]
-                    for node in new_nodes:
-                        save_agent_memory(
-                            db_agent,
-                            memory_type=node.type,
-                            content=node.description,
-                            importance_score=float(node.poignancy),
-                        )
-                    self._db_memory_counts[persona_name] = len(all_nodes)
+                        # -----------------------------------------------------------
+                        # DATABASE PERSISTENCE: agent state + conversations
+                        # -----------------------------------------------------------
 
-                # After this cycle, the world takes one step forward, and the
-                # current time moves by <sec_per_step> amount.
-                self.step += 1
-                self.curr_time += datetime.timedelta(seconds=self.sec_per_step)
+                        for persona_name, persona in self.personas.items():
+                            db_agent = self._db_agents.get(persona_name)
+                            scratch = persona.scratch
+                            # Update agent location and status in the DB.
+                            new_location = scratch.act_address or scratch.living_area or ""
+                            new_status = (
+                                "sleeping"
+                                if scratch.act_description and "sleeping" in (scratch.act_description or "").lower()
+                                else "active"
+                            )
+                            db_agent = upsert_agent(
+                                self._db_sim,
+                                persona_name,
+                                current_location=new_location,
+                                status=new_status,
+                            )
+                            if db_agent is not None:
+                                self._db_agents[persona_name] = db_agent
+
+                            # Persist any active conversation.
+                            if scratch.chat and scratch.chatting_with:
+                                partner_agent = self._db_agents.get(scratch.chatting_with)
+                                participants = [a for a in [db_agent, partner_agent] if a is not None]
+                                save_conversation(
+                                    self._db_sim,
+                                    agent_objs=participants,
+                                    started_at=self.curr_time,
+                                    transcript=scratch.chat,
+                                )
+
+                            # Persist any new memory nodes created during this step.
+                            prev_count = self._db_memory_counts.get(persona_name, 0)
+                            all_nodes = list(persona.a_mem.id_to_node.values())
+                            new_nodes = all_nodes[prev_count:]
+                            for node in new_nodes:
+                                save_agent_memory(
+                                    db_agent,
+                                    memory_type=node.type,
+                                    content=node.description,
+                                    importance_score=float(node.poignancy),
+                                )
+                            self._db_memory_counts[persona_name] = len(all_nodes)
+
+                        # Persist updated step and curr_time to the Simulation row.
+                        if self._db_sim is not None:
+                            SimulationModel.objects.filter(pk=self._db_sim.pk).update(
+                                step=next_step,
+                                curr_time=next_time_aware,
+                                status="running",
+                            )
+
+                        # Signal the frontend about the new step.
+                        set_runtime_state("curr_sim_code", {"sim_code": self.sim_code})
+                        set_runtime_state("curr_step", {"step": next_step})
+
+                    step_committed = True
+
+                except Exception:
+                    logger.warning(
+                        "start_server: transaction failed for step %d, rolling back",
+                        self.step,
+                        exc_info=True,
+                    )
+
+                # After this cycle, the world takes one step forward only if the
+                # DB transaction committed successfully.
+                if step_committed:
+                    self.step = next_step
+                    self.curr_time = next_time
 
                 int_counter -= 1
 
@@ -528,9 +513,6 @@ class ReverieServer:
         print("clarify that these agents lack human-like agency, consciousness,")
         print("and independent decision-making.\n---")
 
-        # <sim_folder> points to the current simulation folder.
-        sim_folder = f"{fs_storage}/{self.sim_code}"
-
         while True:
             sim_command = input("Enter option: ")
             sim_command = sim_command.strip()
@@ -544,17 +526,14 @@ class ReverieServer:
                     break
 
                 elif sim_command.lower() == "start path tester mode":
-                    # Starts the path tester and removes the currently forked sim files.
+                    # Starts the path tester server for spatial memory bootstrapping.
                     # Note that once you start this mode, you need to exit out of the
                     # session and restart in case you want to run something else.
-                    shutil.rmtree(sim_folder)
                     self.start_path_tester_server()
 
                 elif sim_command.lower() == "exit":
-                    # Finishes the simulation environment but does not save the progress
-                    # and erases all saved data from current simulation.
+                    # Exits the simulation without saving.
                     # Example: exit
-                    shutil.rmtree(sim_folder)
                     break
 
                 elif sim_command.lower() == "save":

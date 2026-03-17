@@ -2,69 +2,100 @@
 Author: Joon Sung Park (joonspk@stanford.edu)
 
 File: compress_sim_storage.py
-Description: Compresses a simulation for replay demos.
+Description: Compresses a simulation for replay demos using PostgreSQL.
+  Queries Simulation, Persona, and MovementRecord from DB to build a
+  deduplicated movement timeline, then writes Demo + DemoMovement rows.
 """
 
-import json
-import shutil
-
-from global_methods import create_folder_if_not_there, find_filenames
+from __future__ import annotations
 
 
-def compress(sim_code):
-    sim_storage = f"../frontend_server/storage/{sim_code}"
-    compressed_storage = f"../frontend_server/compressed_storage/{sim_code}"
-    persona_folder = sim_storage + "/personas"
-    move_folder = sim_storage + "/movement"
-    meta_file = sim_storage + "/reverie/meta.json"
+def compress(sim_code: str) -> None:
+    """Compress a simulation into Demo + DemoMovement DB rows.
 
-    persona_names = []
-    for i in find_filenames(persona_folder, ""):
-        x = i.split("/")[-1].strip()
-        if x[0] != ".":
-            persona_names += [x]
+    The caller is responsible for ensuring Django is initialised before
+    calling this function (e.g. via db_persistence.init_django()).
+    """
+    from translator.models import Demo, DemoMovement, MovementRecord, Simulation
 
-    max_move_count = max([int(i.split("/")[-1].split(".")[0]) for i in find_filenames(move_folder, "json")])
+    sim = Simulation.objects.get(name=sim_code)
+    persona_names: list[str] = list(sim.personas.values_list("name", flat=True))
 
-    persona_last_move = dict()
-    master_move = dict()
-    for i in range(max_move_count + 1):
-        master_move[i] = dict()
-        with open(f"{move_folder}/{str(i)}.json") as json_file:
-            i_move_dict = json.load(json_file)["persona"]
-            for p in persona_names:
-                move = False
-                if i == 0:
-                    move = True
-                elif (
-                    i_move_dict[p]["movement"] != persona_last_move[p]["movement"]
-                    or i_move_dict[p]["pronunciatio"] != persona_last_move[p]["pronunciatio"]
-                    or i_move_dict[p]["description"] != persona_last_move[p]["description"]
-                    or i_move_dict[p]["chat"] != persona_last_move[p]["chat"]
-                ):
-                    move = True
+    # Stream movement records in step order
+    movement_records = MovementRecord.objects.filter(simulation=sim).order_by("step")
+    total_steps = movement_records.count()
 
-                if move:
-                    persona_last_move[p] = {
-                        "movement": i_move_dict[p]["movement"],
-                        "pronunciatio": i_move_dict[p]["pronunciatio"],
-                        "description": i_move_dict[p]["description"],
-                        "chat": i_move_dict[p]["chat"],
-                    }
-                    master_move[i][p] = {
-                        "movement": i_move_dict[p]["movement"],
-                        "pronunciatio": i_move_dict[p]["pronunciatio"],
-                        "description": i_move_dict[p]["description"],
-                        "chat": i_move_dict[p]["chat"],
-                    }
+    persona_last_move: dict[str, dict] = {}
+    demo_movement_data: list[tuple[int, dict]] = []
 
-    create_folder_if_not_there(compressed_storage)
-    with open(f"{compressed_storage}/master_movement.json", "w") as outfile:
-        outfile.write(json.dumps(master_move, indent=2))
+    for record in movement_records:
+        step_data: dict[str, dict] = {}
+        p_moves: dict = record.persona_movements  # {persona_name: {movement, pronunciatio, ...}}
 
-    shutil.copyfile(meta_file, f"{compressed_storage}/meta.json")
-    shutil.copytree(persona_folder, f"{compressed_storage}/personas/")
+        for p in persona_names:
+            if p not in p_moves:
+                continue
+            p_info: dict = p_moves[p]
+            has_changed = (
+                p not in persona_last_move
+                or p_info.get("movement") != persona_last_move[p].get("movement")
+                or p_info.get("pronunciatio") != persona_last_move[p].get("pronunciatio")
+                or p_info.get("description") != persona_last_move[p].get("description")
+                or p_info.get("chat") != persona_last_move[p].get("chat")
+            )
+            if has_changed:
+                entry: dict = {
+                    "movement": p_info.get("movement"),
+                    "pronunciatio": p_info.get("pronunciatio"),
+                    "description": p_info.get("description"),
+                    "chat": p_info.get("chat"),
+                }
+                persona_last_move[p] = entry
+                step_data[p] = entry
+
+        if step_data:
+            demo_movement_data.append((record.step, step_data))
+
+    # Upsert Demo row
+    demo, _ = Demo.objects.update_or_create(
+        name=sim_code,
+        defaults={
+            "fork_sim_code": sim.fork_sim_code or sim_code,
+            "start_date": sim.start_date,
+            "curr_time": sim.curr_time,
+            "sec_per_step": sim.sec_per_step,
+            "maze_name": sim.maze_name,
+            "persona_names": persona_names,
+            "step": sim.step,
+            "total_steps": total_steps,
+        },
+    )
+
+    # Replace DemoMovement rows (idempotent: delete then bulk-create)
+    DemoMovement.objects.filter(demo=demo).delete()
+    DemoMovement.objects.bulk_create(
+        [DemoMovement(demo=demo, step=s, agent_movements=mv) for s, mv in demo_movement_data],
+        batch_size=500,
+    )
+
+    print(f"Compressed {sim_code}: {total_steps} total steps → {len(demo_movement_data)} demo movements stored in DB")
 
 
 if __name__ == "__main__":
+    import os
+    import sys
+
+    # Ensure the frontend_server root is importable so Django settings & models load.
+    _here = os.path.dirname(os.path.abspath(__file__))
+    _frontend_root = os.path.normpath(os.path.join(_here, "..", "..", "frontend_server"))
+    if _frontend_root not in sys.path:
+        sys.path.insert(0, _frontend_root)
+
+    if not os.environ.get("DJANGO_SETTINGS_MODULE"):
+        os.environ["DJANGO_SETTINGS_MODULE"] = "frontend_server.settings.development"
+
+    import django
+
+    django.setup()
+
     compress("July1_the_ville_isabella_maria_klaus-step-3-9")

@@ -1,0 +1,413 @@
+{
+  "project": "Free_Guy",
+  "branchName": "ralph/postgres-qdrant-migration",
+  "description": "Migrate all file-based simulation storage to PostgreSQL (structured state) and Qdrant (embedding vectors). Zero JSON file I/O for simulation data after completion.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add Qdrant service to Docker and install client library",
+      "description": "As a developer, I need Qdrant running in Docker with the client library installed so the rest of the migration can use it.",
+      "acceptanceCriteria": [
+        "Add `qdrant/qdrant` service to `docker-compose.yml` with persistent named volume `qdrant-data`",
+        "Qdrant port 6333 exposed with a Docker healthcheck",
+        "Add `qdrant-client` to `backend_server/requirements.txt`",
+        "Add `qdrant-client` to `frontend_server/requirements.txt`",
+        "`docker compose up` starts Qdrant alongside PostgreSQL without errors",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Create qdrant_utils.py module with core embedding operations",
+      "description": "As a developer, I need a reusable Qdrant utility module so all embedding operations go through a single interface.",
+      "acceptanceCriteria": [
+        "File created at `backend_server/utils/qdrant_utils.py`",
+        "`store_embedding(persona_id, simulation_id, embedding_key, vector)` upserts a point into `persona_embeddings` collection",
+        "`get_embedding(persona_id, embedding_key)` retrieves a single vector by payload filter",
+        "`search_similar(persona_id, query_vector, top_k=20)` returns top-k nearest embedding_keys using cosine ANN search",
+        "`delete_persona_embeddings(persona_id)` removes all points for a persona",
+        "`copy_persona_embeddings(src_persona_id, dst_persona_id, dst_simulation_id)` deep-copies all vectors for fork operations",
+        "`persona_embeddings` collection auto-created on first use with dimension from `EMBEDDING_DIMENSION` env var (default 1536) and cosine distance",
+        "Qdrant client is a module-level singleton (not recreated per call)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Create Simulation and Persona Django ORM models",
+      "description": "As a developer, I need Django ORM models for the core simulation and persona entities so simulation metadata and agent identities can be stored in PostgreSQL.",
+      "acceptanceCriteria": [
+        "`Simulation` model has fields: id, name (unique), description, status (default 'pending'), fork_sim_code, start_date, curr_time, sec_per_step, maze_name, step, config (JSONB), created_at, updated_at",
+        "`Persona` model has fields: id, simulation (FK), name, first_name, last_name, age, innate, learned, currently, lifestyle, living_area, daily_plan_req, status (default 'active')",
+        "`Persona` has UNIQUE constraint on (simulation_id, name)",
+        "Migration generated and applies cleanly against PostgreSQL",
+        "Both models registered in Django admin with list_display and search_fields",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create PersonaScratch Django ORM model",
+      "description": "As a developer, I need a PersonaScratch model to store all 40+ mutable short-term memory fields for each persona.",
+      "acceptanceCriteria": [
+        "`PersonaScratch` model has one-to-one FK to `Persona`",
+        "Model includes all perception fields: vision_r, att_bandwidth, retention",
+        "Model includes all temporal fields: curr_time (TIMESTAMPTZ), curr_tile (JSONB), concept_forget, daily_reflection_time, daily_reflection_size",
+        "Model includes all scoring fields: overlap_reflect_th, kw_strg_event_reflect_th, kw_strg_thought_reflect_th, recency_w, relevance_w, importance_w, recency_decay, importance_trigger_max, importance_trigger_curr, importance_ele_n, thought_count",
+        "Model includes all schedule fields: daily_req (JSONB), f_daily_schedule (JSONB), f_daily_schedule_hourly_org (JSONB)",
+        "Model includes all action fields: act_address, act_start_time, act_duration, act_description, act_pronunciatio, act_event (JSONB), act_obj_description, act_obj_pronunciatio, act_obj_event (JSONB)",
+        "Model includes all chat fields: chatting_with, chat (JSONB), chatting_with_buffer (JSONB), chatting_end_time, act_path_set, planned_path (JSONB)",
+        "Migration generated and applies cleanly",
+        "Registered in Django admin",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Create EnvironmentState and MovementRecord Django ORM models",
+      "description": "As a developer, I need models for per-step environment and movement data so the simulation game loop can read and write through the database.",
+      "acceptanceCriteria": [
+        "`EnvironmentState` model has fields: id, simulation (FK), step (INT), agent_positions (JSONB NOT NULL)",
+        "`EnvironmentState` has UNIQUE constraint on (simulation_id, step)",
+        "`MovementRecord` model has fields: id, simulation (FK), step (INT), sim_curr_time, persona_movements (JSONB NOT NULL)",
+        "`MovementRecord` has UNIQUE constraint on (simulation_id, step)",
+        "Both models indexed on (simulation_id, step) for fast game-loop lookups",
+        "Migration generated and applies cleanly",
+        "Both models registered in Django admin",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Create ConceptNode and KeywordStrength Django ORM models",
+      "description": "As a developer, I need models for associative memory nodes and keyword strength index so long-term agent memory can be stored in PostgreSQL.",
+      "acceptanceCriteria": [
+        "`ConceptNode` model has fields: id, persona (FK), node_id, node_count, type_count, node_type (event/thought/chat), depth, created (TIMESTAMPTZ), expiration, last_accessed, subject, predicate, object, description, embedding_key, poignancy, keywords (JSONB), filling (JSONB)",
+        "`ConceptNode` has UNIQUE constraint on (persona_id, node_id)",
+        "`ConceptNode` has indexes on (persona_id, node_type), (persona_id, subject), (persona_id, created DESC)",
+        "`KeywordStrength` model has fields: id, persona (FK), keyword, strength_type ('event' or 'thought'), strength (INT default 0)",
+        "`KeywordStrength` has UNIQUE constraint on (persona_id, keyword, strength_type)",
+        "Migration generated and applies cleanly",
+        "Both models registered in Django admin with search_fields",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Create SpatialMemory, RuntimeState, Demo, DemoMovement, and Conversation models",
+      "description": "As a developer, I need the remaining Django ORM models for spatial memory, IPC state, demo replay data, and conversations.",
+      "acceptanceCriteria": [
+        "`SpatialMemory` model has one-to-one FK to Persona and a `tree` JSONB field (default '{}')",
+        "`RuntimeState` model has fields: id, key (VARCHAR UNIQUE), value (JSONB default '{}'), updated_at",
+        "`Demo` model has fields: id, name (UNIQUE), fork_sim_code, start_date, curr_time, sec_per_step, maze_name, persona_names (JSONB), step, total_steps, created_at",
+        "`DemoMovement` model has fields: id, demo (FK), step (INT), agent_movements (JSONB NOT NULL), UNIQUE(demo_id, step)",
+        "`Conversation` model has fields: id, simulation (FK), started_at (TIMESTAMPTZ), transcript (JSONB default '[]')",
+        "`ConversationParticipant` model has fields: id, conversation (FK), persona (FK), UNIQUE(conversation_id, persona_id)",
+        "Migration generated and applies cleanly",
+        "All models registered in Django admin",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Replace temp-file IPC with RuntimeState DB table",
+      "description": "As a developer, I need temp-file IPC replaced with the RuntimeState table so the backend and frontend communicate simulation state through the database instead of temp files.",
+      "acceptanceCriteria": [
+        "Helper functions `set_runtime_state(key, value)` and `get_runtime_state(key, default=None)` created in `backend_server/utils/db_utils.py`",
+        "`reverie.py` reads/writes `curr_sim_code` and `curr_step` via RuntimeState instead of temp files",
+        "`reverie.py` reads `path_tester_env` and writes `path_tester_out` via RuntimeState",
+        "`frontend_server/translator/views.py` `path_tester_update` writes to RuntimeState instead of `temp_storage/path_tester_env.json`",
+        "`fs_temp_storage` constant removed from `constant.py`",
+        "Zero remaining references to `temp_storage/` in Python source files",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Refactor Scratch class to load/save from persona_scratch table",
+      "description": "As a developer, I need the Scratch class to persist to the persona_scratch table so short-term persona state survives without JSON files.",
+      "acceptanceCriteria": [
+        "`Scratch.__init__` accepts a `persona_id` int argument for DB mode; legacy file-path argument retained for import command only",
+        "`Scratch.load_from_db(persona_id)` class method loads all fields from the PersonaScratch row",
+        "`Scratch.save()` writes all fields to PersonaScratch via Django ORM and updates identity fields on the parent Persona row",
+        "All JSONB fields (daily_req, f_daily_schedule, curr_tile, act_event, planned_path, etc.) store and load as Python lists/dicts correctly",
+        "Datetime fields serialize/deserialize correctly between Python datetime objects and TIMESTAMPTZ columns",
+        "`save()` then `load_from_db()` produces identical state for all 40+ fields",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Refactor AssociativeMemory to load/save from PostgreSQL and Qdrant",
+      "description": "As a developer, I need the associative memory class to persist concept nodes in PostgreSQL and embedding vectors in Qdrant, replacing embeddings.json, nodes.json, and kw_strength.json.",
+      "acceptanceCriteria": [
+        "`AssociativeMemory.__init__` accepts `persona_id` and loads all ConceptNode rows from DB",
+        "`AssociativeMemory.__init__` loads keyword strengths from KeywordStrength table",
+        "`AssociativeMemory.__init__` loads embedding vectors from Qdrant (not from embeddings.json)",
+        "`add_event`, `add_thought`, `add_chat` write the new ConceptNode row to DB immediately on creation",
+        "`add_event`, `add_thought`, `add_chat` store the embedding vector in Qdrant via `qdrant_utils.store_embedding()`",
+        "`add_event` and `add_thought` update KeywordStrength rows using Django `F()` expressions for atomic increment",
+        "In-memory caches (id_to_node, seq_event, kw_to_event, etc.) maintained for fast runtime access",
+        "`retrieve_relevant_events`, `retrieve_relevant_thoughts`, `get_last_chat` return correct results with DB-loaded data",
+        "Similarity retrieval uses `qdrant_utils.search_similar()` then looks up matched keys from in-memory cache",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Refactor SpatialMemory to load/save from spatial_memories table",
+      "description": "As a developer, I need the spatial memory tree to persist in the spatial_memories table instead of spatial_memory.json.",
+      "acceptanceCriteria": [
+        "`MemoryTree.__init__` accepts `persona_id` and loads `tree` JSONB from SpatialMemory row (creates row if missing)",
+        "`MemoryTree.save()` writes `tree` JSONB to SpatialMemory via Django ORM",
+        "`get_str_accessible_sectors`, `get_str_accessible_sector_arenas`, `get_str_accessible_arena_game_objects` return identical results with DB-loaded data",
+        "Tree structure round-trips correctly: `save()` then `load` produces identical nested dict",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Refactor Persona class to initialize all memory structures from database",
+      "description": "As a developer, I need the Persona class to initialize scratch, associative memory, and spatial memory from the database with no file path construction.",
+      "acceptanceCriteria": [
+        "`Persona.__init__` accepts a `persona_id` int (DB mode) or file path string (legacy mode for import only)",
+        "`Persona.__init__` in DB mode initializes `scratch` via `Scratch.load_from_db(persona_id)`",
+        "`Persona.__init__` in DB mode initializes `a_mem` via `AssociativeMemory(persona_id)`",
+        "`Persona.__init__` in DB mode initializes `s_mem` via `MemoryTree(persona_id)`",
+        "`Persona.save()` calls DB-backed save on all three memory structures",
+        "No `bootstrap_memory/scratch.json` or similar file path construction in DB mode",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Refactor reverie.py — simulation init and persona loading from PostgreSQL",
+      "description": "As a developer, I need the simulation engine to load all startup state (simulation metadata, personas, initial environment) from PostgreSQL instead of JSON files.",
+      "acceptanceCriteria": [
+        "`ReverieServer.__init__` loads simulation metadata from Simulation model instead of `meta.json`",
+        "`ReverieServer.__init__` loads initial environment state from EnvironmentState model instead of `environment/{step}.json`",
+        "`ReverieServer.__init__` initializes all Persona objects via `Persona(persona_id=<id>)` DB mode",
+        "No `json.load(open(...))` calls for meta or environment data in `__init__`",
+        "`fs_storage` constant no longer referenced in `reverie.py`",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Refactor reverie.py — simulation save and per-step execution to PostgreSQL",
+      "description": "As a developer, I need the simulation save and step execution loop to write all state to PostgreSQL so no JSON files are written during a running simulation.",
+      "acceptanceCriteria": [
+        "`ReverieServer.save()` writes Simulation metadata, Persona, PersonaScratch, and EnvironmentState rows via Django ORM instead of JSON files",
+        "`ReverieServer.start_server()` writes MovementRecord rows instead of `movement/{step}.json`",
+        "`ReverieServer.start_server()` updates `Simulation.step` and `Simulation.curr_time` in DB after each step",
+        "`ReverieServer.start_server()` updates RuntimeState with `curr_sim_code` and `curr_step`",
+        "Each simulation step wrapped in `django.db.transaction.atomic()`",
+        "`ReverieServer.start_path_tester_server()` reads/writes via RuntimeState only",
+        "Zero `json.dump` calls for simulation data in `reverie.py`",
+        "Simulation can be started, run for 10+ steps, paused, and resumed entirely from DB state",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Refactor api_views.py — simulation list, create, and fork endpoints",
+      "description": "As a developer, I need the simulation list, create, and fork API endpoints to use PostgreSQL so filesystem scanning and shutil.copytree are eliminated.",
+      "acceptanceCriteria": [
+        "`simulations_list` GET queries `Simulation.objects.all()` instead of `os.listdir(STORAGE_DIR)`",
+        "`simulations_list` POST creates a Simulation row via Django ORM with no `meta.json` file write",
+        "Fork operation creates new Simulation row and deep-copies Persona, PersonaScratch, ConceptNode, KeywordStrength, and SpatialMemory rows with new PKs",
+        "Fork operation calls `qdrant_utils.copy_persona_embeddings()` for each forked persona",
+        "No `shutil.copytree` call for fork in `api_views.py`",
+        "API response format for list and create is identical to pre-migration output",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Refactor api_views.py — simulation detail, agents, state, and demo endpoints",
+      "description": "As a developer, I need the remaining REST API endpoints to read from PostgreSQL instead of scanning the filesystem.",
+      "acceptanceCriteria": [
+        "`simulation_detail` queries Simulation model by name",
+        "`simulation_state` queries EnvironmentState for the latest step of the simulation",
+        "`simulation_agents` queries Persona + PersonaScratch joined with the latest EnvironmentState",
+        "`simulation_agent_detail` queries Persona + PersonaScratch by persona name",
+        "`demos_list` queries `Demo.objects.all()` instead of `os.listdir(COMPRESSED_STORAGE_DIR)`",
+        "`demo_step` queries DemoMovement by step number instead of loading `master_movement.json`",
+        "All `STORAGE_DIR` and `COMPRESSED_STORAGE_DIR` path constants removed from `api_views.py`",
+        "All `os.path`, `os.listdir`, `json.load`, `shutil` calls removed from `api_views.py`",
+        "API response format for all endpoints is identical to pre-migration output",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Refactor views.py game loop endpoints to use PostgreSQL",
+      "description": "As a developer, I need the Phaser game loop endpoints to read and write simulation state from PostgreSQL so no JSON files are written during game ticks.",
+      "acceptanceCriteria": [
+        "`process_environment` writes agent positions to EnvironmentState model instead of `storage/{sim}/environment/{step}.json`",
+        "`update_environment` reads movement data from MovementRecord model instead of `storage/{sim}/movement/{step}.json`",
+        "`path_tester_update` writes to RuntimeState table instead of `temp_storage/path_tester_env.json`",
+        "Response format for all three endpoints is identical to pre-migration output",
+        "File I/O imports (`json`, `os` for storage paths) removed from `views.py`",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Build import_simulation management command for all existing simulations",
+      "description": "As a developer, I need a management command that migrates all existing file-based simulations into PostgreSQL and Qdrant so historical data is preserved on first deploy.",
+      "acceptanceCriteria": [
+        "Command `python manage.py import_simulation <sim_code>` imports a single simulation",
+        "Command `python manage.py import_simulation --all` imports all simulations in `storage/`",
+        "Imports `reverie/meta.json` → Simulation row",
+        "Imports all `environment/*.json` → EnvironmentState rows via `bulk_create(batch_size=500)`",
+        "Imports all `movement/*.json` → MovementRecord rows via `bulk_create(batch_size=500)`",
+        "Imports each persona's `scratch.json` → Persona + PersonaScratch rows",
+        "Imports each persona's `spatial_memory.json` → SpatialMemory row",
+        "Imports each persona's `nodes.json` → ConceptNode rows via `bulk_create(batch_size=500)`",
+        "Imports each persona's `kw_strength.json` → KeywordStrength rows via `bulk_create`",
+        "Imports each persona's `embeddings.json` → Qdrant `persona_embeddings` collection via batch upsert",
+        "Command is idempotent: re-running does not duplicate data (uses update_or_create or update_conflicts=True)",
+        "Prints progress: 'Imported sim X: N personas, M concept nodes, K embeddings, J environment steps'",
+        "Missing or corrupted files handled with warnings without aborting the entire import",
+        "Each simulation import wrapped in `transaction.atomic()`",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Build import_demo and export_simulation management commands",
+      "description": "As a developer, I need an import command for compressed demo data and an export command for database-to-file backup.",
+      "acceptanceCriteria": [
+        "Command `python manage.py import_demo <demo_code>` imports a single demo from `compressed_storage/`",
+        "Command `python manage.py import_demo --all` imports all demos in `compressed_storage/`",
+        "Demo import: reads `meta.json` → Demo row; reads `master_movement.json` → individual DemoMovement rows via bulk_create",
+        "Demo import is idempotent",
+        "Prints progress: 'Imported demo X: N movement steps'",
+        "Command `python manage.py export_simulation <sim_name> --output <dir>` exports to the original file layout (reverie/meta.json, environment/*.json, movement/*.json, personas/*/bootstrap_memory/*)",
+        "Export includes embeddings from Qdrant → `embeddings.json` per persona",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Refactor compress_sim_storage.py and remove all file storage infrastructure",
+      "description": "As a developer, I need the compression utility refactored to use the database and all remaining file storage code removed so there is a single source of truth.",
+      "acceptanceCriteria": [
+        "`compress_sim_storage.py` `compress()` queries Simulation, MovementRecord, and Persona from DB instead of scanning `storage/`",
+        "`compress_sim_storage.py` writes output to Demo + DemoMovement tables instead of `compressed_storage/` files",
+        "All file path references removed from `compress_sim_storage.py`",
+        "`constant.py` `fs_storage` and `fs_temp_storage` variables removed",
+        "Docker `simulation-storage` and `simulation-temp` volumes removed from `docker-compose.yml` (if present)",
+        "Dockerfile steps that `mkdir storage temp_storage` removed",
+        "Zero remaining `open()` calls for simulation data in `backend_server/` and `frontend_server/translator/` (verified by grep)",
+        "`storage/` and `temp_storage/` directories no longer required at runtime",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Write integration tests for DB-backed simulation lifecycle",
+      "description": "As a developer, I need integration tests verifying the full simulation lifecycle works through PostgreSQL and Qdrant.",
+      "acceptanceCriteria": [
+        "Test: create simulation via API → Simulation row exists in DB",
+        "Test: fork simulation → all Persona, PersonaScratch, ConceptNode, KeywordStrength, SpatialMemory rows copied with new PKs; Qdrant embeddings copied",
+        "Test: `process_environment` POST → EnvironmentState row created with correct agent_positions",
+        "Test: `update_environment` GET → reads from MovementRecord and returns correct persona_movements",
+        "Test: save PersonaScratch → all 40+ fields round-trip through DB correctly",
+        "Test: save/load AssociativeMemory → all concept nodes present in DB; embeddings retrievable from Qdrant",
+        "Test: save/load SpatialMemory → tree structure round-trips through JSONB",
+        "Test: `import_simulation` for base_the_ville_isabella_maria_klaus → all data present in DB and Qdrant",
+        "Test: `export_simulation` → file output matches original file format",
+        "Test: Qdrant `search_similar` → returns results ordered by cosine similarity",
+        "All tests run against PostgreSQL 16 (not SQLite)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "End-to-end validation: run full simulation from DB-backed storage",
+      "description": "As a developer, I need to verify a complete simulation run works correctly with DB-backed storage from import through gameplay to demo compression.",
+      "acceptanceCriteria": [
+        "Import `base_the_ville_isabella_maria_klaus` via `import_simulation` without errors",
+        "Start simulation via `reverie.py` — runs for at least 10 steps without errors or exceptions",
+        "EnvironmentState rows accumulate with correct agent positions after each step",
+        "MovementRecord rows accumulate with correct movement data after each step",
+        "ConceptNode rows accumulate in DB as simulation runs",
+        "Embeddings are stored and searchable in Qdrant after simulation steps",
+        "Simulation list API returns the simulation with correct metadata",
+        "Run `compress_sim_storage.py` → Demo and DemoMovement rows created in DB",
+        "Demo step API endpoint returns correct movement data from DemoMovement rows",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

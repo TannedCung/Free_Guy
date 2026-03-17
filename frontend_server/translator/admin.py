@@ -1,14 +1,127 @@
 from django.contrib import admin
 
-from .models import Agent, AgentMemory, Conversation, Simulation, SimulationStep
+from .models import (
+    Agent,
+    AgentMemory,
+    ConceptNode,
+    Conversation,
+    ConversationParticipant,
+    Demo,
+    DemoMovement,
+    EnvironmentState,
+    KeywordStrength,
+    MovementRecord,
+    Persona,
+    PersonaScratch,
+    RuntimeState,
+    Simulation,
+    SimulationStep,
+    SpatialMemory,
+)
 
 
 @admin.register(Simulation)
 class SimulationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-    list_display = ("name", "status", "created_at", "updated_at")
+    list_display = ("name", "status", "maze_name", "step", "created_at", "updated_at")
     list_filter = ("status",)
-    search_fields = ("name", "description")
+    search_fields = ("name", "description", "maze_name")
     ordering = ("-created_at",)
+
+
+@admin.register(Persona)
+class PersonaAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("name", "simulation", "first_name", "last_name", "age", "status")
+    list_filter = ("status", "simulation")
+    search_fields = ("name", "first_name", "last_name", "innate", "learned")
+    ordering = ("simulation", "name")
+
+
+@admin.register(PersonaScratch)
+class PersonaScratchAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("persona", "curr_time", "act_description", "chatting_with")
+    list_filter = ("persona__simulation",)
+    search_fields = ("persona__name", "act_description", "act_address")
+    ordering = ("persona",)
+
+
+@admin.register(EnvironmentState)
+class EnvironmentStateAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("simulation", "step")
+    list_filter = ("simulation",)
+    search_fields = ("simulation__name",)
+    ordering = ("simulation", "step")
+
+
+@admin.register(MovementRecord)
+class MovementRecordAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("simulation", "step", "sim_curr_time")
+    list_filter = ("simulation",)
+    search_fields = ("simulation__name",)
+    ordering = ("simulation", "step")
+
+
+@admin.register(ConceptNode)
+class ConceptNodeAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = (
+        "persona",
+        "node_id",
+        "node_type",
+        "depth",
+        "subject",
+        "predicate",
+        "object",
+        "poignancy",
+        "created",
+    )
+    list_filter = ("node_type", "persona__simulation")
+    search_fields = ("persona__name", "subject", "predicate", "object", "description", "embedding_key")
+    ordering = ("persona", "-created")
+
+
+@admin.register(KeywordStrength)
+class KeywordStrengthAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("persona", "keyword", "strength_type", "strength")
+    list_filter = ("strength_type", "persona__simulation")
+    search_fields = ("persona__name", "keyword")
+    ordering = ("persona", "keyword")
+
+
+@admin.register(SpatialMemory)
+class SpatialMemoryAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("persona",)
+    list_filter = ("persona__simulation",)
+    search_fields = ("persona__name",)
+    ordering = ("persona",)
+
+
+@admin.register(RuntimeState)
+class RuntimeStateAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("key", "updated_at")
+    search_fields = ("key",)
+    ordering = ("key",)
+
+
+@admin.register(Demo)
+class DemoAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("name", "maze_name", "step", "total_steps", "created_at")
+    search_fields = ("name", "maze_name")
+    ordering = ("-created_at",)
+
+
+@admin.register(DemoMovement)
+class DemoMovementAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("demo", "step")
+    list_filter = ("demo",)
+    search_fields = ("demo__name",)
+    ordering = ("demo", "step")
+
+
+@admin.register(ConversationParticipant)
+class ConversationParticipantAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("conversation", "persona")
+    list_filter = ("persona__simulation",)
+    search_fields = ("persona__name",)
+    ordering = ("conversation",)
 
 
 @admin.register(Agent)

@@ -12,6 +12,7 @@ paper.
 from __future__ import annotations
 
 import datetime
+import logging
 from typing import TYPE_CHECKING, Any, Optional, Union
 
 from persona.cognitive_modules.converse import open_convo_session
@@ -27,6 +28,8 @@ from persona.memory_structures.spatial_memory import MemoryTree
 if TYPE_CHECKING:
     from maze import Maze
 
+logger = logging.getLogger(__name__)
+
 
 class Persona:
     name: str
@@ -34,34 +37,62 @@ class Persona:
     a_mem: AssociativeMemory
     scratch: Scratch
 
-    def __init__(self, name: str, folder_mem_saved: Union[str, bool] = False) -> None:
-        # PERSONA BASE STATE
-        # <name> is the full name of the persona. This is a unique identifier for
-        # the persona within Reverie.
-        self.name = name
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        folder_mem_saved: Union[str, bool] = False,
+        persona_id: Optional[int] = None,
+    ) -> None:
+        if persona_id is not None:
+            # DB mode: load all memory structures from the database
+            self._init_from_db(persona_id)
+        else:
+            # Legacy file mode
+            self.name = name or ""
+            # <s_mem> is the persona's spatial memory.
+            f_s_mem_saved = f"{folder_mem_saved}/bootstrap_memory/spatial_memory.json"
+            self.s_mem = MemoryTree(f_s_mem_saved)
+            # <a_mem> is the persona's associative memory.
+            f_a_mem_saved = f"{folder_mem_saved}/bootstrap_memory/associative_memory"
+            self.a_mem = AssociativeMemory(f_a_mem_saved)
+            # <scratch> is the persona's scratch (short term memory) space.
+            scratch_saved = f"{folder_mem_saved}/bootstrap_memory/scratch.json"
+            self.scratch = Scratch(scratch_saved)
 
-        # PERSONA MEMORY
-        # If there is already memory in folder_mem_saved, we load that. Otherwise,
-        # we create new memory instances.
-        # <s_mem> is the persona's spatial memory.
-        f_s_mem_saved = f"{folder_mem_saved}/bootstrap_memory/spatial_memory.json"
-        self.s_mem = MemoryTree(f_s_mem_saved)
-        # <s_mem> is the persona's associative memory.
-        f_a_mem_saved = f"{folder_mem_saved}/bootstrap_memory/associative_memory"
-        self.a_mem = AssociativeMemory(f_a_mem_saved)
-        # <scratch> is the persona's scratch (short term memory) space.
-        scratch_saved = f"{folder_mem_saved}/bootstrap_memory/scratch.json"
-        self.scratch = Scratch(scratch_saved)
+    def _init_from_db(self, persona_id: int) -> None:
+        """Initialize all memory structures from the database (DB mode)."""
+        # Load scratch first — it also loads identity fields (name, etc.) from Persona row
+        self.scratch = Scratch.load_from_db(persona_id)
+        # Derive persona name from scratch identity fields
+        self.name = self.scratch.name or ""
 
-    def save(self, save_folder: str) -> None:
+        # Load associative memory (ConceptNodes + Qdrant embeddings)
+        self.a_mem = AssociativeMemory(persona_id=persona_id)
+
+        # Load spatial memory tree
+        self.s_mem = MemoryTree(persona_id=persona_id)
+
+    def save(self, save_folder: Optional[str] = None) -> None:
         """
         Save persona's current state (i.e., memory).
 
+        In DB mode (save_folder is None), all three memory structures write to
+        the database. In legacy mode, saves JSON files to save_folder.
+
         INPUT:
-          save_folder: The folder where we wil be saving our persona's state.
+          save_folder: The folder where we will be saving our persona's state
+                       (legacy mode). Pass None to save to DB.
         OUTPUT:
           None
         """
+        if save_folder is None:
+            # DB mode: delegate to each memory structure's DB save
+            self.s_mem.save()
+            self.a_mem.save()
+            self.scratch.save()
+            return
+
+        # Legacy file-based save
         # Spatial memory contains a tree in a json format.
         # e.g., {"double studio":
         #         {"double studio":
