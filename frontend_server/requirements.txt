@@ -65,6 +65,8 @@ urllib3==2.4.0
 channels>=4.0.0
 channels-redis>=4.2.0
 daphne>=4.0.0
+django-allauth>=65.0.0
+dj-rest-auth>=7.0.0
 djangorestframework>=3.16.1
 djangorestframework-simplejwt>=5.3.0
 whitenoise==6.9.0

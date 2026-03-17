@@ -5,11 +5,16 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from django.contrib import admin
-from django.urls import path, re_path
-from translator import api_views, auth_views, character_views, maps_views, simulation_views
+from django.urls import include, path, re_path
+from translator import api_views, auth_views, character_views, maps_views, simulation_views, social_auth_views
 from translator import views as translator_views
 
 urlpatterns = [
+    # django-allauth social auth URLs (required for allauth's OAuth flow)
+    path("accounts/", include("allauth.urls")),
+    # REST API v1 — social login redirect endpoints
+    path("api/v1/auth/social/google/", social_auth_views.social_login_google, name="api-social-google"),
+    path("api/v1/auth/social/github/", social_auth_views.social_login_github, name="api-social-github"),
     # REST API v1 — auth endpoints
     path("api/v1/auth/register/", auth_views.register, name="api-auth-register"),
     path("api/v1/auth/login/", auth_views.login_view, name="api-auth-login"),
