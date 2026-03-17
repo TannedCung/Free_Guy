@@ -222,3 +222,32 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - Convert replay agent format to Agent[] via: `{id: name, name, location: {maze:'', x, y}, currently: description, pronunciatio}`
   - useEffect for playback: return clearInterval(interval) — playback stops on unmount or speed change
 ---
+
+## 2026-03-17 - US-030
+- Added agent detail panel to SimulationViewer: click agent name to open
+- Panel shows: current action (act_description), chatting_with, daily_req list, recent 5 concept nodes
+- Panel updates on each step_update (re-fetches fetchAgentDetail for selectedAgentId)
+- Panel closes on Escape keydown or click-outside
+- Backend api_views.simulation_agent_detail enhanced with act_description, daily_req, chatting_with, recent_concepts (last 5 by created)
+- Files changed: pages/SimulatePage.tsx, api/simulations.ts, api_views.py
+- **Learnings for future iterations:**
+  - `persona.concept_nodes.order_by("-created").values(...)[:5]` is efficient for last 5 nodes
+  - Background panel with click-outside: wrap in overlay div with onClick, stop propagation in panel
+---
+
+## 2026-03-17 - US-031
+- Added django-allauth>=65.0.0 and dj-rest-auth>=7.0.0 to requirements.txt
+- Added allauth INSTALLED_APPS: allauth, allauth.account, allauth.socialaccount, providers.google/github
+- Added allauth AccountMiddleware to MIDDLEWARE (after AuthenticationMiddleware)
+- Added django.contrib.sites + SITE_ID=1 (required by allauth)
+- Configured SOCIALACCOUNT_PROVIDERS reading from GOOGLE_CLIENT_ID/SECRET, GITHUB_CLIENT_ID/SECRET env vars
+- Created social_auth_views.py with redirect endpoints to allauth's OAuth URLs
+- Added /accounts/ include for allauth URLs and /api/v1/auth/social/google|github/ endpoints
+- LoginPage shows 'Continue with Google/GitHub' buttons below password form
+- Files changed: settings/base.py, urls.py, social_auth_views.py, requirements.txt, pages/LoginPage.tsx
+- **Learnings for future iterations:**
+  - allauth v65+ uses ACCOUNT_LOGIN_METHODS and ACCOUNT_SIGNUP_FIELDS (not the deprecated ACCOUNT_EMAIL_REQUIRED/AUTHENTICATION_METHOD)
+  - allauth requires django.contrib.sites in INSTALLED_APPS with SITE_ID=1
+  - AccountMiddleware must be added to MIDDLEWARE after AuthenticationMiddleware
+  - Social login redirect flow: /api/v1/auth/social/google/ → allauth's /accounts/google/login/ → Google OAuth → allauth callback
+---
