@@ -10,6 +10,7 @@ import CreateSimulationPage from './pages/CreateSimulationPage'
 import SimulatePage from './pages/SimulatePage'
 import SimulationSettingsPage from './pages/SimulationSettingsPage'
 import InvitesPage from './pages/InvitesPage'
+import ExplorePage from './pages/ExplorePage'
 import DemoPage from './pages/DemoPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -88,6 +89,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <InvitesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/explore"
+            element={
+              <ProtectedRoute>
+                <ExplorePage />
               </ProtectedRoute>
             }
           />

@@ -176,3 +176,14 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - Guard admin-only pages by checking `simData.owner !== user.id` inside the data fetch and navigate away
   - Promise.all for parallel fetches is cleaner than sequential when both results needed together
 ---
+
+## 2026-03-17 - US-026
+- Created InvitesPage at /invites: lists pending invites, Accept navigates to sim, Decline removes invite
+- Updated Header to fetch pending invite count on load and show badge
+- Updated my_invites backend to include simulation_id (= sim.name), simulation_name, invited_by
+- Added fetchMyInvites, acceptInvite, declineInvite to frontend/src/api/simulations.ts
+- Files changed: api/simulations.ts, pages/InvitesPage.tsx, components/Header.tsx, App.tsx, simulation_views.py
+- **Learnings for future iterations:**
+  - Simulation API `id` = `sim.name` (not DB pk) — use `m.simulation.name` not `m.simulation.pk`
+  - `fetchMyInvites` in Header useEffect is safe because API returns [] for users with no invites
+---
