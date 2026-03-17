@@ -47,3 +47,24 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - Use `get_user_model()` and store result as `User = get_user_model()` at module level; don't import User directly from auth
   - ForeignKey to other models in same app can use string reference `"Map"` (forward reference) or class directly
 ---
+
+## 2026-03-17 - US-004
+- Added Character model with fields: owner (FK User CASCADE), name, age (nullable), traits, backstory, currently, lifestyle, daily_plan (all TextField blank), status (available/in_simulation), simulation (FK nullable SET_NULL)
+- UNIQUE constraint on (owner, name) using UniqueConstraint
+- Migration 0017_add_character_model.py generated and applied cleanly
+- CharacterAdmin registered with list_display=[name, owner, age, status, simulation]
+- Files changed: frontend_server/translator/models.py, frontend_server/translator/admin.py, frontend_server/translator/migrations/0017_add_character_model.py
+- **Learnings for future iterations:**
+  - Nested TextChoices classes inside models work fine (Status, Visibility, Role, etc.)
+  - Import model in admin.py when registering - keep alphabetical order in imports
+---
+
+## 2026-03-17 - US-005
+- Added SimulationMembership model with fields: simulation (FK CASCADE), user (FK CASCADE), role (admin/observer), status (invited/active/declined), invited_at (auto_now_add), joined_at (nullable)
+- UNIQUE constraint on (simulation, user)
+- Migration 0018_add_simulation_membership_model.py generated and applied cleanly
+- SimulationMembershipAdmin registered with list_display=[simulation, user, role, status]
+- Files changed: frontend_server/translator/models.py, frontend_server/translator/admin.py, frontend_server/translator/migrations/0018_add_simulation_membership_model.py
+- **Learnings for future iterations:**
+  - Inner TextChoices class named `MemberStatus` (not `Status`) to avoid conflicts with other Status classes in same model definition scope
+---
