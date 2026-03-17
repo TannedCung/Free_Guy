@@ -62,6 +62,37 @@ class Simulation(models.Model):
         return f"{self.name} ({self.status})"
 
 
+class Character(models.Model):
+    class Status(models.TextChoices):
+        AVAILABLE = "available", "Available"
+        IN_SIMULATION = "in_simulation", "In Simulation"
+
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="characters")
+    name = models.CharField(max_length=255)
+    age = models.IntegerField(blank=True, null=True)
+    traits = models.TextField(blank=True, default="")
+    backstory = models.TextField(blank=True, default="")
+    currently = models.TextField(blank=True, default="")
+    lifestyle = models.TextField(blank=True, default="")
+    daily_plan = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.AVAILABLE,
+    )
+    simulation = models.ForeignKey(
+        "Simulation", null=True, blank=True, on_delete=models.SET_NULL, related_name="characters"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "name"], name="unique_owner_character_name"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.owner.username})"
+
+
 class Persona(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"

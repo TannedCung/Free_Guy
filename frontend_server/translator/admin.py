@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     Agent,
     AgentMemory,
+    Character,
     ConceptNode,
     Conversation,
     ConversationParticipant,
@@ -26,6 +27,14 @@ class MapAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = ("id", "name", "maze_name", "max_agents", "is_active")
     list_filter = ("is_active",)
     search_fields = ("id", "name", "maze_name")
+
+
+@admin.register(Character)
+class CharacterAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("name", "owner", "age", "status", "simulation")
+    list_filter = ("status",)
+    search_fields = ("name", "owner__username", "traits", "backstory")
+    ordering = ("owner", "name")
 
 
 @admin.register(Simulation)
