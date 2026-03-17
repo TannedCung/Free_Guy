@@ -4,6 +4,9 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
+import CharactersPage from './pages/CharactersPage'
+import CreateCharacterPage from './pages/CreateCharacterPage'
+import CreateSimulationPage from './pages/CreateSimulationPage'
 import SimulatePage from './pages/SimulatePage'
 import DemoPage from './pages/DemoPage'
 
@@ -27,6 +30,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/characters"
+            element={
+              <ProtectedRoute>
+                <CharactersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/characters/new"
+            element={
+              <ProtectedRoute>
+                <CreateCharacterPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/simulations/new"
+            element={
+              <ProtectedRoute>
+                <CreateSimulationPage />
               </ProtectedRoute>
             }
           />
