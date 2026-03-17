@@ -17,6 +17,7 @@ from .models import (
     PersonaScratch,
     RuntimeState,
     Simulation,
+    SimulationMembership,
     SimulationStep,
     SpatialMemory,
 )
@@ -27,6 +28,14 @@ class MapAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = ("id", "name", "maze_name", "max_agents", "is_active")
     list_filter = ("is_active",)
     search_fields = ("id", "name", "maze_name")
+
+
+@admin.register(SimulationMembership)
+class SimulationMembershipAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("simulation", "user", "role", "status", "invited_at", "joined_at")
+    list_filter = ("role", "status")
+    search_fields = ("simulation__name", "user__username")
+    ordering = ("simulation", "user")
 
 
 @admin.register(Character)

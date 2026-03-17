@@ -93,6 +93,32 @@ class Character(models.Model):
         return f"{self.name} ({self.owner.username})"
 
 
+class SimulationMembership(models.Model):
+    class Role(models.TextChoices):
+        ADMIN = "admin", "Admin"
+        OBSERVER = "observer", "Observer"
+
+    class MemberStatus(models.TextChoices):
+        INVITED = "invited", "Invited"
+        ACTIVE = "active", "Active"
+        DECLINED = "declined", "Declined"
+
+    simulation = models.ForeignKey(Simulation, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="simulation_memberships")
+    role = models.CharField(max_length=10, choices=Role.choices)
+    status = models.CharField(max_length=10, choices=MemberStatus.choices)
+    invited_at = models.DateTimeField(auto_now_add=True)
+    joined_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["simulation", "user"], name="unique_simulation_user_membership"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} in {self.simulation.name} ({self.role})"
+
+
 class Persona(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
