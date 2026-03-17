@@ -34,3 +34,16 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - Data migrations use `apps.get_model()` pattern and `get_or_create()` for idempotency
   - Pre-commit hooks stash unstaged files before running checks, then restore them after
 ---
+
+## 2026-03-17 - US-003
+- Added `owner` ForeignKey to User (null=True, on_delete=SET_NULL) to Simulation model
+- Added `map_id` ForeignKey to Map (null=True, on_delete=SET_NULL) to Simulation model
+- Added `visibility` CharField with Visibility choices (private/public/shared), default private
+- Added `get_user_model()` import pattern to models.py
+- Updated SimulationAdmin list_display to include owner, map_id, visibility
+- Migration 0016_add_simulation_owner_visibility.py generated and applied cleanly
+- Files changed: frontend_server/translator/models.py, frontend_server/translator/admin.py, frontend_server/translator/migrations/0016_add_simulation_owner_visibility.py
+- **Learnings for future iterations:**
+  - Use `get_user_model()` and store result as `User = get_user_model()` at module level; don't import User directly from auth
+  - ForeignKey to other models in same app can use string reference `"Map"` (forward reference) or class directly
+---
