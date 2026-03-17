@@ -126,3 +126,39 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - `get_channel_layer()` is the runtime way to get the channel layer in broadcast class methods
   - Install with `pip3 install channels channels-redis daphne --break-system-packages` for system Python
 ---
+
+## 2026-03-17 - US-018 through US-022
+- Created frontend auth API (api/client.ts, api/auth.ts, context/AuthContext.tsx)
+- Created Login, Register, Dashboard, Characters, CreateCharacter, CreateSimulation pages
+- Added Header component with auth-aware nav
+- Wired ProtectedRoute in App.tsx for all authenticated routes
+- Frontend ESLint (plugin-react-hooks v7) enforces strict rules: exports must be components-only in files, and set-state-in-effect is a warning
+- Files changed: api/client.ts, api/auth.ts, context/AuthContext.tsx, pages/Login,Register,Dashboard,Characters,CreateCharacter,CreateSimulation, components/Header.tsx, App.tsx
+- **Learnings for future iterations:**
+  - eslint-plugin-react-hooks v7 adds `set-state-in-effect` rule; wrap state-setting calls in setTimeout(fn, 0) when needed inside useEffect
+  - `react-refresh/only-export-components` lint rule: add `// eslint-disable-next-line react-refresh/only-export-components` above any non-component export from a file that also exports a component
+  - Node.js available at `~/.local/bin/node`; npm wrapper delegates to `node node_modules/.bin/eslint .`
+---
+
+## 2026-03-17 - US-023
+- Enhanced SimulatePage with AdminToolbar: Drop Character modal, Start/Pause/Resume buttons
+- AdminToolbar visible only when `user.id === meta.owner`
+- Drop modal fetches characters filtered to status='available', calls POST /api/v1/simulations/{id}/drop/
+- Status badge shown with color-coded background (running=green, paused=yellow, etc.)
+- Files changed: frontend/src/pages/SimulatePage.tsx, frontend/src/api/simulations.ts
+- **Learnings for future iterations:**
+  - `fetchCharacters` returns `{ characters: [...] }` shape - filter by status='available' client-side
+  - Simulation owner field is `meta.owner` (user ID number); compare to `user.id` from useAuth()
+---
+
+## 2026-03-17 - US-024
+- Created useSimulationWebSocket hook with JWT auth in WS URL query param
+- Exponential backoff reconnect: 1s → 2s → 4s → ... → max 30s
+- Close code 4001 → call onAuthError; close code 4003 → call onForbidden, no reconnect
+- SimulatePage: shows green 'Live' / grey 'Disconnected' indicator; falls back to polling when WS disconnected
+- Files changed: frontend/src/hooks/useSimulationWebSocket.ts, frontend/src/pages/SimulatePage.tsx
+- **Learnings for future iterations:**
+  - `react-hooks/set-state-in-effect` (eslint-plugin-react-hooks v7): defer connect() call with `setTimeout(connect, 0)` inside useEffect to avoid calling state setters synchronously
+  - Use MutableRefObject<(() => void) | null> pattern for the connectRef to avoid closure/dependency cycle
+  - BASE_URL derived from `window.location.origin.replace(/^http/, 'ws')` for environment-agnostic WS URL
+---
