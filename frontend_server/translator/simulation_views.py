@@ -18,6 +18,7 @@ Endpoints:
 """
 
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -25,7 +26,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from translator.api_views import _sim_summary_from_orm
-from translator.models import Character, Persona, Simulation, SimulationMembership
+from translator.models import Character, MovementRecord, Persona, Simulation, SimulationMembership
 
 User = get_user_model()
 
@@ -342,3 +343,63 @@ def decline_invite(request: Request, membership_id: int) -> Response:
     membership.status = SimulationMembership.MemberStatus.DECLINED
     membership.save(update_fields=["status"])
     return Response(_member_data(membership))
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def replay_meta(request: Request, sim_id: str) -> Response:
+    sim = _get_simulation(sim_id)
+    if sim is None:
+        return Response({"detail": f"Simulation '{sim_id}' not found."}, status=status.HTTP_404_NOT_FOUND)
+    if not _can_observe(sim, request.user):
+        return Response({"detail": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
+
+    agg = MovementRecord.objects.filter(simulation=sim).aggregate(
+        first_step=models.Min("step"),
+        last_step=models.Max("step"),
+        total_steps=models.Count("step"),
+    )
+    if agg["first_step"] is None:
+        return Response({"detail": "No replay data found."}, status=status.HTTP_404_NOT_FOUND)
+
+    return Response(
+        {
+            "sim_id": sim_id,
+            "total_steps": agg["total_steps"],
+            "first_step": agg["first_step"],
+            "last_step": agg["last_step"],
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def replay_step(request: Request, sim_id: str, step: int) -> Response:
+    sim = _get_simulation(sim_id)
+    if sim is None:
+        return Response({"detail": f"Simulation '{sim_id}' not found."}, status=status.HTTP_404_NOT_FOUND)
+    if not _can_observe(sim, request.user):
+        return Response({"detail": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        record = MovementRecord.objects.get(simulation=sim, step=step)
+    except MovementRecord.DoesNotExist:
+        return Response({"detail": f"Step {step} not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    agents: dict = {}
+    for name, data in record.persona_movements.items():
+        movement = data.get("movement", [0, 0])
+        agents[name] = {
+            "x": movement[0] if len(movement) > 0 else 0,
+            "y": movement[1] if len(movement) > 1 else 0,
+            "pronunciatio": data.get("pronunciatio", ""),
+            "description": data.get("description", ""),
+        }
+
+    return Response(
+        {
+            "step": record.step,
+            "sim_curr_time": record.sim_curr_time.isoformat() if record.sim_curr_time else None,
+            "agents": agents,
+        }
+    )

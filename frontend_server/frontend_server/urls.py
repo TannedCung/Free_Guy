@@ -49,6 +49,9 @@ urlpatterns = [
         api_views.simulation_agent_detail,
         name="api-simulation-agent-detail",
     ),
+    # REST API v1 — replay endpoints
+    path("api/v1/simulations/<str:sim_id>/replay/", simulation_views.replay_meta, name="api-replay-meta"),
+    path("api/v1/simulations/<str:sim_id>/replay/<int:step>/", simulation_views.replay_step, name="api-replay-step"),
     # REST API v1 — invite endpoints
     path("api/v1/invites/", simulation_views.my_invites, name="api-invites-list"),
     path("api/v1/invites/<int:membership_id>/accept/", simulation_views.accept_invite, name="api-invite-accept"),
