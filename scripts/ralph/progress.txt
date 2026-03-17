@@ -86,3 +86,15 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - `RefreshToken.for_user(user)` generates both access and refresh in one call
   - Inline imports (inside functions) are acceptable in Django views for rarely-used utilities
 ---
+
+## 2026-03-17 - US-009/US-010
+- Created frontend_server/translator/maps_views.py with maps_list endpoint (GET /api/v1/maps/, IsAuthenticated)
+- Updated api_views.py simulations_list POST to require auth, accept map_id/visibility, set owner, create SimulationMembership admin
+- Updated _sim_summary_from_orm to include map_id, visibility, owner, status fields
+- Note: ForeignKey `map_id` field's actual column ID value is accessed as `sim.map_id_id` in Django ORM
+- Files changed: frontend_server/translator/maps_views.py, frontend_server/translator/api_views.py, frontend_server/frontend_server/urls.py
+- **Learnings for future iterations:**
+  - Django ForeignKey named `map_id` has the DB column as `map_id_id` - avoid naming FKs with `_id` suffix to prevent double underscore confusion
+  - `get_or_create()` with `defaults=` dict is the safe pattern for idempotent membership creation
+  - `@permission_classes([IsAuthenticated])` works on function-based views with `@api_view` decorator
+---
