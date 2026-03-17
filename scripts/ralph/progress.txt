@@ -21,3 +21,16 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - Token blacklist migration applies automatically via `python3 manage.py migrate`
   - Django system check (`python3 manage.py check`) is a good typecheck proxy for backend
 ---
+
+## 2026-03-17 - US-002
+- Map model was already implemented in models.py with all required fields (id CharField PK, name, description, preview_image_url blank, maze_name, max_agents default 25, is_active default True)
+- MapAdmin registered in admin.py with list_display=[id, name, maze_name, max_agents, is_active]
+- Migration 0014_add_map_model.py creates the Map table
+- Migration 0015_seed_the_ville_map.py data migration seeds 'the_ville' entry
+- All migrations applied cleanly (verified via showmigrations)
+- Files changed: frontend_server/translator/models.py, frontend_server/translator/admin.py, frontend_server/translator/migrations/0014_add_map_model.py, frontend_server/translator/migrations/0015_seed_the_ville_map.py
+- **Learnings for future iterations:**
+  - When checking if a story is done, verify git status: untracked migration files mean work was done but not committed yet
+  - Data migrations use `apps.get_model()` pattern and `get_or_create()` for idempotency
+  - Pre-commit hooks stash unstaged files before running checks, then restore them after
+---
