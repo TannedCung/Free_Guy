@@ -187,3 +187,14 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - Simulation API `id` = `sim.name` (not DB pk) — use `m.simulation.name` not `m.simulation.pk`
   - `fetchMyInvites` in Header useEffect is safe because API returns [] for users with no invites
 ---
+
+## 2026-03-17 - US-027
+- Created ExplorePage at /explore with simulation cards and status filter
+- Status filter calls fetchPublicSimulations(status) on change
+- Each card shows name, status badge, map, agent count and an Observe button to /simulate/:id
+- Route /explore added to App.tsx (protected)
+- Files changed: pages/ExplorePage.tsx, App.tsx
+- **Learnings for future iterations:**
+  - `set-state-in-effect` rule: wrap setLoading(true)/setError(null) + fetch in setTimeout(fn, 0) with cancelled flag for cleanup
+  - This pattern: `let cancelled = false; const timer = setTimeout(()=>{...}, 0); return () => { cancelled=true; clearTimeout(timer) }` avoids the ESLint error for data-fetching effects that need to reset state on dependency change
+---
