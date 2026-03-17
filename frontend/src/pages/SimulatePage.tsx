@@ -177,6 +177,12 @@ function AdminToolbar({
   return (
     <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-3">
       <span className="text-xs text-gray-400 font-medium uppercase">Admin</span>
+      <Link
+        to={`/simulate/${encodeURIComponent(sim.id)}/settings`}
+        className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded transition-colors"
+      >
+        Settings
+      </Link>
       <button
         onClick={() => void openDropModal()}
         className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"

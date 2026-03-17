@@ -191,3 +191,59 @@ export async function resumeSimulation(simId: string): Promise<SimulationMeta> {
   }
   return res.json() as Promise<SimulationMeta>
 }
+
+export async function updateSimulation(
+  simId: string,
+  data: { visibility?: string },
+): Promise<SimulationMeta> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? 'Failed to update simulation')
+  }
+  return res.json() as Promise<SimulationMeta>
+}
+
+export interface SimulationMember {
+  user_id: number
+  username: string
+  role: string
+  status: string
+}
+
+export interface SimulationMembersResponse {
+  members: SimulationMember[]
+}
+
+export async function fetchSimulationMembers(simId: string): Promise<SimulationMembersResponse> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/members/`)
+  if (!res.ok) throw new Error(`Failed to fetch members: ${res.status}`)
+  return res.json() as Promise<SimulationMembersResponse>
+}
+
+export async function inviteMember(simId: string, username: string): Promise<void> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/members/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username }),
+  })
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? 'Failed to invite member')
+  }
+}
+
+export async function removeMember(simId: string, userId: number): Promise<void> {
+  const res = await apiFetch(
+    `/simulations/${encodeURIComponent(simId)}/members/${userId}/`,
+    { method: 'DELETE' },
+  )
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? 'Failed to remove member')
+  }
+}

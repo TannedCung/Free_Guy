@@ -8,6 +8,7 @@ import CharactersPage from './pages/CharactersPage'
 import CreateCharacterPage from './pages/CreateCharacterPage'
 import CreateSimulationPage from './pages/CreateSimulationPage'
 import SimulatePage from './pages/SimulatePage'
+import SimulationSettingsPage from './pages/SimulationSettingsPage'
 import DemoPage from './pages/DemoPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -70,6 +71,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SimulatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/simulate/:id/settings"
+            element={
+              <ProtectedRoute>
+                <SimulationSettingsPage />
               </ProtectedRoute>
             }
           />
