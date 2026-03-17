@@ -6,7 +6,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 
 from django.contrib import admin
 from django.urls import path, re_path
-from translator import api_views, auth_views, maps_views
+from translator import api_views, auth_views, character_views, maps_views
 from translator import views as translator_views
 
 urlpatterns = [
@@ -20,6 +20,9 @@ urlpatterns = [
     path(
         "api/v1/auth/password-reset/confirm/", auth_views.password_reset_confirm, name="api-auth-password-reset-confirm"
     ),
+    # REST API v1 — character endpoints
+    path("api/v1/characters/", character_views.characters_list, name="api-characters-list"),
+    path("api/v1/characters/<int:char_id>/", character_views.character_detail, name="api-character-detail"),
     # REST API v1 — maps endpoints
     path("api/v1/maps/", maps_views.maps_list, name="api-maps-list"),
     # REST API v1 — simulation endpoints
