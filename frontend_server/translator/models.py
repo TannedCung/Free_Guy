@@ -1,4 +1,7 @@
+from django.contrib.auth import get_user_model
 from django.db import models
+
+User = get_user_model()
 
 
 class Map(models.Model):
@@ -22,6 +25,11 @@ class Simulation(models.Model):
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
+    class Visibility(models.TextChoices):
+        PRIVATE = "private", "Private"
+        PUBLIC = "public", "Public"
+        SHARED = "shared", "Shared"
+
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, default="")
     status = models.CharField(
@@ -29,6 +37,13 @@ class Simulation(models.Model):
         choices=Status.choices,
         default=Status.PENDING,
         db_index=True,
+    )
+    owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_simulations")
+    map_id = models.ForeignKey("Map", null=True, blank=True, on_delete=models.SET_NULL, related_name="simulations")
+    visibility = models.CharField(
+        max_length=10,
+        choices=Visibility.choices,
+        default=Visibility.PRIVATE,
     )
     fork_sim_code = models.CharField(max_length=255, blank=True, null=True)
     start_date = models.DateTimeField(blank=True, null=True)

@@ -30,8 +30,8 @@ class MapAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 
 @admin.register(Simulation)
 class SimulationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-    list_display = ("name", "status", "maze_name", "step", "created_at", "updated_at")
-    list_filter = ("status",)
+    list_display = ("name", "status", "owner", "map_id", "visibility", "maze_name", "step", "created_at", "updated_at")
+    list_filter = ("status", "visibility")
     search_fields = ("name", "description", "maze_name")
     ordering = ("-created_at",)
 
