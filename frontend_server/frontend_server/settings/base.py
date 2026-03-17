@@ -33,6 +33,7 @@ if not SECRET_KEY:
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "channels",
     "corsheaders",
     "storages",
     "translator",
@@ -77,6 +79,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "frontend_server.wsgi.application"
+ASGI_APPLICATION = "frontend_server.asgi.application"
+
+# Django Channels — Redis channel layer
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+        },
+    },
+}
 
 
 # Password validation

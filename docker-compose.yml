@@ -4,8 +4,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ./frontend_server
+      dockerfile: Dockerfile.py
     ports:
       - "8000:8000"
     env_file:
@@ -17,7 +17,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8000/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8000/api/v1/simulations/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -36,13 +36,11 @@ services:
     restart: unless-stopped
 
   ollama:
-    extends:
-      file: Chatbot/docker-compose.yml
-      service: ollama
-    networks:
-    - home-network
+    image: ollama/ollama
     ports:
       - 11434:11434
+    volumes:
+      - ollama-data:/root/.ollama
     restart: unless-stopped
 
   db:
@@ -62,6 +60,15 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   qdrant:
     image: qdrant/qdrant
     ports:
@@ -70,7 +77,7 @@ services:
       - qdrant-data:/qdrant/storage
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:6333/healthz || exit 1"]
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -78,3 +85,4 @@ services:
 volumes:
   postgres-data:
   qdrant-data:
+  ollama-data:
