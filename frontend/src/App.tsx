@@ -11,6 +11,7 @@ import SimulatePage from './pages/SimulatePage'
 import SimulationSettingsPage from './pages/SimulationSettingsPage'
 import InvitesPage from './pages/InvitesPage'
 import ExplorePage from './pages/ExplorePage'
+import ReplayPage from './pages/ReplayPage'
 import DemoPage from './pages/DemoPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -97,6 +98,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ExplorePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/simulate/:id/replay"
+            element={
+              <ProtectedRoute>
+                <ReplayPage />
               </ProtectedRoute>
             }
           />

@@ -283,3 +283,41 @@ export async function declineInvite(membershipId: number): Promise<void> {
     throw new Error(err.detail ?? 'Failed to decline invite')
   }
 }
+
+export interface ReplayMeta {
+  sim_id: string
+  total_steps: number
+  first_step: number
+  last_step: number
+}
+
+export interface ReplayAgentState {
+  x: number
+  y: number
+  pronunciatio: string
+  description: string
+}
+
+export interface ReplayStepResponse {
+  step: number
+  sim_curr_time: string | null
+  agents: Record<string, ReplayAgentState>
+}
+
+export async function fetchReplayMeta(simId: string): Promise<ReplayMeta> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/replay/`)
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? `Failed to fetch replay meta: ${res.status}`)
+  }
+  return res.json() as Promise<ReplayMeta>
+}
+
+export async function fetchReplayStep(simId: string, step: number): Promise<ReplayStepResponse> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/replay/${step}/`)
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? `Failed to fetch replay step: ${res.status}`)
+  }
+  return res.json() as Promise<ReplayStepResponse>
+}
