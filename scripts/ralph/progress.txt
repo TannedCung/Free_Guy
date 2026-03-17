@@ -198,3 +198,27 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - `set-state-in-effect` rule: wrap setLoading(true)/setError(null) + fetch in setTimeout(fn, 0) with cancelled flag for cleanup
   - This pattern: `let cancelled = false; const timer = setTimeout(()=>{...}, 0); return () => { cancelled=true; clearTimeout(timer) }` avoids the ESLint error for data-fetching effects that need to reset state on dependency change
 ---
+
+## 2026-03-17 - US-028
+- Added replay_meta (GET /replay/) and replay_step (GET /replay/{step}/) views to simulation_views.py
+- Both views reuse _can_observe and _get_simulation helpers
+- replay_meta uses MovementRecord.aggregate(Min, Max, Count) for step range
+- replay_step converts persona_movements dict to {x, y, pronunciatio, description} per agent
+- Added routes to urls.py before legacy endpoints
+- Files changed: simulation_views.py, urls.py
+- **Learnings for future iterations:**
+  - Import `from django.db import models` to use models.Min/Max/Count in aggregate()
+  - ruff-format reformats dict literals in Response() — re-stage after first failed commit
+---
+
+## 2026-03-17 - US-029
+- Created ReplayPage at /simulate/:id/replay with step scrubber and playback
+- Fetches replay meta and sim meta in parallel; loads step data on currentStep change
+- Play button auto-advances via setInterval; speed 1x/2x/5x via SPEED_INTERVALS map
+- Converts ReplayStepResponse.agents to Agent[] for GameCanvas compatibility
+- 'Watch Live' link shown if simulation status === 'running'
+- Files changed: pages/ReplayPage.tsx, App.tsx, api/simulations.ts
+- **Learnings for future iterations:**
+  - Convert replay agent format to Agent[] via: `{id: name, name, location: {maze:'', x, y}, currently: description, pronunciatio}`
+  - useEffect for playback: return clearInterval(interval) — playback stops on unmount or speed change
+---
