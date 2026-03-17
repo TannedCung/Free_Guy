@@ -98,3 +98,16 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - `get_or_create()` with `defaults=` dict is the safe pattern for idempotent membership creation
   - `@permission_classes([IsAuthenticated])` works on function-based views with `@api_view` decorator
 ---
+
+## 2026-03-17 - US-011/012/013/014/015
+- Created character_views.py: GET/POST /api/v1/characters/, GET/PATCH/DELETE /api/v1/characters/{id}/
+- Created simulation_views.py with drop_character, start/pause/resume simulation, mine/public list, update visibility (PATCH), member management (GET/POST/DELETE), invite accept/decline
+- Added PATCH endpoint at same URL as simulation_detail (added update_simulation view) - note: separate URL from existing GET simulation_detail
+- Added mine/ and public/ before <str:sim_id>/ in urlpatterns to prevent conflict
+- Files changed: character_views.py, simulation_views.py, urls.py
+- **Learnings for future iterations:**
+  - URL ordering matters: put `mine/` and `public/` routes BEFORE `<str:sim_id>/` to avoid "mine" being captured as a sim_id
+  - Reuse `_sim_summary_from_orm` from api_views.py via direct import - circular import not an issue here
+  - `update_fields=` on save() is more efficient than full save when updating few fields
+  - `sim.personas.exists()` is more efficient than `sim.personas.count() > 0`
+---
