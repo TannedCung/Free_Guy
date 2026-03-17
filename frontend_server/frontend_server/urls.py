@@ -6,7 +6,7 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 
 from django.contrib import admin
 from django.urls import path, re_path
-from translator import api_views, auth_views, character_views, maps_views
+from translator import api_views, auth_views, character_views, maps_views, simulation_views
 from translator import views as translator_views
 
 urlpatterns = [
@@ -26,7 +26,21 @@ urlpatterns = [
     # REST API v1 — maps endpoints
     path("api/v1/maps/", maps_views.maps_list, name="api-maps-list"),
     # REST API v1 — simulation endpoints
+    path("api/v1/simulations/mine/", simulation_views.my_simulations, name="api-simulations-mine"),
+    path("api/v1/simulations/public/", simulation_views.public_simulations, name="api-simulations-public"),
     path("api/v1/simulations/", api_views.simulations_list, name="api-simulations-list"),
+    path("api/v1/simulations/<str:sim_id>/drop/", simulation_views.drop_character, name="api-simulation-drop"),
+    path("api/v1/simulations/<str:sim_id>/start/", simulation_views.start_simulation, name="api-simulation-start"),
+    path("api/v1/simulations/<str:sim_id>/pause/", simulation_views.pause_simulation, name="api-simulation-pause"),
+    path("api/v1/simulations/<str:sim_id>/resume/", simulation_views.resume_simulation, name="api-simulation-resume"),
+    path(
+        "api/v1/simulations/<str:sim_id>/members/", simulation_views.simulation_members, name="api-simulation-members"
+    ),
+    path(
+        "api/v1/simulations/<str:sim_id>/members/<int:user_id>/",
+        simulation_views.remove_member,
+        name="api-simulation-remove-member",
+    ),
     path("api/v1/simulations/<str:sim_id>/", api_views.simulation_detail, name="api-simulation-detail"),
     path("api/v1/simulations/<str:sim_id>/state/", api_views.simulation_state, name="api-simulation-state"),
     path("api/v1/simulations/<str:sim_id>/agents/", api_views.simulation_agents, name="api-simulation-agents"),
@@ -35,6 +49,10 @@ urlpatterns = [
         api_views.simulation_agent_detail,
         name="api-simulation-agent-detail",
     ),
+    # REST API v1 — invite endpoints
+    path("api/v1/invites/", simulation_views.my_invites, name="api-invites-list"),
+    path("api/v1/invites/<int:membership_id>/accept/", simulation_views.accept_invite, name="api-invite-accept"),
+    path("api/v1/invites/<int:membership_id>/decline/", simulation_views.decline_invite, name="api-invite-decline"),
     # REST API v1 — demo endpoints
     path("api/v1/demos/", api_views.demos_list, name="api-demos-list"),
     path("api/v1/demos/<str:demo_id>/step/<int:step>/", api_views.demo_step, name="api-demo-step"),
