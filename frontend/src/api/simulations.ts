@@ -3,6 +3,8 @@
  * All endpoints served by the Django backend at /api/v1/
  */
 
+import { apiFetch } from './client'
+
 const API_BASE = '/api/v1'
 
 export interface AgentLocation {
@@ -67,6 +69,10 @@ export interface SimulationMeta {
   maze_name: string | null
   persona_names: string[]
   step: number
+  map_id?: string | null
+  visibility?: string
+  owner?: number | null
+  status?: string
 }
 
 export interface SimulationAgentsResponse {
@@ -80,19 +86,34 @@ export interface SimulationsListResponse {
 }
 
 export async function fetchSimulations(): Promise<SimulationsListResponse> {
-  const res = await fetch(`${API_BASE}/simulations/`)
+  const res = await apiFetch('/simulations/')
   if (!res.ok) throw new Error(`Failed to fetch simulations: ${res.status}`)
   return res.json() as Promise<SimulationsListResponse>
 }
 
+export async function fetchMySimulations(): Promise<SimulationsListResponse> {
+  const res = await apiFetch('/simulations/mine/')
+  if (!res.ok) throw new Error(`Failed to fetch my simulations: ${res.status}`)
+  return res.json() as Promise<SimulationsListResponse>
+}
+
+export async function fetchPublicSimulations(
+  status?: string,
+): Promise<SimulationsListResponse> {
+  const url = status ? `/simulations/public/?status=${encodeURIComponent(status)}` : '/simulations/public/'
+  const res = await apiFetch(url)
+  if (!res.ok) throw new Error(`Failed to fetch public simulations: ${res.status}`)
+  return res.json() as Promise<SimulationsListResponse>
+}
+
 export async function fetchSimulation(simId: string): Promise<SimulationMeta> {
-  const res = await fetch(`${API_BASE}/simulations/${encodeURIComponent(simId)}/`)
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/`)
   if (!res.ok) throw new Error(`Failed to fetch simulation: ${res.status}`)
   return res.json() as Promise<SimulationMeta>
 }
 
 export async function fetchSimulationAgents(simId: string): Promise<SimulationAgentsResponse> {
-  const res = await fetch(`${API_BASE}/simulations/${encodeURIComponent(simId)}/agents/`)
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/agents/`)
   if (!res.ok) throw new Error(`Failed to fetch agents: ${res.status}`)
   return res.json() as Promise<SimulationAgentsResponse>
 }
@@ -112,10 +133,14 @@ export async function fetchDemoStep(demoId: string, step: number): Promise<DemoS
 export async function createSimulation(
   name: string,
   forkFrom?: string,
+  mapId?: string,
+  visibility?: string,
 ): Promise<SimulationMeta> {
   const body: Record<string, string> = { name }
   if (forkFrom) body.fork_from = forkFrom
-  const res = await fetch(`${API_BASE}/simulations/`, {
+  if (mapId) body.map_id = mapId
+  if (visibility) body.visibility = visibility
+  const res = await apiFetch('/simulations/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
