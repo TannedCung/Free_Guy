@@ -247,3 +247,39 @@ export async function removeMember(simId: string, userId: number): Promise<void>
     throw new Error(err.detail ?? 'Failed to remove member')
   }
 }
+
+export interface InviteItem {
+  id: number
+  simulation_id: string
+  simulation_name: string
+  invited_by: string | null
+  role: string
+  status: string
+  invited_at: string
+}
+
+export interface InvitesListResponse {
+  invites: InviteItem[]
+}
+
+export async function fetchMyInvites(): Promise<InvitesListResponse> {
+  const res = await apiFetch('/invites/')
+  if (!res.ok) throw new Error(`Failed to fetch invites: ${res.status}`)
+  return res.json() as Promise<InvitesListResponse>
+}
+
+export async function acceptInvite(membershipId: number): Promise<void> {
+  const res = await apiFetch(`/invites/${membershipId}/accept/`, { method: 'POST' })
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? 'Failed to accept invite')
+  }
+}
+
+export async function declineInvite(membershipId: number): Promise<void> {
+  const res = await apiFetch(`/invites/${membershipId}/decline/`, { method: 'POST' })
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? 'Failed to decline invite')
+  }
+}

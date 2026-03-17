@@ -306,7 +306,15 @@ def my_invites(request: Request) -> Response:
     memberships = SimulationMembership.objects.filter(
         user=request.user, status=SimulationMembership.MemberStatus.INVITED
     ).select_related("simulation", "simulation__owner")
-    return Response({"invites": [_member_data(m) for m in memberships]})
+
+    def _invite_data(m: SimulationMembership) -> dict:
+        data = _member_data(m)
+        data["simulation_id"] = m.simulation.name
+        data["simulation_name"] = m.simulation.name
+        data["invited_by"] = m.simulation.owner.username if m.simulation.owner else None
+        return data
+
+    return Response({"invites": [_invite_data(m) for m in memberships]})
 
 
 @api_view(["POST"])

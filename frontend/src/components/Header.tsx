@@ -1,9 +1,19 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { fetchMyInvites } from '../api/simulations'
 
 export default function Header() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [pendingInvites, setPendingInvites] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+    fetchMyInvites()
+      .then((data) => setPendingInvites(data.invites.length))
+      .catch(() => {/* ignore */})
+  }, [user])
 
   const handleLogout = async () => {
     await logout()
@@ -24,6 +34,14 @@ export default function Header() {
               </Link>
               <Link to="/explore" className="text-blue-600 hover:text-blue-800 font-medium">
                 Explore
+              </Link>
+              <Link to="/invites" className="relative text-blue-600 hover:text-blue-800 font-medium">
+                Invites
+                {pendingInvites > 0 && (
+                  <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {pendingInvites}
+                  </span>
+                )}
               </Link>
               <span className="text-gray-700 font-medium">{user.username}</span>
               <button
