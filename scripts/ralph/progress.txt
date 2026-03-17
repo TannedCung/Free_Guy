@@ -111,3 +111,18 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - `update_fields=` on save() is more efficient than full save when updating few fields
   - `sim.personas.exists()` is more efficient than `sim.personas.count() > 0`
 ---
+
+## 2026-03-17 - US-016/017
+- Added `channels>=4.0.0`, `channels-redis>=4.2.0`, `daphne>=4.0.0` to requirements.txt
+- Added `daphne` and `channels` to INSTALLED_APPS (daphne must come first, before django apps)
+- Added `ASGI_APPLICATION` and `CHANNEL_LAYERS` with RedisChannelLayer pointing to redis:6379
+- Created frontend_server/frontend_server/asgi.py with ProtocolTypeRouter routing HTTP and WebSocket
+- Created frontend_server/translator/consumers.py with SimulationConsumer (basic connect/disconnect/broadcast_step)
+- Added `redis:7-alpine` service to docker-compose.yml with healthcheck
+- Files changed: requirements.txt, settings/base.py, asgi.py, consumers.py, docker-compose.yml
+- **Learnings for future iterations:**
+  - `daphne` must be FIRST in INSTALLED_APPS before other django apps
+  - channels consumer imports must come after Django setup (import inside function or after asgi setup)
+  - `get_channel_layer()` is the runtime way to get the channel layer in broadcast class methods
+  - Install with `pip3 install channels channels-redis daphne --break-system-packages` for system Python
+---
