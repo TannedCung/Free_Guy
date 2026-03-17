@@ -162,3 +162,17 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
   - Use MutableRefObject<(() => void) | null> pattern for the connectRef to avoid closure/dependency cycle
   - BASE_URL derived from `window.location.origin.replace(/^http/, 'ws')` for environment-agnostic WS URL
 ---
+
+## 2026-03-17 - US-025
+- Created SimulationSettingsPage at /simulate/:id/settings
+- Visibility selector calls PATCH /api/v1/simulations/{id}/ on change
+- Members list from GET /api/v1/simulations/{id}/members/ with remove buttons
+- Invite form submits POST /api/v1/simulations/{id}/members/ with username
+- Admin-only: redirects to /simulate/:id if user is not simulation owner
+- Settings link added to AdminToolbar in SimulatePage
+- Added updateSimulation, fetchSimulationMembers, inviteMember, removeMember to simulations.ts
+- Files changed: api/simulations.ts, pages/SimulationSettingsPage.tsx, pages/SimulatePage.tsx, App.tsx
+- **Learnings for future iterations:**
+  - Guard admin-only pages by checking `simData.owner !== user.id` inside the data fetch and navigate away
+  - Promise.all for parallel fetches is cleaner than sequential when both results needed together
+---
