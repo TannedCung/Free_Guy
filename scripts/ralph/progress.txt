@@ -68,3 +68,21 @@ Started: Tue Mar 17 03:54:12 PM +07 2026
 - **Learnings for future iterations:**
   - Inner TextChoices class named `MemberStatus` (not `Status`) to avoid conflicts with other Status classes in same model definition scope
 ---
+
+## 2026-03-17 - US-006/US-007/US-008
+- Created frontend_server/translator/auth_views.py with all auth endpoints
+- register(): POST /api/v1/auth/register/ - validates, creates user, returns tokens+user (201)
+- login_view(): POST /api/v1/auth/login/ - authenticate, return tokens+user (401 on fail)
+- token_refresh(): POST /api/v1/auth/token/refresh/ - returns new access token or 401
+- logout_view(): POST /api/v1/auth/logout/ - blacklists refresh token (requires auth)
+- me(): GET/PATCH /api/v1/auth/me/ - profile view and update (requires auth)
+- password_reset(): POST /api/v1/auth/password-reset/ - logs reset link to console
+- password_reset_confirm(): POST /api/v1/auth/password-reset/confirm/ - confirms token and resets password
+- Updated frontend_server/frontend_server/urls.py to add all auth endpoints
+- Files changed: frontend_server/translator/auth_views.py, frontend_server/frontend_server/urls.py
+- **Learnings for future iterations:**
+  - ruff auto-fixes import organization (separate lines → combined import) on commit
+  - Use `@permission_classes([AllowAny])` explicitly for public endpoints since JWT auth is default
+  - `RefreshToken.for_user(user)` generates both access and refresh in one call
+  - Inline imports (inside functions) are acceptable in Django views for rarely-used utilities
+---
