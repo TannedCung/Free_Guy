@@ -10,6 +10,7 @@ from .models import (
     DemoMovement,
     EnvironmentState,
     KeywordStrength,
+    Map,
     MovementRecord,
     Persona,
     PersonaScratch,
@@ -18,6 +19,13 @@ from .models import (
     SimulationStep,
     SpatialMemory,
 )
+
+
+@admin.register(Map)
+class MapAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("id", "name", "maze_name", "max_agents", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("id", "name", "maze_name")
 
 
 @admin.register(Simulation)

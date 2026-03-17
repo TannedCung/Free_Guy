@@ -1,6 +1,19 @@
 from django.db import models
 
 
+class Map(models.Model):
+    id = models.CharField(max_length=100, primary_key=True)
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    preview_image_url = models.CharField(max_length=500, blank=True)
+    maze_name = models.CharField(max_length=255)
+    max_agents = models.IntegerField(default=25)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.id})"
+
+
 class Simulation(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
