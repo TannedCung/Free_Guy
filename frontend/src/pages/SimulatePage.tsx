@@ -14,6 +14,7 @@ import {
 } from '../api/simulations'
 import { fetchCharacters, type Character } from '../api/characters'
 import { useAuth } from '../context/AuthContext'
+import { useSimulationWebSocket } from '../hooks/useSimulationWebSocket'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -260,6 +261,7 @@ function SimulationViewer({ simId }: { simId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [lastPoll, setLastPoll] = useState<Date | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [wsError, setWsError] = useState<string | null>(null)
 
   const loadMeta = useCallback(() => {
     fetchSimulation(simId)
@@ -285,17 +287,32 @@ function SimulationViewer({ simId }: { simId: string }) {
       )
   }, [simId])
 
+  const handleStepUpdate = useCallback((payload: { step?: number; sim_curr_time?: string }) => {
+    if (payload.step !== undefined) setStep(payload.step)
+    setLastPoll(new Date())
+    // Re-fetch agents on step updates
+    void pollAgents()
+  }, [pollAgents])
+
+  const { wsStatus } = useSimulationWebSocket({
+    simId,
+    onStepUpdate: handleStepUpdate,
+    onForbidden: () => setWsError('Access denied'),
+    onAuthError: () => setWsError('Authentication error — please refresh'),
+  })
+
   // Initial load
   useEffect(() => {
     loadMeta()
     pollAgents()
   }, [simId, loadMeta, pollAgents])
 
-  // Polling
+  // Polling (fallback when WebSocket is not connected)
   useEffect(() => {
+    if (wsStatus === 'connected') return
     const interval = setInterval(pollAgents, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
-  }, [pollAgents])
+  }, [pollAgents, wsStatus])
 
   if (error) {
     return (
@@ -313,6 +330,14 @@ function SimulationViewer({ simId }: { simId: string }) {
     failed: 'bg-red-600',
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center flex-1 text-red-400">
+        Error: {error}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Status bar + admin toolbar */}
@@ -324,10 +349,20 @@ function SimulationViewer({ simId }: { simId: string }) {
             >
               {meta.status ?? 'pending'}
             </span>
+            {/* WebSocket indicator */}
+            <span
+              className={`ml-auto flex items-center gap-1 ${wsStatus === 'connected' ? 'text-green-400' : 'text-gray-500'}`}
+            >
+              <span
+                className={`inline-block w-2 h-2 rounded-full ${wsStatus === 'connected' ? 'bg-green-400' : 'bg-gray-500'}`}
+              />
+              {wsStatus === 'connected' ? 'Live' : 'Disconnected'}
+            </span>
+            {wsError && <span className="text-red-400">{wsError}</span>}
           </div>
         )}
         {meta && isAdmin && (
-          <AdminToolbar sim={meta} onRefresh={() => { loadMeta(); pollAgents() }} />
+          <AdminToolbar sim={meta} onRefresh={() => { loadMeta(); void pollAgents() }} />
         )}
       </div>
 
