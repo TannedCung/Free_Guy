@@ -17,7 +17,8 @@ import string
 import qdrant_utils
 from django.db import transaction
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from translator.models import (
@@ -26,9 +27,11 @@ from translator.models import (
     DemoMovement,
     EnvironmentState,
     KeywordStrength,
+    Map,
     Persona,
     PersonaScratch,
     Simulation,
+    SimulationMembership,
     SpatialMemory,
 )
 
@@ -50,6 +53,10 @@ def _sim_summary_from_orm(sim: Simulation) -> dict:
         "maze_name": sim.maze_name,
         "persona_names": persona_names,
         "step": sim.step,
+        "map_id": sim.map_id_id,
+        "visibility": sim.visibility,
+        "owner": sim.owner_id,
+        "status": sim.status,
     }
 
 
@@ -183,6 +190,7 @@ def _fork_simulation(src_name: str, new_name: str) -> Simulation:
 
 
 @api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
 def simulations_list(request: Request) -> Response:
     """
     GET  - list all available simulations.
@@ -195,6 +203,8 @@ def simulations_list(request: Request) -> Response:
     # POST — create or fork
     sim_name: str = request.data.get("name", "").strip()
     fork_from: str = request.data.get("fork_from", "").strip()
+    map_id_val: str = request.data.get("map_id", "the_ville").strip() or "the_ville"
+    visibility_val: str = request.data.get("visibility", Simulation.Visibility.PRIVATE)
 
     if not sim_name:
         return Response(
@@ -216,6 +226,15 @@ def simulations_list(request: Request) -> Response:
             status=status.HTTP_409_CONFLICT,
         )
 
+    # Validate map_id
+    try:
+        map_obj = Map.objects.get(pk=map_id_val)
+    except Map.DoesNotExist:
+        return Response(
+            {"error": f"map '{map_id_val}' not found"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     if fork_from:
         if not Simulation.objects.filter(name=fork_from).exists():
             return Response(
@@ -223,13 +242,27 @@ def simulations_list(request: Request) -> Response:
                 status=status.HTTP_404_NOT_FOUND,
             )
         new_sim = _fork_simulation(fork_from, sim_name)
+        new_sim.owner = request.user  # type: ignore[assignment]
+        new_sim.map_id = map_obj  # type: ignore[assignment]
+        new_sim.visibility = visibility_val
+        new_sim.save(update_fields=["owner", "map_id", "visibility"])
     else:
         new_sim = Simulation.objects.create(
             name=sim_name,
             fork_sim_code=None,
             sec_per_step=10,
-            maze_name="the_ville",
+            maze_name=map_obj.maze_name,
+            owner=request.user,
+            map_id=map_obj,
+            visibility=visibility_val,
         )
+
+    # Create admin membership for the creating user
+    SimulationMembership.objects.get_or_create(
+        simulation=new_sim,
+        user=request.user,
+        defaults={"role": SimulationMembership.Role.ADMIN, "status": SimulationMembership.MemberStatus.ACTIVE},
+    )
 
     return Response(
         _sim_summary_from_orm(new_sim),
