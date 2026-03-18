@@ -5,13 +5,47 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from django.contrib import admin
-from django.urls import path, re_path
-from translator import api_views
+from django.urls import include, path, re_path
+from translator import api_views, auth_views, character_views, maps_views, simulation_views, social_auth_views
 from translator import views as translator_views
 
 urlpatterns = [
+    # django-allauth social auth URLs (required for allauth's OAuth flow)
+    path("accounts/", include("allauth.urls")),
+    # REST API v1 — social login redirect endpoints
+    path("api/v1/auth/social/google/", social_auth_views.social_login_google, name="api-social-google"),
+    path("api/v1/auth/social/github/", social_auth_views.social_login_github, name="api-social-github"),
+    # REST API v1 — auth endpoints
+    path("api/v1/auth/register/", auth_views.register, name="api-auth-register"),
+    path("api/v1/auth/login/", auth_views.login_view, name="api-auth-login"),
+    path("api/v1/auth/token/refresh/", auth_views.token_refresh, name="api-auth-token-refresh"),
+    path("api/v1/auth/logout/", auth_views.logout_view, name="api-auth-logout"),
+    path("api/v1/auth/me/", auth_views.me, name="api-auth-me"),
+    path("api/v1/auth/password-reset/", auth_views.password_reset, name="api-auth-password-reset"),
+    path(
+        "api/v1/auth/password-reset/confirm/", auth_views.password_reset_confirm, name="api-auth-password-reset-confirm"
+    ),
+    # REST API v1 — character endpoints
+    path("api/v1/characters/", character_views.characters_list, name="api-characters-list"),
+    path("api/v1/characters/<int:char_id>/", character_views.character_detail, name="api-character-detail"),
+    # REST API v1 — maps endpoints
+    path("api/v1/maps/", maps_views.maps_list, name="api-maps-list"),
     # REST API v1 — simulation endpoints
+    path("api/v1/simulations/mine/", simulation_views.my_simulations, name="api-simulations-mine"),
+    path("api/v1/simulations/public/", simulation_views.public_simulations, name="api-simulations-public"),
     path("api/v1/simulations/", api_views.simulations_list, name="api-simulations-list"),
+    path("api/v1/simulations/<str:sim_id>/drop/", simulation_views.drop_character, name="api-simulation-drop"),
+    path("api/v1/simulations/<str:sim_id>/start/", simulation_views.start_simulation, name="api-simulation-start"),
+    path("api/v1/simulations/<str:sim_id>/pause/", simulation_views.pause_simulation, name="api-simulation-pause"),
+    path("api/v1/simulations/<str:sim_id>/resume/", simulation_views.resume_simulation, name="api-simulation-resume"),
+    path(
+        "api/v1/simulations/<str:sim_id>/members/", simulation_views.simulation_members, name="api-simulation-members"
+    ),
+    path(
+        "api/v1/simulations/<str:sim_id>/members/<int:user_id>/",
+        simulation_views.remove_member,
+        name="api-simulation-remove-member",
+    ),
     path("api/v1/simulations/<str:sim_id>/", api_views.simulation_detail, name="api-simulation-detail"),
     path("api/v1/simulations/<str:sim_id>/state/", api_views.simulation_state, name="api-simulation-state"),
     path("api/v1/simulations/<str:sim_id>/agents/", api_views.simulation_agents, name="api-simulation-agents"),
@@ -20,6 +54,13 @@ urlpatterns = [
         api_views.simulation_agent_detail,
         name="api-simulation-agent-detail",
     ),
+    # REST API v1 — replay endpoints
+    path("api/v1/simulations/<str:sim_id>/replay/", simulation_views.replay_meta, name="api-replay-meta"),
+    path("api/v1/simulations/<str:sim_id>/replay/<int:step>/", simulation_views.replay_step, name="api-replay-step"),
+    # REST API v1 — invite endpoints
+    path("api/v1/invites/", simulation_views.my_invites, name="api-invites-list"),
+    path("api/v1/invites/<int:membership_id>/accept/", simulation_views.accept_invite, name="api-invite-accept"),
+    path("api/v1/invites/<int:membership_id>/decline/", simulation_views.decline_invite, name="api-invite-decline"),
     # REST API v1 — demo endpoints
     path("api/v1/demos/", api_views.demos_list, name="api-demos-list"),
     path("api/v1/demos/<str:demo_id>/step/<int:step>/", api_views.demo_step, name="api-demo-step"),

@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     Agent,
     AgentMemory,
+    Character,
     ConceptNode,
     Conversation,
     ConversationParticipant,
@@ -10,20 +11,45 @@ from .models import (
     DemoMovement,
     EnvironmentState,
     KeywordStrength,
+    Map,
     MovementRecord,
     Persona,
     PersonaScratch,
     RuntimeState,
     Simulation,
+    SimulationMembership,
     SimulationStep,
     SpatialMemory,
 )
 
 
+@admin.register(Map)
+class MapAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("id", "name", "maze_name", "max_agents", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("id", "name", "maze_name")
+
+
+@admin.register(SimulationMembership)
+class SimulationMembershipAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("simulation", "user", "role", "status", "invited_at", "joined_at")
+    list_filter = ("role", "status")
+    search_fields = ("simulation__name", "user__username")
+    ordering = ("simulation", "user")
+
+
+@admin.register(Character)
+class CharacterAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+    list_display = ("name", "owner", "age", "status", "simulation")
+    list_filter = ("status",)
+    search_fields = ("name", "owner__username", "traits", "backstory")
+    ordering = ("owner", "name")
+
+
 @admin.register(Simulation)
 class SimulationAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
-    list_display = ("name", "status", "maze_name", "step", "created_at", "updated_at")
-    list_filter = ("status",)
+    list_display = ("name", "status", "owner", "map_id", "visibility", "maze_name", "step", "created_at", "updated_at")
+    list_filter = ("status", "visibility")
     search_fields = ("name", "description", "maze_name")
     ordering = ("-created_at",)
 

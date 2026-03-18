@@ -1,4 +1,20 @@
+from django.contrib.auth import get_user_model
 from django.db import models
+
+User = get_user_model()
+
+
+class Map(models.Model):
+    id = models.CharField(max_length=100, primary_key=True)
+    name = models.CharField(max_length=255)
+    description = models.TextField()
+    preview_image_url = models.CharField(max_length=500, blank=True)
+    maze_name = models.CharField(max_length=255)
+    max_agents = models.IntegerField(default=25)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.id})"
 
 
 class Simulation(models.Model):
@@ -9,6 +25,11 @@ class Simulation(models.Model):
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
+    class Visibility(models.TextChoices):
+        PRIVATE = "private", "Private"
+        PUBLIC = "public", "Public"
+        SHARED = "shared", "Shared"
+
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, default="")
     status = models.CharField(
@@ -16,6 +37,13 @@ class Simulation(models.Model):
         choices=Status.choices,
         default=Status.PENDING,
         db_index=True,
+    )
+    owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="owned_simulations")
+    map_id = models.ForeignKey("Map", null=True, blank=True, on_delete=models.SET_NULL, related_name="simulations")
+    visibility = models.CharField(
+        max_length=10,
+        choices=Visibility.choices,
+        default=Visibility.PRIVATE,
     )
     fork_sim_code = models.CharField(max_length=255, blank=True, null=True)
     start_date = models.DateTimeField(blank=True, null=True)
@@ -32,6 +60,63 @@ class Simulation(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name} ({self.status})"
+
+
+class Character(models.Model):
+    class Status(models.TextChoices):
+        AVAILABLE = "available", "Available"
+        IN_SIMULATION = "in_simulation", "In Simulation"
+
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="characters")
+    name = models.CharField(max_length=255)
+    age = models.IntegerField(blank=True, null=True)
+    traits = models.TextField(blank=True, default="")
+    backstory = models.TextField(blank=True, default="")
+    currently = models.TextField(blank=True, default="")
+    lifestyle = models.TextField(blank=True, default="")
+    daily_plan = models.TextField(blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.AVAILABLE,
+    )
+    simulation = models.ForeignKey(
+        "Simulation", null=True, blank=True, on_delete=models.SET_NULL, related_name="characters"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["owner", "name"], name="unique_owner_character_name"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.owner.username})"
+
+
+class SimulationMembership(models.Model):
+    class Role(models.TextChoices):
+        ADMIN = "admin", "Admin"
+        OBSERVER = "observer", "Observer"
+
+    class MemberStatus(models.TextChoices):
+        INVITED = "invited", "Invited"
+        ACTIVE = "active", "Active"
+        DECLINED = "declined", "Declined"
+
+    simulation = models.ForeignKey(Simulation, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="simulation_memberships")
+    role = models.CharField(max_length=10, choices=Role.choices)
+    status = models.CharField(max_length=10, choices=MemberStatus.choices)
+    invited_at = models.DateTimeField(auto_now_add=True)
+    joined_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["simulation", "user"], name="unique_simulation_user_membership"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} in {self.simulation.name} ({self.role})"
 
 
 class Persona(models.Model):
