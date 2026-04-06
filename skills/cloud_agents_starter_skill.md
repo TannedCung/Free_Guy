@@ -24,6 +24,7 @@ Notes:
 - `DJANGO_SECRET_KEY` must be set in `.env`; Django will fail fast if missing.
 - If you do not need OpenAI, keep `LLM_PROVIDER=ollama` (default in `.env.example`).
 - `OPENAI_API_KEY` is still required by some legacy backend imports; for local test-only flows use a dummy value like `OPENAI_API_KEY=test-key`.
+- Prefer venv binaries (for example `/workspace/frontend_server/.venv/bin/python`) over system Python to avoid dependency mismatches.
 
 ## 2) Start app services (common Cloud-agent workflow)
 
@@ -110,9 +111,10 @@ Minimum checks:
 
 - `source frontend_server/.venv/bin/activate`
 - `cd frontend_server`
-- `python3 manage.py check`
-- `python3 manage.py migrate`
-- `python3 manage.py test translator`
+- `python manage.py check`
+- `python manage.py migrate`
+- `python manage.py test translator.tests.SimulationStateTests`
+- `python manage.py test translator.tests.SimulationAgentsTests`
 
 Targeted API smoke checks (faster than full test run when scoping bugfixes):
 
@@ -144,6 +146,8 @@ LLM safety for tests:
   - Ensure `.env` exists and contains `DJANGO_SECRET_KEY=...`.
 - Frontend cannot reach API on local dev:
   - Confirm Vite is running on `3000` and Django on `8000` (Vite proxy points to `localhost:8000`).
+- Django startup fails with `type 'Manager' is not subscriptable`:
+  - You are likely using system Python packages; switch to `frontend_server/.venv/bin/python`.
 - Auth endpoints return 401 for protected routes:
   - Re-run login and use fresh access token (access tokens are short-lived).
 - Backend pytest import error from missing `OPENAI_API_KEY`:
