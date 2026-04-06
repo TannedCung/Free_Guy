@@ -54,7 +54,7 @@ dependencies = [
     "regex==2026.2.28",
     "requests==2.32.5",
     "s3transfer==0.11.3",
-    "scikit-learn==1.8.0",
+    "scikit-learn==1.7.2",
     "scikit-posthocs==0.12.0",
     "scipy==1.17.1",
     "seaborn==0.13.2",
@@ -78,7 +78,7 @@ dependencies = [
     "yellowbrick==1.5",
     "zipp==3.21.0",
 ]
-# Note: sklearn==0.0 dummy stub removed; scikit-learn==1.8.0 is the real dependency.
+# Note: sklearn==0.0 dummy stub removed; scikit-learn==1.7.2 is the real dependency.
 # Django upgraded to 4.2.20 LTS in US-012 (was 3.2.25 after US-011).
 # django-storages-redux replaced with django-storages==1.14.4 (redux fork unsupported on Django 4.x).
 # All other versions aligned with backend_server/pyproject.toml.
