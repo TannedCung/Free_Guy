@@ -17,8 +17,10 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 from translator.models import (
     ConceptNode,
     Demo,
@@ -35,6 +37,21 @@ from translator.models import (
 # ---------------------------------------------------------------------------
 # Shared test helpers
 # ---------------------------------------------------------------------------
+
+
+class AuthenticatedAPITestCase(TestCase):
+    """TestCase that authenticates requests with a JWT access token."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="test_user",
+            email="test_user@example.com",
+            password="test_password_123",
+        )
+        refresh = RefreshToken.for_user(self.user)
+        self.client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {refresh.access_token}"
 
 
 def _make_sim(name: str = "test-sim", **kwargs) -> Simulation:
@@ -93,7 +110,7 @@ def _make_demo(name: str, steps: int = 2) -> Demo:
 # ---------------------------------------------------------------------------
 
 
-class SimulationsListGetTests(TestCase):
+class SimulationsListGetTests(AuthenticatedAPITestCase):
     def test_empty_storage_returns_empty_list(self) -> None:
         resp = self.client.get("/api/v1/simulations/")
         self.assertEqual(resp.status_code, 200)
@@ -125,7 +142,7 @@ class SimulationsListGetTests(TestCase):
 # ---------------------------------------------------------------------------
 
 
-class SimulationsListPostTests(TestCase):
+class SimulationsListPostTests(AuthenticatedAPITestCase):
     def _post(self, data: dict) -> object:
         return self.client.post(
             "/api/v1/simulations/",
@@ -664,7 +681,7 @@ class AssociativeMemoryDbTest(TestCase):
 # ---------------------------------------------------------------------------
 
 
-class ForkSimulationTest(TestCase):
+class ForkSimulationTest(AuthenticatedAPITestCase):
     """Test: fork simulation → all Persona, PersonaScratch, ConceptNode,
     KeywordStrength, SpatialMemory rows copied with new PKs; Qdrant embeddings copied."""
 
@@ -1301,7 +1318,7 @@ class EndToEndImportTest(TestCase):
         self.assertIn(SIM_NAME, output)
 
 
-class EndToEndLifecycleTest(TestCase):
+class EndToEndLifecycleTest(AuthenticatedAPITestCase):
     """
     End-to-end test: full simulation lifecycle from creation through gameplay
     to demo compression and demo step API retrieval.
