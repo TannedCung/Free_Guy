@@ -44,14 +44,14 @@ export default function CreateCharacterPage() {
   const fieldError = (field: string) => errors[field]?.[0] ?? null
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="retro-page">
       <Header />
-      <main className="max-w-2xl mx-auto px-4 py-10">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">Create Character</h2>
-        <div className="bg-white rounded-xl border border-gray-100 shadow p-8">
+      <main className="retro-main max-w-2xl">
+        <h2 className="retro-title mb-6">Create character</h2>
+        <div className="retro-panel p-6">
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-bold uppercase mb-1">
                 Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -59,43 +59,43 @@ export default function CreateCharacterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Isabella Rodriguez"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="retro-input"
               />
               {fieldError('name') && <p className="mt-1 text-sm text-red-600">{fieldError('name')}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+              <label className="block text-xs font-bold uppercase mb-1">Age</label>
               <input
                 type="number"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
                 placeholder="e.g. 34"
                 min={0}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="retro-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Traits</label>
+              <label className="block text-xs font-bold uppercase mb-1">Traits</label>
               <textarea
                 value={traits}
                 onChange={(e) => setTraits(e.target.value)}
                 placeholder="e.g. friendly, artistic, curious about people"
                 rows={2}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="retro-textarea"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Backstory</label>
+              <label className="block text-xs font-bold uppercase mb-1">Backstory</label>
               <textarea
                 value={backstory}
                 onChange={(e) => setBackstory(e.target.value)}
                 placeholder="e.g. Grew up in a small town and moved to the city to pursue a career in art"
                 rows={3}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="retro-textarea"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-bold uppercase mb-1">
                 Currently (what they&apos;re doing)
               </label>
               <textarea
@@ -103,27 +103,27 @@ export default function CreateCharacterPage() {
                 onChange={(e) => setCurrently(e.target.value)}
                 placeholder="e.g. Running the Oak Hill Cafe and taking painting classes on Saturdays"
                 rows={2}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="retro-textarea"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Lifestyle</label>
+              <label className="block text-xs font-bold uppercase mb-1">Lifestyle</label>
               <textarea
                 value={lifestyle}
                 onChange={(e) => setLifestyle(e.target.value)}
                 placeholder="e.g. Loves morning runs, cooking, and weekly book club meetings"
                 rows={2}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="retro-textarea"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Daily Plan</label>
+              <label className="block text-xs font-bold uppercase mb-1">Daily plan</label>
               <textarea
                 value={dailyPlan}
                 onChange={(e) => setDailyPlan(e.target.value)}
                 placeholder="e.g. Wake up at 7am, run for 30 minutes, open the café at 9am..."
                 rows={3}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="retro-textarea"
               />
             </div>
 
@@ -135,14 +135,14 @@ export default function CreateCharacterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2 rounded-lg transition-colors"
+                className="retro-button retro-button-primary"
               >
                 {loading ? 'Creating…' : 'Create Character'}
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/characters')}
-                className="text-gray-600 hover:text-gray-900 font-medium px-4 py-2"
+                className="retro-button retro-button-ghost"
               >
                 Cancel
               </button>

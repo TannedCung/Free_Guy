@@ -116,15 +116,15 @@ export default function ReplayPage() {
       <header className="flex items-center gap-4 px-4 py-2 bg-gray-800 shrink-0 border-b border-gray-700">
         <Link
           to={`/simulate/${encodeURIComponent(simId)}`}
-          className="text-blue-400 hover:underline text-sm"
+          className="retro-link text-sm"
         >
           ← Back
         </Link>
-        <h1 className="text-lg font-semibold">Replay: {simId}</h1>
+        <h1 className="text-lg font-semibold uppercase tracking-wide">Replay: {simId}</h1>
         {sim?.status === 'running' && (
           <Link
             to={`/simulate/${encodeURIComponent(simId)}`}
-            className="ml-auto text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors"
+            className="ml-auto retro-button retro-button-warm"
           >
             Watch Live
           </Link>
@@ -132,7 +132,7 @@ export default function ReplayPage() {
       </header>
 
       {/* Step info */}
-      <div className="shrink-0 px-4 py-2 bg-gray-800 border-b border-gray-700 text-xs text-gray-300 flex items-center gap-4">
+      <div className="shrink-0 px-4 py-2 bg-gray-800 border-b border-gray-700 text-xs text-gray-300 flex items-center gap-4 uppercase tracking-wide">
         <span>Step: <strong>{currentStep}</strong></span>
         {stepData?.sim_curr_time && (
           <span>Time: <strong>{stepData.sim_curr_time}</strong></span>
@@ -161,7 +161,7 @@ export default function ReplayPage() {
           {playing ? (
             <button
               onClick={() => setPlaying(false)}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm px-4 py-1.5 rounded transition-colors"
+              className="retro-button text-sm bg-yellow-600 hover:bg-yellow-700 text-white"
             >
               Pause
             </button>
@@ -169,17 +169,17 @@ export default function ReplayPage() {
             <button
               onClick={() => setPlaying(true)}
               disabled={currentStep >= meta.last_step}
-              className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white text-sm px-4 py-1.5 rounded transition-colors"
+              className="retro-button retro-button-warm text-sm disabled:opacity-50"
             >
               Play
             </button>
           )}
-          <label className="text-xs text-gray-400">Speed:</label>
+          <label className="text-xs text-gray-400 uppercase tracking-wide">Speed:</label>
           {([1, 2, 5] as const).map((s) => (
             <button
               key={s}
               onClick={() => setSpeed(s)}
-              className={`text-xs px-3 py-1 rounded transition-colors ${speed === s ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+              className={`retro-button text-xs ${speed === s ? 'retro-button-primary' : 'retro-button-ghost text-gray-300 hover:bg-gray-600'}`}
             >
               {s}x
             </button>

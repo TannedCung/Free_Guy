@@ -32,35 +32,37 @@ function DemoPicker() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
+      <div className="flex items-center justify-center h-64 text-gray-500">
         Loading demos…
       </div>
     )
   }
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64 text-red-400">
+      <div className="flex items-center justify-center h-64 text-red-500">
         Error: {error}
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-8">
-      <h2 className="text-xl font-semibold mb-4 text-white">Select a Demo</h2>
+    <div className="max-w-3xl mx-auto p-4 md:p-8">
+      <div className="retro-panel p-5">
+      <h2 className="retro-title text-lg mb-2">Select a Demo</h2>
+      <p className="retro-subtitle text-sm mb-4">Choose one recording to replay.</p>
       {demos.length === 0 ? (
-        <p className="text-gray-400">No demos found in compressed_storage/.</p>
+        <p className="retro-empty-state text-sm">No demos found in compressed_storage/.</p>
       ) : (
         <ul className="space-y-3">
           {demos.map((demo) => (
             <li key={demo.id}>
               <Link
                 to={`/demo/${encodeURIComponent(demo.id)}`}
-                className="block bg-gray-800 rounded-lg px-5 py-4 hover:bg-gray-700 transition-colors"
+                className="block retro-panel px-5 py-4 transition-colors hover:bg-blue-50"
               >
-                <div className="font-medium text-white">{demo.name}</div>
+                <div className="font-semibold text-gray-900">{demo.name}</div>
                 {demo.start_date && (
-                  <div className="text-sm text-gray-400 mt-1">Start: {demo.start_date}</div>
+                  <div className="text-sm text-gray-600 mt-1">Start: {demo.start_date}</div>
                 )}
                 <div className="text-sm text-gray-500 mt-1">
                   {demo.persona_names.length} agent{demo.persona_names.length !== 1 ? 's' : ''}
@@ -71,6 +73,7 @@ function DemoPicker() {
           ))}
         </ul>
       )}
+      </div>
     </div>
   )
 }
@@ -87,15 +90,15 @@ function DemoAgentCard({
   description: string
 }) {
   return (
-    <div className="bg-gray-800 rounded-lg p-3 mb-3">
+    <div className="retro-panel p-3 mb-3">
       <div className="flex items-center gap-2">
         <span className="text-lg" aria-hidden="true">
           {pronunciatio}
         </span>
-        <span className="font-semibold text-white text-sm">{name}</span>
+        <span className="font-semibold text-gray-900 text-sm">{name}</span>
       </div>
       {description && (
-        <div className="text-xs text-gray-400 mt-1 leading-snug">{description}</div>
+        <div className="text-xs text-gray-600 mt-1 leading-snug">{description}</div>
       )}
     </div>
   )
@@ -213,7 +216,7 @@ function DemoViewer({ demoId }: { demoId: string }) {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center flex-1 text-red-400">
+      <div className="flex items-center justify-center flex-1 text-red-500">
         Error: {error}
       </div>
     )
@@ -226,32 +229,32 @@ function DemoViewer({ demoId }: { demoId: string }) {
         {/* Game canvas */}
         <div className="flex-1 overflow-hidden relative">
           <GameCanvas className="w-full h-full" agents={agents} />
-          <div className="absolute bottom-2 left-2 text-xs text-white bg-black/50 px-2 py-1 rounded pointer-events-none">
+          <div className="absolute bottom-2 left-2 text-xs text-gray-900 bg-blue-50 px-2 py-1 border-2 border-blue-500 pointer-events-none">
             Arrow keys to pan
           </div>
         </div>
 
         {/* Agent sidebar */}
-        <aside className="w-64 shrink-0 bg-gray-900 border-l border-gray-700 overflow-y-auto p-3">
+        <aside className="w-72 shrink-0 bg-white border-l border-gray-700 overflow-y-auto p-3">
           <div className="mb-3">
             {stepData && (
-              <div className="text-xs text-gray-400 mb-1">
-                <span className="font-medium text-gray-300">Step:</span> {stepData.step}
+              <div className="text-xs text-gray-500 mb-1">
+                <span className="font-medium text-gray-700">Step:</span> {stepData.step}
                 {totalSteps != null && (
                   <span className="text-gray-600"> / {totalSteps}</span>
                 )}
               </div>
             )}
             {meta?.start_date && (
-              <div className="text-xs text-gray-400 mb-1">
-                <span className="font-medium text-gray-300">Start:</span> {meta.start_date}
+              <div className="text-xs text-gray-500 mb-1">
+                <span className="font-medium text-gray-700">Start:</span> {meta.start_date}
               </div>
             )}
           </div>
 
           <hr className="border-gray-700 mb-3" />
 
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
             Agents ({agents.length})
           </h2>
 
@@ -271,12 +274,12 @@ function DemoViewer({ demoId }: { demoId: string }) {
       </div>
 
       {/* Playback controls bar */}
-      <div className="shrink-0 bg-gray-800 border-t border-gray-700 px-4 py-2 flex items-center gap-3">
+      <div className="shrink-0 bg-white border-t border-gray-700 px-4 py-2 flex items-center gap-3">
         {/* Step back */}
         <button
           onClick={stepBack}
           disabled={currentStep === 0}
-          className="px-2 py-1 text-sm bg-gray-700 hover:bg-gray-600 disabled:opacity-40 rounded"
+          className="retro-button retro-button-ghost text-sm px-2 py-1 disabled:opacity-40"
           title="Step back"
         >
           ◀
@@ -285,7 +288,7 @@ function DemoViewer({ demoId }: { demoId: string }) {
         {/* Play / Pause */}
         <button
           onClick={togglePlay}
-          className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-500 rounded font-medium"
+          className="retro-button retro-button-primary text-sm px-3 py-1"
           title={isPlaying ? 'Pause' : 'Play'}
         >
           {isPlaying ? '⏸ Pause' : '▶ Play'}
@@ -295,7 +298,7 @@ function DemoViewer({ demoId }: { demoId: string }) {
         <button
           onClick={stepForward}
           disabled={totalSteps != null && currentStep >= maxStep}
-          className="px-2 py-1 text-sm bg-gray-700 hover:bg-gray-600 disabled:opacity-40 rounded"
+          className="retro-button retro-button-ghost text-sm px-2 py-1 disabled:opacity-40"
           title="Step forward"
         >
           ▶
@@ -304,7 +307,7 @@ function DemoViewer({ demoId }: { demoId: string }) {
         {/* Speed toggle */}
         <button
           onClick={cycleSpeed}
-          className="px-2 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded"
+          className="retro-button retro-button-warm text-sm px-2 py-1"
           title="Playback speed"
         >
           {speed}×
@@ -312,7 +315,7 @@ function DemoViewer({ demoId }: { demoId: string }) {
 
         {/* Timeline scrubber */}
         <div className="flex items-center gap-2 flex-1">
-          <span className="text-xs text-gray-400 shrink-0">Step {currentStep}</span>
+          <span className="text-xs text-gray-500 shrink-0">Step {currentStep}</span>
           <input
             type="range"
             min={0}
@@ -323,7 +326,7 @@ function DemoViewer({ demoId }: { demoId: string }) {
             title="Timeline scrubber"
           />
           {totalSteps != null && (
-            <span className="text-xs text-gray-400 shrink-0">{totalSteps}</span>
+            <span className="text-xs text-gray-500 shrink-0">{totalSteps}</span>
           )}
         </div>
       </div>
@@ -337,16 +340,16 @@ export default function DemoPage() {
   const { id } = useParams<{ id?: string }>()
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
+    <div className="flex flex-col h-screen bg-gray-50 text-gray-900">
       <header className="flex items-center gap-4 px-4 py-2 bg-gray-800 shrink-0 border-b border-gray-700">
-        <Link to="/" className="text-blue-400 hover:underline text-sm">
+        <Link to="/" className="retro-link text-sm">
           ← Back
         </Link>
-        <h1 className="text-lg font-semibold">
+        <h1 className="text-lg font-semibold uppercase tracking-wide">
           {id ? `Demo: ${id}` : 'Demo Viewer'}
         </h1>
         {id && (
-          <p className="text-gray-400 text-sm ml-auto">
+          <p className="text-gray-500 text-sm ml-auto">
             Arrow keys to pan · Use controls to play/pause
           </p>
         )}

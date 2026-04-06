@@ -47,14 +47,17 @@ export default function CreateSimulationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="retro-page">
       <Header />
-      <main className="max-w-4xl mx-auto px-4 py-10">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">New Simulation</h2>
+      <main className="retro-main max-w-4xl">
+        <h2 className="retro-title mb-3">Create simulation</h2>
+        <p className="retro-subtitle mb-6">
+          Choose a name, pick visibility, then select a map tile set to launch your pixel town.
+        </p>
         <form onSubmit={(e) => void handleSubmit(e)}>
-          <div className="bg-white rounded-xl border border-gray-100 shadow p-8 mb-6">
+          <div className="retro-panel p-6 md:p-8 mb-6">
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-bold uppercase mb-1">
                 Simulation Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -62,15 +65,15 @@ export default function CreateSimulationPage() {
                 value={simName}
                 onChange={(e) => setSimName(e.target.value)}
                 placeholder="e.g. my_ville_experiment"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="retro-input"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
+              <label className="block text-xs font-bold uppercase mb-1">Visibility</label>
               <select
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value as 'private' | 'public' | 'shared')}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="retro-select"
               >
                 <option value="private">Private</option>
                 <option value="public">Public</option>
@@ -79,8 +82,8 @@ export default function CreateSimulationPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 shadow p-8 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Choose a Map</h3>
+          <div className="retro-panel p-6 md:p-8 mb-6">
+            <h3 className="retro-title text-lg mb-4">Choose a map</h3>
             {mapsLoading ? (
               <p className="text-gray-500">Loading maps…</p>
             ) : (
@@ -90,14 +93,14 @@ export default function CreateSimulationPage() {
                     key={map.id}
                     type="button"
                     onClick={() => setSelectedMapId(map.id)}
-                    className={`text-left p-4 rounded-xl border-2 transition-colors ${
+                    className={`text-left p-4 border-2 transition-colors ${
                       selectedMapId === map.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        ? 'border-blue-500 bg-blue-50 retro-panel'
+                        : 'border-gray-200 bg-white hover:border-blue-500'
                     }`}
                   >
-                    <h4 className="font-semibold text-gray-900">{map.name}</h4>
-                    <p className="text-sm text-gray-600 mt-1">{map.description}</p>
+                    <h4 className="font-bold uppercase text-sm text-gray-900">{map.name}</h4>
+                    <p className="text-xs text-gray-600 mt-1">{map.description}</p>
                     <p className="text-xs text-gray-400 mt-2">Max agents: {map.max_agents}</p>
                   </button>
                 ))}
@@ -106,7 +109,7 @@ export default function CreateSimulationPage() {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm retro-panel">
               {error}
             </div>
           )}
@@ -115,14 +118,14 @@ export default function CreateSimulationPage() {
             <button
               type="submit"
               disabled={loading || mapsLoading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2 rounded-lg transition-colors"
+              className="retro-button retro-button-primary"
             >
               {loading ? 'Creating…' : 'Create Simulation'}
             </button>
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-              className="text-gray-600 hover:text-gray-900 font-medium px-4 py-2"
+              className="retro-button retro-button-ghost"
             >
               Cancel
             </button>

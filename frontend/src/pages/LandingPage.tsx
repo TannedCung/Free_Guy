@@ -12,70 +12,74 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Generative Agents — Reverie</h1>
-          <nav className="flex gap-6">
-            <Link to="/simulate" className="text-blue-600 hover:text-blue-800 font-medium">
+    <div className="retro-page">
+      <header className="retro-header">
+        <div className="retro-header-inner flex flex-wrap items-center justify-between gap-3">
+          <h1 className="retro-brand">Reverie Pixel Town</h1>
+          <nav className="flex flex-wrap gap-2">
+            <Link to="/login" className="retro-navlink">
+              Sign in
+            </Link>
+            <Link to="/register" className="retro-navlink">
+              Register
+            </Link>
+            <Link to="/simulate" className="retro-navlink">
               Simulator
             </Link>
-            <Link to="/demo" className="text-blue-600 hover:text-blue-800 font-medium">
-              Demo Viewer
+            <Link to="/demo" className="retro-navlink">
+              Demo replay
             </Link>
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
-      <main className="max-w-5xl mx-auto px-4 py-12">
-        <section className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Generative Agent Simulations
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            A sandbox environment for simulating believable human behavior using large language
-            models. Agents plan, reflect, converse, and act autonomously in a virtual world.
+      <main className="retro-main">
+        <section className="retro-panel p-6 md:p-8 mb-6">
+          <h2 className="retro-title mb-3">Pixel-style agent playground</h2>
+          <p className="retro-subtitle mb-5 max-w-3xl">
+            Follow three easy steps: create your simulation, drop characters, then watch your town
+            come alive in a retro map view.
           </p>
+          <div className="retro-steps max-w-3xl">
+            <div className="retro-step-item">
+              <span className="retro-step-count">1</span>
+              <p className="text-sm">Sign in and create a simulation from your dashboard.</p>
+            </div>
+            <div className="retro-step-item">
+              <span className="retro-step-count">2</span>
+              <p className="text-sm">Add or invite characters to your simulation.</p>
+            </div>
+            <div className="retro-step-item">
+              <span className="retro-step-count">3</span>
+              <p className="text-sm">Open live simulator or replay mode to observe behavior.</p>
+            </div>
+          </div>
         </section>
 
-        {/* Quick links */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          <Link
-            to="/simulate"
-            className="block bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow border border-gray-100"
-          >
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Live Simulation</h3>
-            <p className="text-gray-600">
-              Watch agents navigate The Ville in real time, observe their decisions, and inspect
-              their memory and plans.
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Link to="/simulate" className="retro-panel block p-5">
+            <h3 className="retro-title text-lg mb-2">Live simulation</h3>
+            <p className="retro-subtitle text-sm mb-3">
+              Watch agents walk, chat, and plan in real time.
             </p>
-            <span className="mt-4 inline-block text-blue-600 font-medium">Open simulator →</span>
+            <span className="retro-link">Open live simulator</span>
           </Link>
 
-          <Link
-            to="/demo"
-            className="block bg-white rounded-xl shadow p-6 hover:shadow-md transition-shadow border border-gray-100"
-          >
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Demo Replay</h3>
-            <p className="text-gray-600">
-              Replay pre-recorded simulations with full playback controls — pause, rewind, and
-              inspect each simulation step.
+          <Link to="/demo" className="retro-panel block p-5">
+            <h3 className="retro-title text-lg mb-2">Demo replay</h3>
+            <p className="retro-subtitle text-sm mb-3">
+              Replay saved sessions with easy controls and timeline scrubber.
             </p>
-            <span className="mt-4 inline-block text-blue-600 font-medium">Open demo viewer →</span>
+            <span className="retro-link">Open replay viewer</span>
           </Link>
         </section>
 
-        {/* Create / Fork form */}
-        <section className="bg-white rounded-xl shadow p-8 border border-gray-100">
-          <h3 className="text-xl font-semibold text-gray-900 mb-6">
-            Create or Fork a Simulation
-          </h3>
+        <section className="retro-panel p-6 md:p-8">
+          <h3 className="retro-title text-lg mb-5">Quick simulation name tester</h3>
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label htmlFor="sim-name" className="block text-sm font-medium text-gray-700 mb-1">
-                Simulation Name <span className="text-red-500">*</span>
+              <label htmlFor="sim-name" className="block text-xs font-bold uppercase mb-1">
+                Simulation name <span className="text-red-500">*</span>
               </label>
               <input
                 id="sim-name"
@@ -83,41 +87,35 @@ export default function LandingPage() {
                 required
                 value={simName}
                 onChange={(e) => setSimName(e.target.value)}
-                placeholder="e.g. my_ville_experiment"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="my_ville_experiment"
+                className="retro-input"
               />
             </div>
 
             <div>
-              <label htmlFor="fork-from" className="block text-sm font-medium text-gray-700 mb-1">
-                Fork From (optional)
+              <label htmlFor="fork-from" className="block text-xs font-bold uppercase mb-1">
+                Fork from (optional)
               </label>
               <input
                 id="fork-from"
                 type="text"
                 value={forkFrom}
                 onChange={(e) => setForkFrom(e.target.value)}
-                placeholder="e.g. base_the_ville_isabella_maria_klaus"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="base_the_ville..."
+                className="retro-input"
               />
-              <p className="mt-1 text-sm text-gray-500">
-                Leave blank to start a fresh simulation.
-              </p>
+              <p className="mt-1 text-xs text-gray-500">Leave empty to start fresh.</p>
             </div>
 
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition-colors"
-            >
-              Create Simulation
+            <button type="submit" className="retro-button retro-button-warm">
+              Create simulation
             </button>
           </form>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-16 py-8 text-center text-sm text-gray-400">
-        Generative Agents — Stanford University Research Project
+      <footer className="py-6 text-center text-xs text-gray-500">
+        Reverie research playground
       </footer>
     </div>
   )

@@ -39,17 +39,17 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="retro-page">
       <Header />
-      <main className="max-w-4xl mx-auto px-4 py-10">
+      <main className="retro-main">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Explore Simulations</h2>
+          <h2 className="retro-title text-xl">Explore Simulations</h2>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600 font-medium">Status:</label>
+            <label className="text-xs uppercase font-bold text-gray-600">Status:</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="retro-select"
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>
@@ -61,7 +61,7 @@ export default function ExplorePage() {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+          <div className="retro-panel mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm">
             {error}
           </div>
         )}
@@ -69,18 +69,18 @@ export default function ExplorePage() {
         {loading ? (
           <p className="text-gray-400">Loading…</p>
         ) : simulations.length === 0 ? (
-          <p className="text-gray-500">No public simulations found.</p>
+          <div className="retro-panel retro-empty-state">No public simulations found.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {simulations.map((sim) => (
               <div
                 key={sim.id}
-                className="bg-white rounded-xl border border-gray-100 shadow p-5 flex flex-col gap-2"
+                className="retro-panel p-5 flex flex-col gap-2"
               >
                 <div className="flex items-start justify-between">
-                  <h3 className="font-semibold text-gray-900">{sim.name}</h3>
+                  <h3 className="font-semibold text-gray-900 uppercase text-sm">{sim.name}</h3>
                   <span
-                    className={`text-xs px-2 py-0.5 rounded font-medium ${statusColors[sim.status ?? 'pending'] ?? 'bg-gray-100 text-gray-600'}`}
+                    className={`retro-badge text-xs px-2 py-0.5 rounded font-medium ${statusColors[sim.status ?? 'pending'] ?? 'bg-gray-100 text-gray-600'}`}
                   >
                     {sim.status ?? 'pending'}
                   </span>
@@ -93,7 +93,7 @@ export default function ExplorePage() {
                 </div>
                 <Link
                   to={`/simulate/${encodeURIComponent(sim.id)}`}
-                  className="mt-auto self-start bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
+                  className="mt-auto self-start retro-button retro-button-primary"
                 >
                   Observe
                 </Link>

@@ -85,7 +85,7 @@ export default function SimulationSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
+      <div className="retro-page flex items-center justify-center h-64 text-gray-500">
         Loading…
       </div>
     )
@@ -94,57 +94,57 @@ export default function SimulationSettingsPage() {
   if (!meta) return null
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <header className="flex items-center gap-4 px-4 py-2 bg-gray-800 border-b border-gray-700">
-        <Link
-          to={`/simulate/${encodeURIComponent(simId)}`}
-          className="text-blue-400 hover:underline text-sm"
-        >
-          ← Back to Simulation
-        </Link>
-        <h1 className="text-lg font-semibold">Settings: {meta.name}</h1>
+    <div className="retro-page">
+      <header className="retro-header">
+        <div className="retro-header-inner flex flex-wrap items-center gap-2">
+          <Link
+            to={`/simulate/${encodeURIComponent(simId)}`}
+            className="retro-navlink"
+          >
+            Back to simulation
+          </Link>
+          <h1 className="retro-title text-base md:text-lg">Settings: {meta.name}</h1>
+        </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-        {/* Visibility */}
-        <section className="bg-gray-800 rounded-xl p-6">
-          <h2 className="text-base font-semibold mb-4">Visibility</h2>
-          <div className="flex items-center gap-4">
+      <main className="retro-main space-y-6 max-w-4xl">
+        <section className="retro-panel p-5">
+          <h2 className="retro-title text-base mb-3">Visibility</h2>
+          <div className="flex flex-wrap items-center gap-3">
             <select
               value={meta.visibility ?? 'private'}
               onChange={(e) => void handleVisibilityChange(e.target.value)}
-              className="rounded-lg border border-gray-600 bg-gray-700 text-white px-3 py-2"
+              className="retro-select"
             >
               <option value="private">Private</option>
               <option value="shared">Shared</option>
               <option value="public">Public</option>
             </select>
-            {visibilityError && <span className="text-red-400 text-sm">{visibilityError}</span>}
+            {visibilityError && <span className="text-sm text-red-500">{visibilityError}</span>}
           </div>
         </section>
 
-        {/* Members */}
-        <section className="bg-gray-800 rounded-xl p-6">
-          <h2 className="text-base font-semibold mb-4">Members</h2>
-          {removeError && <p className="text-red-400 text-sm mb-3">{removeError}</p>}
+        <section className="retro-panel p-5">
+          <h2 className="retro-title text-base mb-3">Members</h2>
+          {removeError && <p className="text-sm text-red-500 mb-3">{removeError}</p>}
           {members.length === 0 ? (
-            <p className="text-gray-400 text-sm">No members yet.</p>
+            <div className="retro-empty-state text-sm">No members yet.</div>
           ) : (
             <ul className="space-y-2 mb-4">
               {members.map((m) => (
                 <li
                   key={m.user_id}
-                  className="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-2"
+                  className="border-2 border-gray-300 bg-white px-3 py-2 flex items-center justify-between gap-2"
                 >
                   <div>
-                    <span className="font-medium text-white text-sm">{m.username}</span>
-                    <span className="ml-2 text-xs text-gray-400">{m.role}</span>
-                    <span className="ml-2 text-xs text-gray-500">{m.status}</span>
+                    <span className="font-semibold text-sm">{m.username}</span>
+                    <span className="ml-2 text-xs text-gray-500 uppercase">{m.role}</span>
+                    <span className="ml-2 text-xs text-gray-500 uppercase">{m.status}</span>
                   </div>
                   {m.role !== 'admin' && (
                     <button
                       onClick={() => void handleRemove(m.user_id)}
-                      className="text-xs text-red-400 hover:text-red-300"
+                      className="retro-button retro-button-danger"
                     >
                       Remove
                     </button>
@@ -154,24 +154,20 @@ export default function SimulationSettingsPage() {
             </ul>
           )}
 
-          {/* Invite form */}
-          <form onSubmit={(e) => void handleInvite(e)} className="flex gap-2">
+          <form onSubmit={(e) => void handleInvite(e)} className="flex flex-col md:flex-row gap-2">
             <input
               required
               value={inviteUsername}
               onChange={(e) => setInviteUsername(e.target.value)}
               placeholder="Username to invite"
-              className="flex-1 rounded-lg border border-gray-600 bg-gray-700 text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="retro-input flex-1"
             />
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition-colors"
-            >
+            <button type="submit" className="retro-button retro-button-primary">
               Invite
             </button>
           </form>
-          {inviteError && <p className="text-red-400 text-sm mt-2">{inviteError}</p>}
-          {inviteSuccess && <p className="text-green-400 text-sm mt-2">{inviteSuccess}</p>}
+          {inviteError && <p className="text-red-500 text-sm mt-2">{inviteError}</p>}
+          {inviteSuccess && <p className="text-green-700 text-sm mt-2">{inviteSuccess}</p>}
         </section>
       </main>
     </div>

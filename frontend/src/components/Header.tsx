@@ -21,42 +21,44 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-white shadow-sm">
-      <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between">
-        <Link to="/" className="text-2xl font-bold text-gray-900">
-          Generative Agents — Reverie
+    <header className="retro-header">
+      <div className="retro-header-inner flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <Link to="/" className="retro-brand">
+          Reverie Pixel Town
         </Link>
-        <nav className="flex gap-6 items-center">
+        <nav className="flex flex-wrap gap-2 items-center">
           {user ? (
             <>
-              <Link to="/dashboard" className="text-blue-600 hover:text-blue-800 font-medium">
+              <Link to="/dashboard" className="retro-navlink">
                 Dashboard
               </Link>
-              <Link to="/explore" className="text-blue-600 hover:text-blue-800 font-medium">
+              <Link to="/explore" className="retro-navlink">
                 Explore
               </Link>
-              <Link to="/invites" className="relative text-blue-600 hover:text-blue-800 font-medium">
+              <Link to="/invites" className="relative retro-navlink">
                 Invites
                 {pendingInvites > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  <span className="absolute -top-2 -right-3 retro-badge bg-red-500 text-white">
                     {pendingInvites}
                   </span>
                 )}
               </Link>
-              <span className="text-gray-700 font-medium">{user.username}</span>
+              <span className="text-xs md:text-sm font-bold uppercase tracking-wide text-gray-700">
+                {user.username}
+              </span>
               <button
                 onClick={() => void handleLogout()}
-                className="text-red-600 hover:text-red-800 font-medium"
+                className="retro-button retro-button-danger"
               >
                 Logout
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="text-blue-600 hover:text-blue-800 font-medium">
+              <Link to="/login" className="retro-navlink">
                 Login
               </Link>
-              <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
+              <Link to="/register" className="retro-navlink">
                 Register
               </Link>
             </>

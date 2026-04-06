@@ -6,7 +6,7 @@ import { fetchCharacters, type Character } from '../api/characters'
 
 function statusBadge(status?: string) {
   const colors: Record<string, string> = {
-    pending: 'bg-gray-100 text-gray-700',
+    pending: 'bg-blue-50 text-gray-700',
     running: 'bg-green-100 text-green-700',
     paused: 'bg-yellow-100 text-yellow-700',
     completed: 'bg-blue-100 text-blue-700',
@@ -14,7 +14,7 @@ function statusBadge(status?: string) {
   }
   const label = status ?? 'pending'
   return (
-    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colors[label] ?? colors.pending}`}>
+    <span className={`retro-badge px-2 py-0.5 text-xs ${colors[label] ?? colors.pending}`}>
       {label}
     </span>
   )
@@ -44,18 +44,23 @@ export default function DashboardPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="retro-page">
       <Header />
-      <main className="max-w-5xl mx-auto px-4 py-10">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h2>
+      <main className="retro-main">
+        <section className="retro-panel p-6 md:p-8 mb-6">
+          <h2 className="retro-title mb-2">Dashboard</h2>
+          <p className="retro-subtitle">
+            Simple flow: create a simulation, add characters, then observe behavior.
+          </p>
+        </section>
 
         {/* Simulations */}
-        <section className="mb-10">
+        <section className="retro-panel p-5 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">My Simulations</h3>
+            <h3 className="retro-title text-lg">My simulations</h3>
             <Link
               to="/simulations/new"
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="retro-button retro-button-primary"
             >
               Create simulation
             </Link>
@@ -63,15 +68,15 @@ export default function DashboardPage() {
           {loading ? (
             <p className="text-gray-500">Loading…</p>
           ) : simulations.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-100 shadow p-8 text-center text-gray-500">
+            <div className="retro-empty-state">
               No simulations yet. Create your first simulation!
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {simulations.map((sim) => (
-                <div key={sim.id} className="bg-white rounded-xl border border-gray-100 shadow p-5">
+                <div key={sim.id} className="retro-panel p-5">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-900">{sim.name}</h4>
+                    <h4 className="font-semibold text-gray-900 uppercase tracking-wide">{sim.name}</h4>
                     {statusBadge(sim.status)}
                   </div>
                   <p className="text-sm text-gray-500 mb-1">Map: {sim.map_id ?? sim.maze_name ?? '—'}</p>
@@ -81,13 +86,13 @@ export default function DashboardPage() {
                   <div className="flex gap-2">
                     <Link
                       to={`/simulate/${encodeURIComponent(sim.id)}`}
-                      className="text-sm text-blue-600 hover:underline font-medium"
+                      className="retro-link text-sm"
                     >
                       Observe
                     </Link>
                     <Link
                       to={`/simulate/${encodeURIComponent(sim.id)}/settings`}
-                      className="text-sm text-gray-500 hover:underline"
+                      className="retro-link text-sm"
                     >
                       Settings
                     </Link>
@@ -99,12 +104,12 @@ export default function DashboardPage() {
         </section>
 
         {/* Characters */}
-        <section>
+        <section className="retro-panel p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-semibold text-gray-800">My Characters</h3>
+            <h3 className="retro-title text-lg">My characters</h3>
             <Link
               to="/characters/new"
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="retro-button retro-button-primary"
             >
               Create character
             </Link>
@@ -112,14 +117,14 @@ export default function DashboardPage() {
           {loading ? (
             <p className="text-gray-500">Loading…</p>
           ) : characters.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-100 shadow p-8 text-center text-gray-500">
+            <div className="retro-empty-state">
               No characters yet. Create your first character!
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {characters.map((char) => (
-                <div key={char.id} className="bg-white rounded-xl border border-gray-100 shadow p-4">
-                  <h4 className="font-semibold text-gray-900">{char.name}</h4>
+                <div key={char.id} className="retro-panel p-4">
+                  <h4 className="font-semibold text-gray-900 uppercase tracking-wide">{char.name}</h4>
                   <p className="text-sm text-gray-500 mt-1">
                     Status:{' '}
                     <span
