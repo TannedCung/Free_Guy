@@ -80,6 +80,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=9.0",
+    "ruff>=0.13.0",
+    "mypy>=1.18.0",
 ]
 
 [tool.setuptools.packages.find]
