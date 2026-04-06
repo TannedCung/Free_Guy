@@ -34,12 +34,15 @@ export default function RegisterPage() {
     errors[field]?.[0] ?? null
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="bg-white rounded-xl shadow p-8 w-full max-w-md border border-gray-100">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Create account</h2>
+    <div className="retro-page flex items-center justify-center px-4 py-8">
+      <div className="retro-panel p-6 md:p-8 w-full max-w-lg">
+        <h2 className="retro-title mb-3 text-center">Create account</h2>
+        <p className="retro-subtitle text-sm text-center mb-5">
+          Join the town in under one minute.
+        </p>
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="username" className="block text-xs font-bold uppercase mb-1">
               Username
             </label>
             <input
@@ -49,14 +52,14 @@ export default function RegisterPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="your_username"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="retro-input"
             />
             {fieldError('username') && (
               <p className="mt-1 text-sm text-red-600">{fieldError('username')}</p>
             )}
           </div>
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="email" className="block text-xs font-bold uppercase mb-1">
               Email
             </label>
             <input
@@ -66,14 +69,14 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="retro-input"
             />
             {fieldError('email') && (
               <p className="mt-1 text-sm text-red-600">{fieldError('email')}</p>
             )}
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-xs font-bold uppercase mb-1">
               Password
             </label>
             <input
@@ -83,14 +86,14 @@ export default function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="retro-input"
             />
             {fieldError('password') && (
               <p className="mt-1 text-sm text-red-600">{fieldError('password')}</p>
             )}
           </div>
           <div>
-            <label htmlFor="password-confirm" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password-confirm" className="block text-xs font-bold uppercase mb-1">
               Confirm password
             </label>
             <input
@@ -100,7 +103,7 @@ export default function RegisterPage() {
               value={passwordConfirm}
               onChange={(e) => setPasswordConfirm(e.target.value)}
               placeholder="••••••••"
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="retro-input"
             />
             {fieldError('password_confirm') && (
               <p className="mt-1 text-sm text-red-600">{fieldError('password_confirm')}</p>
@@ -112,14 +115,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2 rounded-lg transition-colors"
+            className="w-full retro-button retro-button-primary"
           >
             {loading ? 'Creating account…' : 'Create account'}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-4 text-center text-xs text-gray-600">
           Already have an account?{' '}
-          <Link to="/login" className="text-blue-600 hover:underline">
+          <Link to="/login" className="retro-link">
             Sign in
           </Link>
         </p>

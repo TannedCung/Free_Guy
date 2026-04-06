@@ -345,6 +345,22 @@ class ProcessEnvironmentTest(TestCase):
             content_type="application/json",
         )
 
+    def test_get_returns_405_not_500(self) -> None:
+        resp = self.client.get("/process_environment/")
+        self.assertEqual(resp.status_code, 405)
+
+    def test_invalid_json_returns_400(self) -> None:
+        resp = self.client.post(
+            "/process_environment/",
+            data="not-json",
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_missing_required_fields_returns_400(self) -> None:
+        resp = self._post({"sim_code": "abc"})
+        self.assertEqual(resp.status_code, 400)
+
     def test_creates_environment_state_row(self) -> None:
         sim = _make_sim("env-post-sim")
         payload = {
@@ -393,6 +409,22 @@ class UpdateEnvironmentTest(TestCase):
             content_type="application/json",
         )
 
+    def test_get_returns_405_not_500(self) -> None:
+        resp = self.client.get("/update_environment/")
+        self.assertEqual(resp.status_code, 405)
+
+    def test_invalid_json_returns_400(self) -> None:
+        resp = self.client.post(
+            "/update_environment/",
+            data="not-json",
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_missing_required_fields_returns_400(self) -> None:
+        resp = self._post({"step": 1})
+        self.assertEqual(resp.status_code, 400)
+
     def test_returns_movement_data_from_db(self) -> None:
         sim = _make_sim("move-sim")
         movements = {
@@ -416,6 +448,30 @@ class UpdateEnvironmentTest(TestCase):
         payload = {"sim_code": "move-empty-sim", "step": 99}
         resp = self._post(payload)
         self.assertEqual(resp.json()["<step>"], -1)
+
+
+class PathTesterUpdateTest(TestCase):
+    """Test: path_tester_update validates input and does not 500 on bad payloads."""
+
+    def test_get_returns_405_not_500(self) -> None:
+        resp = self.client.get("/path_tester_update/")
+        self.assertEqual(resp.status_code, 405)
+
+    def test_invalid_json_returns_400(self) -> None:
+        resp = self.client.post(
+            "/path_tester_update/",
+            data="not-json",
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_missing_camera_returns_400(self) -> None:
+        resp = self.client.post(
+            "/path_tester_update/",
+            data=json.dumps({"not_camera": {}}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
 
 
 # ---------------------------------------------------------------------------

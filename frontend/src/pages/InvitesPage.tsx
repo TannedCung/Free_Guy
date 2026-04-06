@@ -43,54 +43,60 @@ export default function InvitesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="retro-page">
       <Header />
-      <main className="max-w-2xl mx-auto px-4 py-10">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Pending Invites</h2>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
-            {error}
-          </div>
-        )}
-
-        {loading ? (
-          <p className="text-gray-400">Loading…</p>
-        ) : invites.length === 0 ? (
-          <p className="text-gray-500">
-            No pending invites.{' '}
-            <Link to="/dashboard" className="text-blue-600 hover:underline">
-              Back to dashboard
-            </Link>
+      <main className="retro-main max-w-3xl">
+        <div className="retro-panel p-6 md:p-8">
+          <h2 className="retro-title text-xl mb-5">Pending invites</h2>
+          <p className="retro-subtitle text-sm mb-6">
+            Accept to join instantly or decline to clear your queue.
           </p>
-        ) : (
-          <ul className="space-y-4">
-            {invites.map((invite) => (
-              <li key={invite.id} className="bg-white rounded-xl border border-gray-100 shadow p-5">
-                <div className="mb-1 font-semibold text-gray-900">{invite.simulation_name}</div>
-                {invite.invited_by && (
-                  <div className="text-sm text-gray-500 mb-4">
-                    Invited by <span className="font-medium">{invite.invited_by}</span>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm">
+              {error}
+            </div>
+          )}
+
+          {loading ? (
+            <p className="text-gray-500">Loading…</p>
+          ) : invites.length === 0 ? (
+            <p className="retro-empty-state text-sm">
+              No pending invites.{' '}
+              <Link to="/dashboard" className="retro-link">
+                Return to dashboard
+              </Link>
+              .
+            </p>
+          ) : (
+            <ul className="space-y-4">
+              {invites.map((invite) => (
+                <li key={invite.id} className="retro-panel p-5">
+                  <div className="mb-1 font-bold uppercase tracking-wide text-sm">{invite.simulation_name}</div>
+                  {invite.invited_by && (
+                    <div className="text-xs text-gray-500 mb-4">
+                      Invited by <span className="font-bold">{invite.invited_by}</span>
+                    </div>
+                  )}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => void handleAccept(invite)}
+                      className="retro-button retro-button-warm"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => void handleDecline(invite.id)}
+                      className="retro-button retro-button-ghost"
+                    >
+                      Decline
+                    </button>
                   </div>
-                )}
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => void handleAccept(invite)}
-                    className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded-lg transition-colors"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => void handleDecline(invite.id)}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-4 py-1.5 rounded-lg transition-colors"
-                  >
-                    Decline
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </main>
     </div>
   )

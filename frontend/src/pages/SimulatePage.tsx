@@ -52,12 +52,14 @@ function SimulationPicker() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-8">
-      <h2 className="text-xl font-semibold mb-4 text-white">Select a Simulation</h2>
+    <div className="max-w-3xl mx-auto p-4 md:p-8">
+      <div className="retro-panel p-5">
+        <h2 className="retro-title text-lg mb-2">Pick a simulation</h2>
+        <p className="retro-subtitle text-sm mb-4">Choose one world to enter.</p>
       {simulations.length === 0 ? (
-        <p className="text-gray-400">
+        <p className="retro-empty-state">
           No simulations found. Create one from the{' '}
-          <Link to="/" className="text-blue-400 hover:underline">
+          <Link to="/" className="retro-link">
             home page
           </Link>
           .
@@ -68,11 +70,11 @@ function SimulationPicker() {
             <li key={sim.id}>
               <Link
                 to={`/simulate/${encodeURIComponent(sim.id)}`}
-                className="block bg-gray-800 rounded-lg px-5 py-4 hover:bg-gray-700 transition-colors"
+                className="block retro-panel px-4 py-3"
               >
-                <div className="font-medium text-white">{sim.name}</div>
+                <div className="font-semibold text-gray-900">{sim.name}</div>
                 {sim.curr_time && (
-                  <div className="text-sm text-gray-400 mt-1">Time: {sim.curr_time}</div>
+                  <div className="text-sm text-gray-600 mt-1">Time: {sim.curr_time}</div>
                 )}
                 <div className="text-sm text-gray-500 mt-1">
                   {sim.persona_names.length} agent{sim.persona_names.length !== 1 ? 's' : ''} · step{' '}
@@ -83,6 +85,7 @@ function SimulationPicker() {
           ))}
         </ul>
       )}
+      </div>
     </div>
   )
 }
@@ -95,10 +98,10 @@ function AgentCard({ agent }: { agent: Agent }) {
     : 'Unknown'
 
   return (
-    <div className="bg-gray-800 rounded-lg p-3 mb-3">
-      <div className="font-semibold text-white text-sm">{agent.name}</div>
+    <div className="retro-panel p-3 mb-3">
+      <div className="font-semibold text-gray-900 text-sm">{agent.name}</div>
       {agent.currently && (
-        <div className="text-xs text-gray-300 mt-1 leading-snug">{agent.currently}</div>
+        <div className="text-xs text-gray-600 mt-1 leading-snug">{agent.currently}</div>
       )}
       <div className="text-xs text-gray-500 mt-1">Location: {location}</div>
     </div>
@@ -177,24 +180,24 @@ function AdminToolbar({
   }
 
   return (
-    <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-3">
+    <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-3 flex-wrap">
       <span className="text-xs text-gray-400 font-medium uppercase">Admin</span>
       <Link
         to={`/simulate/${encodeURIComponent(sim.id)}/settings`}
-        className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded transition-colors"
+        className="retro-button retro-button-ghost text-xs py-1 px-3"
       >
         Settings
       </Link>
       <button
         onClick={() => void openDropModal()}
-        className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+        className="retro-button retro-button-primary text-xs py-1 px-3"
       >
         Drop Character
       </button>
       {sim.status !== 'running' && sim.status !== 'paused' && (
         <button
           onClick={() => void handleStart()}
-          className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors"
+          className="retro-button retro-button-warm text-xs py-1 px-3"
         >
           Start
         </button>
@@ -202,7 +205,7 @@ function AdminToolbar({
       {sim.status === 'running' && (
         <button
           onClick={() => void handlePause()}
-          className="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded transition-colors"
+          className="retro-button text-xs py-1 px-3 bg-yellow-600 hover:bg-yellow-700 text-white"
         >
           Pause
         </button>
@@ -210,7 +213,7 @@ function AdminToolbar({
       {sim.status === 'paused' && (
         <button
           onClick={() => void handleResume()}
-          className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition-colors"
+          className="retro-button retro-button-warm text-xs py-1 px-3"
         >
           Resume
         </button>
@@ -219,15 +222,15 @@ function AdminToolbar({
 
       {showDropModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="text-white font-semibold mb-4">Drop Character</h3>
+          <div className="retro-panel p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-gray-900 font-semibold mb-4">Drop Character</h3>
             {availableChars.length === 0 ? (
               <p className="text-gray-400 text-sm">No available characters.</p>
             ) : (
               <select
                 value={selectedCharId ?? ''}
                 onChange={(e) => setSelectedCharId(parseInt(e.target.value))}
-                className="w-full rounded-lg border border-gray-600 bg-gray-700 text-white px-3 py-2 mb-4"
+                className="retro-select w-full mb-4"
               >
                 <option value="">Select a character…</option>
                 {availableChars.map((c) => (
@@ -240,14 +243,14 @@ function AdminToolbar({
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setShowDropModal(false)}
-                className="text-sm text-gray-400 hover:text-white px-3 py-1"
+                className="retro-button retro-button-ghost text-xs py-1 px-3"
               >
                 Cancel
               </button>
               <button
                 onClick={() => void handleDrop()}
                 disabled={!selectedCharId || loading}
-                className="text-sm bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-1 rounded"
+                className="retro-button retro-button-primary text-xs py-1 px-3"
               >
                 {loading ? 'Dropping…' : 'Drop'}
               </button>
@@ -348,19 +351,11 @@ function SimulationViewer({ simId }: { simId: string }) {
     return () => clearInterval(interval)
   }, [pollAgents, wsStatus])
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center flex-1 text-red-400">
-        Error: {error}
-      </div>
-    )
-  }
-
   const statusColors: Record<string, string> = {
     pending: 'bg-gray-600',
-    running: 'bg-green-600',
+    running: 'bg-green-600 text-gray-900',
     paused: 'bg-yellow-600',
-    completed: 'bg-blue-600',
+    completed: 'bg-blue-600 text-gray-900',
     failed: 'bg-red-600',
   }
 
@@ -379,7 +374,7 @@ function SimulationViewer({ simId }: { simId: string }) {
         {meta && (
           <div className="flex items-center gap-3 px-4 py-1 bg-gray-800 border-b border-gray-700 text-xs">
             <span
-              className={`inline-block px-2 py-0.5 rounded font-medium text-white ${statusColors[meta.status ?? 'pending'] ?? 'bg-gray-600'}`}
+              className={`inline-block px-2 py-0.5 retro-badge font-medium text-white ${statusColors[meta.status ?? 'pending'] ?? 'bg-gray-600'}`}
             >
               {meta.status ?? 'pending'}
             </span>
@@ -523,10 +518,10 @@ export default function SimulatePage() {
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
       <header className="flex items-center gap-4 px-4 py-2 bg-gray-800 shrink-0 border-b border-gray-700">
-        <Link to="/" className="text-blue-400 hover:underline text-sm">
+        <Link to="/" className="retro-link text-sm">
           ← Back
         </Link>
-        <h1 className="text-lg font-semibold">
+        <h1 className="text-lg font-semibold uppercase tracking-wide">
           {id ? `Simulation: ${id}` : 'Simulation Viewer'}
         </h1>
         {id && (

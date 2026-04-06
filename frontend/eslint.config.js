@@ -22,4 +22,12 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ['src/game/GameCanvas.tsx'],
+    rules: {
+      // Phaser scene lifecycle functions rely on framework-bound `this`.
+      // This syntax is valid for Phaser and not related to React hooks behavior.
+      'react-hooks/unsupported-syntax': 'off',
+    },
+  },
 ])
