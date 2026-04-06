@@ -99,6 +99,7 @@ def drop_character(request: Request, sim_id: str) -> Response:
             "learned": char.backstory,
             "currently": char.currently,
             "lifestyle": char.lifestyle,
+            "living_area": char.living_area,
             "daily_plan_req": char.daily_plan,
         },
     )

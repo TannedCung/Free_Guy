@@ -23,6 +23,7 @@ from django.test import TestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 from translator.models import (
     ConceptNode,
+    Character,
     Demo,
     DemoMovement,
     EnvironmentState,
@@ -31,6 +32,7 @@ from translator.models import (
     Persona,
     PersonaScratch,
     Simulation,
+    SimulationMembership,
     SpatialMemory,
 )
 
@@ -186,6 +188,70 @@ class SimulationsListPostTests(AuthenticatedAPITestCase):
     def test_fork_from_nonexistent_returns_404(self) -> None:
         resp = self._post({"name": "orphan", "fork_from": "ghost-sim"})
         self.assertEqual(resp.status_code, 404)
+
+
+# ---------------------------------------------------------------------------
+# Character CRUD + drop lifecycle (user flow critical path)
+# ---------------------------------------------------------------------------
+
+
+class CharacterFlowTests(AuthenticatedAPITestCase):
+    def test_create_edit_drop_character_preserves_living_area_and_schedule(self) -> None:
+        sim = _make_sim("char-flow-sim", owner=self.user)
+
+        # Ensure creator can perform admin actions on this simulation.
+        SimulationMembership.objects.create(
+            simulation=sim,
+            user=self.user,
+            role=SimulationMembership.Role.ADMIN,
+            status=SimulationMembership.MemberStatus.ACTIVE,
+        )
+
+        create_resp = self.client.post(
+            "/api/v1/characters/",
+            data=json.dumps(
+                {
+                    "name": "doctor_olivia",
+                    "age": 39,
+                    "traits": "empathetic, methodical",
+                    "currently": "on shift at clinic",
+                    "lifestyle": "daytime clinical schedule",
+                    "living_area": "the_ville:maple_apartment_2b",
+                    "daily_plan": "clinic rounds, lunch break, evening chart review",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(create_resp.status_code, 201)
+        char_id = create_resp.json()["id"]
+        self.assertEqual(create_resp.json()["living_area"], "the_ville:maple_apartment_2b")
+
+        patch_resp = self.client.patch(
+            f"/api/v1/characters/{char_id}/",
+            data=json.dumps(
+                {
+                    "currently": "meeting patients and updating records",
+                    "daily_plan": "morning rounds, afternoon consults, evening notes",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(patch_resp.status_code, 200)
+
+        drop_resp = self.client.post(
+            f"/api/v1/simulations/{sim.name}/drop/",
+            data=json.dumps({"character_id": char_id}),
+            content_type="application/json",
+        )
+        self.assertEqual(drop_resp.status_code, 200)
+
+        persona = Persona.objects.get(simulation=sim, name="doctor_olivia")
+        self.assertEqual(persona.living_area, "the_ville:maple_apartment_2b")
+        self.assertEqual(persona.daily_plan_req, "morning rounds, afternoon consults, evening notes")
+
+        char = Character.objects.get(pk=char_id)
+        self.assertEqual(char.status, Character.Status.IN_SIMULATION)
+        self.assertEqual(char.simulation_id, sim.id)
 
 
 # ---------------------------------------------------------------------------

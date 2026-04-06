@@ -4,6 +4,7 @@
  */
 
 const API_BASE = '/api/v1'
+const REFRESH_TOKEN_STORAGE_KEY = 'ga_refresh_token'
 
 // In-memory access token (set by AuthContext)
 let _accessToken: string | null = null
@@ -16,14 +17,31 @@ export function getAccessToken(): string | null {
   return _accessToken
 }
 
-async function refreshAccessToken(): Promise<string | null> {
+export function setRefreshToken(token: string | null): void {
+  if (token) {
+    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token)
+    return
+  }
+  localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY)
+}
+
+export function getRefreshToken(): string | null {
+  return localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+}
+
+export async function refreshAccessToken(): Promise<string | null> {
+  const refresh = getRefreshToken()
+  if (!refresh) return null
+
   const res = await fetch(`${API_BASE}/auth/token/refresh/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // refresh token is sent via cookie automatically
-    body: JSON.stringify({}),
+    body: JSON.stringify({ refresh }),
   })
-  if (!res.ok) return null
+  if (!res.ok) {
+    if (res.status === 401) setRefreshToken(null)
+    return null
+  }
   const data = (await res.json()) as { access: string }
   _accessToken = data.access
   return data.access
