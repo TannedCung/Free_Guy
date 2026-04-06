@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import threading
+from pathlib import Path
 from typing import Any, Callable, Optional
 
 from llm.factory import get_default_config, get_provider
@@ -41,7 +42,14 @@ def generate_prompt(curr_input: Any, prompt_lib_file: str) -> str:
         curr_input = [curr_input]
     curr_input = [str(i) for i in curr_input]
 
-    with open(prompt_lib_file, "r") as f:
+    # Resolve template paths relative to backend_server root so tests and callers
+    # work even when the process CWD is outside backend_server/.
+    template_path = Path(prompt_lib_file)
+    if not template_path.is_absolute():
+        project_root = Path(__file__).resolve().parents[2]
+        template_path = project_root / template_path
+
+    with template_path.open("r") as f:
         prompt = f.read()
 
     for count, value in enumerate(curr_input):
