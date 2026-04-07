@@ -39,6 +39,14 @@ if not _database_url:
     )
 DATABASES = {"default": dj_database_url.parse(_database_url)}
 
+# Vercel serverless: disable persistent DB connections (new connection per invocation).
+# Supabase PgBouncer handles pooling at the infrastructure level.
+DATABASES["default"]["CONN_MAX_AGE"] = 0
+
+# Vercel: automatically include .vercel.app hostnames so deploys work without
+# manually listing the preview URL.
+ALLOWED_HOSTS += [h for h in [".vercel.app"] if h not in ALLOWED_HOSTS]
+
 # Cookie security — enforce HTTPS in production
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

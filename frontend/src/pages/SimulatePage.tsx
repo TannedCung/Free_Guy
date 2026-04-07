@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import GameCanvas from '../game/GameCanvas'
 import {
@@ -10,13 +10,15 @@ import {
   startSimulation,
   pauseSimulation,
   resumeSimulation,
+  runSimulationStep,
   type Agent,
   type AgentDetail,
+  type AgentPosition,
   type SimulationMeta,
 } from '../api/simulations'
 import { fetchCharacters, type Character } from '../api/characters'
 import { useAuth } from '../context/AuthContext'
-import { useSimulationWebSocket } from '../hooks/useSimulationWebSocket'
+import { useSimulationSSE } from '../hooks/useSimulationSSE'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -275,6 +277,9 @@ function SimulationViewer({ simId }: { simId: string }) {
   const [wsError, setWsError] = useState<string | null>(null)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null)
+  // Step orchestration loop (Vercel serverless mode)
+  const stepLoopActiveRef = useRef(false)
+  const agentPositionsRef = useRef<Record<string, AgentPosition>>({})
 
   const loadMeta = useCallback(() => {
     fetchSimulation(simId)
@@ -307,7 +312,7 @@ function SimulationViewer({ simId }: { simId: string }) {
     void pollAgents()
   }, [pollAgents])
 
-  const { wsStatus } = useSimulationWebSocket({
+  const { wsStatus } = useSimulationSSE({
     simId,
     onStepUpdate: handleStepUpdate,
     onForbidden: () => setWsError('Access denied'),
@@ -338,18 +343,77 @@ function SimulationViewer({ simId }: { simId: string }) {
     return () => window.removeEventListener('keydown', handler)
   }, [selectAgent])
 
+  // Keep agentPositionsRef in sync with current agent locations so the step
+  // loop can submit accurate positions to the EnvironmentState API.
+  useEffect(() => {
+    const positions: Record<string, AgentPosition> = {}
+    for (const agent of agents) {
+      if (agent.location) {
+        positions[agent.name] = { x: agent.location.x, y: agent.location.y }
+      }
+    }
+    agentPositionsRef.current = positions
+  }, [agents])
+
   // Initial load
   useEffect(() => {
     loadMeta()
     pollAgents()
   }, [simId, loadMeta, pollAgents])
 
-  // Polling (fallback when WebSocket is not connected)
+  // Polling (fallback when SSE is not connected)
   useEffect(() => {
     if (wsStatus === 'connected') return
     const interval = setInterval(pollAgents, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [pollAgents, wsStatus])
+
+  // ── Step orchestration loop (Vercel serverless mode) ────────────────────
+  // When the simulation is running and this browser tab is the owner,
+  // we drive the cognitive pipeline by calling each stage API in sequence.
+  // The SSE stream (or polling fallback) delivers movements to GameCanvas.
+  const runStepLoop = useCallback(async () => {
+    if (stepLoopActiveRef.current) return
+    stepLoopActiveRef.current = true
+    try {
+      while (stepLoopActiveRef.current) {
+        // Re-fetch simulation status — stop if no longer running.
+        const latestMeta = await fetchSimulation(simId).catch(() => null)
+        if (!latestMeta || latestMeta.status !== 'running') break
+
+        const currentStep = latestMeta.step ?? 0
+        const positions = agentPositionsRef.current
+
+        try {
+          const result = await runSimulationStep(simId, positions, currentStep, (stage) => {
+            // Update step display after execute stage completes.
+            if (stage === 'execute') pollAgents()
+          })
+          if (result.next_step !== undefined) setStep(result.next_step)
+        } catch (err: unknown) {
+          // Log and continue — transient errors (network, timeout) should not
+          // crash the loop permanently.
+          console.error('[stepLoop] stage error:', err)
+          // Brief pause before retrying to avoid hammering the API.
+          await new Promise((r) => setTimeout(r, 3000))
+        }
+      }
+    } finally {
+      stepLoopActiveRef.current = false
+    }
+  }, [simId, pollAgents])
+
+  // Start/stop the step loop based on simulation status and ownership.
+  useEffect(() => {
+    if (!isAdmin || meta?.status !== 'running') {
+      stepLoopActiveRef.current = false
+      return
+    }
+    void runStepLoop()
+    return () => {
+      stepLoopActiveRef.current = false
+    }
+  }, [isAdmin, meta?.status, runStepLoop])
 
   const statusColors: Record<string, string> = {
     pending: 'bg-gray-600',

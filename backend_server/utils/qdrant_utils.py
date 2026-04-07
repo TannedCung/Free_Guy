@@ -12,6 +12,10 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
 # ── Configuration ──────────────────────────────────────────────────────────────
+# For Qdrant Cloud: set QDRANT_URL (e.g. https://xyz.qdrant.io) and QDRANT_API_KEY.
+# For self-hosted: set QDRANT_HOST and QDRANT_PORT (defaults: localhost:6333).
+QDRANT_URL = os.environ.get("QDRANT_URL", "")
+QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
 QDRANT_HOST = os.environ.get("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.environ.get("QDRANT_PORT", "6333"))
 EMBEDDING_DIMENSION = int(os.environ.get("EMBEDDING_DIMENSION", "1536"))
@@ -22,10 +26,17 @@ _client: Optional[QdrantClient] = None
 
 
 def _get_client() -> QdrantClient:
-    """Return (and lazily create) the module-level Qdrant client singleton."""
+    """Return (and lazily create) the module-level Qdrant client singleton.
+
+    Uses QDRANT_URL + QDRANT_API_KEY for Qdrant Cloud, or QDRANT_HOST + QDRANT_PORT
+    for a self-hosted instance.
+    """
     global _client
     if _client is None:
-        _client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+        if QDRANT_URL:
+            _client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None)
+        else:
+            _client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
     return _client
 
 

@@ -64,6 +64,18 @@ urlpatterns = [
     # REST API v1 — replay endpoints
     path("api/v1/simulations/<str:sim_id>/replay/", simulation_views.replay_meta, name="api-replay-meta"),
     path("api/v1/simulations/<str:sim_id>/replay/<int:step>/", simulation_views.replay_step, name="api-replay-step"),
+    # REST API v1 — SSE polling endpoint (used by Vercel Edge Function stream)
+    path(
+        "api/v1/simulations/<str:sim_id>/movements/latest/",
+        api_views.simulation_latest_movement,
+        name="api-simulation-latest-movement",
+    ),
+    # REST API v1 — simulation step stage endpoints (Vercel serverless microservices)
+    path("api/v1/simulations/<str:sim_id>/step/perceive/", api_views.simulation_step_perceive, name="api-step-perceive"),
+    path("api/v1/simulations/<str:sim_id>/step/retrieve/", api_views.simulation_step_retrieve, name="api-step-retrieve"),
+    path("api/v1/simulations/<str:sim_id>/step/plan/", api_views.simulation_step_plan, name="api-step-plan"),
+    path("api/v1/simulations/<str:sim_id>/step/reflect/", api_views.simulation_step_reflect, name="api-step-reflect"),
+    path("api/v1/simulations/<str:sim_id>/step/execute/", api_views.simulation_step_execute, name="api-step-execute"),
     # REST API v1 — invite endpoints
     path("api/v1/invites/", simulation_views.my_invites, name="api-invites-list"),
     path("api/v1/invites/<int:membership_id>/accept/", simulation_views.accept_invite, name="api-invite-accept"),

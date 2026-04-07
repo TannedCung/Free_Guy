@@ -29,6 +29,7 @@ from translator.models import (
     EnvironmentState,
     KeywordStrength,
     Map,
+    MovementRecord,
     Persona,
     PersonaScratch,
     Simulation,
@@ -519,3 +520,128 @@ def demo_step(request: Request, demo_id: str, step: int) -> Response:
             "agents": dm.agent_movements,
         }
     )
+
+
+# ---------------------------------------------------------------------------
+# SSE polling endpoint — used by the Vercel Edge Function stream
+# ---------------------------------------------------------------------------
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def simulation_latest_movement(request: Request, sim_id: str) -> Response:
+    """
+    GET /api/v1/simulations/:id/movements/latest/?after_step=N
+
+    Returns the most recent MovementRecord whose step > after_step.
+    Used by the Vercel Edge Function SSE stream to poll for new steps.
+
+    Returns 204 (no content) when no newer step exists yet.
+    """
+    try:
+        sim = Simulation.objects.get(name=sim_id)
+    except Simulation.DoesNotExist:
+        return Response({"detail": f"Simulation '{sim_id}' not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Basic access check: must be owner or member.
+    is_owner = sim.owner == request.user
+    is_member = SimulationMembership.objects.filter(simulation=sim, user=request.user).exists()
+    if not (is_owner or is_member):
+        return Response({"detail": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
+
+    after_step = int(request.query_params.get("after_step", -1))
+
+    record = (
+        MovementRecord.objects.filter(simulation=sim, step__gt=after_step).order_by("-step").first()
+    )
+    if record is None:
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    return Response(
+        {
+            "step": record.step,
+            "sim_curr_time": record.sim_curr_time.isoformat() if record.sim_curr_time else None,
+            "persona_movements": record.persona_movements,
+        }
+    )
+
+
+# ---------------------------------------------------------------------------
+# Simulation step stage views — Vercel serverless microservices (Phase 5)
+# ---------------------------------------------------------------------------
+# Each view runs one cognitive stage for all personas. The frontend calls
+# these sequentially to drive a full simulation step.
+#
+# Execution order: perceive → retrieve → plan → reflect → execute
+# ---------------------------------------------------------------------------
+
+
+def _run_stage(request: Request, sim_id: str, stage_fn_name: str) -> Response:
+    """Shared implementation: load ReverieServer, run one stage, return result."""
+    import sys  # noqa: PLC0415
+    import os  # noqa: PLC0415
+
+    # Ensure backend_server is on sys.path so reverie imports work.
+    backend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend_server")
+    if backend_dir not in sys.path:
+        sys.path.insert(0, backend_dir)
+
+    try:
+        from reverie import ReverieServer  # noqa: PLC0415
+    except ImportError as exc:
+        return Response({"detail": f"Could not import ReverieServer: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # Verify simulation exists and requester has access.
+    try:
+        sim = Simulation.objects.get(name=sim_id)
+    except Simulation.DoesNotExist:
+        return Response({"detail": f"Simulation '{sim_id}' not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    is_owner = sim.owner == request.user
+    is_member = SimulationMembership.objects.filter(simulation=sim, user=request.user).exists()
+    if not (is_owner or is_member):
+        return Response({"detail": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        stage_fn = getattr(ReverieServer, stage_fn_name)
+        result = stage_fn(sim_id)
+        return Response(result)
+    except RuntimeError as exc:
+        return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+    except Exception as exc:
+        return Response({"detail": f"Stage failed: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def simulation_step_perceive(request: Request, sim_id: str) -> Response:
+    """POST /api/v1/simulations/:id/step/perceive/ — run perceive stage."""
+    return _run_stage(request, sim_id, "run_perceive")
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def simulation_step_retrieve(request: Request, sim_id: str) -> Response:
+    """POST /api/v1/simulations/:id/step/retrieve/ — run retrieve stage."""
+    return _run_stage(request, sim_id, "run_retrieve")
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def simulation_step_plan(request: Request, sim_id: str) -> Response:
+    """POST /api/v1/simulations/:id/step/plan/ — run plan stage (LLM-intensive)."""
+    return _run_stage(request, sim_id, "run_plan")
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def simulation_step_reflect(request: Request, sim_id: str) -> Response:
+    """POST /api/v1/simulations/:id/step/reflect/ — run reflect stage."""
+    return _run_stage(request, sim_id, "run_reflect")
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def simulation_step_execute(request: Request, sim_id: str) -> Response:
+    """POST /api/v1/simulations/:id/step/execute/ — finalize step, write MovementRecord."""
+    return _run_stage(request, sim_id, "run_execute")
