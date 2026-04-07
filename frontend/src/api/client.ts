@@ -1,9 +1,14 @@
 /**
  * Authenticated fetch wrapper.
  * Attaches Authorization header and auto-retries on 401 after token refresh.
+ *
+ * VITE_API_BASE_URL — set this in production to the absolute URL of your
+ * Django backend (e.g. https://api.your-backend.com).  When unset the client
+ * uses a relative path so the Vite dev-server proxy handles routing.
  */
 
-const API_BASE = '/api/v1'
+const _apiOrigin = import.meta.env.VITE_API_BASE_URL ?? ''
+const API_BASE = `${_apiOrigin}/api/v1`
 const REFRESH_TOKEN_STORAGE_KEY = 'ga_refresh_token'
 
 // In-memory access token (set by AuthContext)

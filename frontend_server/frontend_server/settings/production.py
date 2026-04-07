@@ -5,6 +5,8 @@ Imports base settings and adds production-specific configuration:
   - DEBUG = False
   - ALLOWED_HOSTS from DJANGO_ALLOWED_HOSTS env var (required)
   - PostgreSQL via DATABASE_URL env var (required)
+  - CORS origins from CORS_ALLOWED_ORIGINS env var (required for Vercel frontend)
+  - Redis channel layer from REDIS_URL env var (required for WebSockets)
   - whitenoise for static file serving
   - Enforced HTTPS cookies and security headers
 
@@ -57,6 +59,38 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # Serve the React SPA static bundle (assets/, vite.svg, etc.) at root URL paths.
 # Whitenoise resolves /assets/... directly from this directory before Django routing.
 WHITENOISE_ROOT = REACT_DIST_DIR  # noqa: F405
+
+# CORS — allow the deployed Vercel frontend (and any other approved origins) to
+# call the backend API.  Set CORS_ALLOWED_ORIGINS to a comma-separated list of
+# full origins, e.g. "https://your-app.vercel.app,https://www.example.com".
+_cors_origins_env = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+if not CORS_ALLOWED_ORIGINS:
+    raise ValueError(
+        "CORS_ALLOWED_ORIGINS environment variable is required in production. "
+        "Set it to a comma-separated list of allowed origins, e.g. "
+        "https://your-app.vercel.app"
+    )
+CORS_ALLOW_CREDENTIALS = True
+
+# Django Channels — Redis channel layer.
+# Override the base-settings default so production uses a configurable URL
+# rather than the docker-compose service name "redis".
+_redis_url = os.environ.get("REDIS_URL")
+if not _redis_url:
+    raise ValueError(
+        "REDIS_URL environment variable is required in production for WebSocket "
+        "support via Django Channels. "
+        "Example: redis://default:password@redis-host:6379"
+    )
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [_redis_url],
+        },
+    },
+}
 
 # Production logging — WARNING level only to reduce noise
 LOGGING = {

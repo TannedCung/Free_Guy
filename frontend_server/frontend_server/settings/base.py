@@ -90,12 +90,15 @@ TEMPLATES = [
 WSGI_APPLICATION = "frontend_server.wsgi.application"
 ASGI_APPLICATION = "frontend_server.asgi.application"
 
-# Django Channels — Redis channel layer
+# Django Channels — Redis channel layer.
+# Defaults to the docker-compose service name "redis".
+# Override with REDIS_URL in your environment for non-Docker setups.
+_redis_url_base = os.environ.get("REDIS_URL", "redis://redis:6379")
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("redis", 6379)],
+            "hosts": [_redis_url_base],
         },
     },
 }

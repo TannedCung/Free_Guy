@@ -22,7 +22,12 @@ interface UseSimulationWebSocketOptions {
 
 export type WsStatus = 'connecting' | 'connected' | 'disconnected'
 
-const BASE_URL = window.location.origin.replace(/^http/, 'ws')
+// VITE_WS_BASE_URL — set this in production to the WebSocket base of your
+// Django backend (e.g. wss://api.your-backend.com).  When unset the hook
+// derives the URL from the current page origin so local dev works without
+// any extra configuration.
+const BASE_URL: string =
+  import.meta.env.VITE_WS_BASE_URL ?? window.location.origin.replace(/^http/, 'ws')
 
 export function useSimulationWebSocket({
   simId,
