@@ -5,11 +5,18 @@ The `urlpatterns` list routes URLs to views. For more information please see:
 """
 
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include, path, re_path
 from translator import api_views, auth_views, character_views, maps_views, simulation_views, social_auth_views
 from translator import views as translator_views
 
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
+
 urlpatterns = [
+    path("health/", health_check, name="health-check"),
     # django-allauth social auth URLs (required for allauth's OAuth flow)
     path("accounts/", include("allauth.urls")),
     # REST API v1 — social login redirect endpoints
