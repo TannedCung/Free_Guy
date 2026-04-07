@@ -352,3 +352,77 @@ export async function fetchAgentDetail(simId: string, agentId: string): Promise<
   if (!res.ok) throw new Error(`Failed to fetch agent detail: ${res.status}`)
   return res.json() as Promise<AgentDetail>
 }
+
+// ─── Serverless step orchestration (Phase 5) ─────────────────────────────────
+
+export interface AgentPosition {
+  x: number
+  y: number
+}
+
+export interface StepMovements {
+  persona: Record<string, { movement: [number, number]; pronunciatio: string; description: string; chat: unknown }>
+  meta: { curr_time: string }
+}
+
+export interface StepResult {
+  status?: string
+  step: number
+  next_step?: number
+  movements?: StepMovements
+}
+
+/** Submit current agent positions as EnvironmentState for the current step. */
+export async function submitEnvironmentState(
+  simId: string,
+  step: number,
+  agentPositions: Record<string, AgentPosition>,
+): Promise<void> {
+  const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/state/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ step, agent_positions: agentPositions }),
+  })
+  if (!res.ok) throw new Error(`submitEnvironmentState failed: ${res.status}`)
+}
+
+const STAGES = ['perceive', 'retrieve', 'plan', 'reflect', 'execute'] as const
+type Stage = (typeof STAGES)[number]
+
+/** Run a single cognitive stage for all agents. */
+export async function runStepStage(simId: string, stage: Stage): Promise<StepResult> {
+  const res = await apiFetch(
+    `/simulations/${encodeURIComponent(simId)}/step/${stage}/`,
+    { method: 'POST' },
+  )
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Stage '${stage}' failed (${res.status}): ${body}`)
+  }
+  return res.json() as Promise<StepResult>
+}
+
+/**
+ * Run a complete simulation step (all 5 cognitive stages in sequence).
+ * Returns the movement data from the execute stage.
+ *
+ * @param simId - Simulation name/id
+ * @param agentPositions - Current frontend agent positions (from Phaser canvas)
+ * @param step - Current step number (used when submitting environment state)
+ * @param onStageComplete - Optional callback called after each stage completes
+ */
+export async function runSimulationStep(
+  simId: string,
+  agentPositions: Record<string, AgentPosition>,
+  step: number,
+  onStageComplete?: (stage: Stage, result: StepResult) => void,
+): Promise<StepResult> {
+  await submitEnvironmentState(simId, step, agentPositions)
+
+  let lastResult: StepResult = { step }
+  for (const stage of STAGES) {
+    lastResult = await runStepStage(simId, stage)
+    onStageComplete?.(stage, lastResult)
+  }
+  return lastResult
+}
