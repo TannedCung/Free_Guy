@@ -195,23 +195,15 @@ ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["username*", "password1*", "password2*"]
 SOCIALACCOUNT_QUERY_EMAIL = True
 
-# Social OAuth providers — client IDs/secrets read from environment variables
+# Social OAuth providers are configured in the database via SocialApp model
+# Run `python manage.py setup_social_auth` to configure from environment variables
+# Note: SOCIALACCOUNT_PROVIDERS can be used here for provider-specific settings
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
-        "APP": {
-            "client_id": os.environ.get("GOOGLE_CLIENT_ID", ""),
-            "secret": os.environ.get("GOOGLE_CLIENT_SECRET", ""),
-            "key": "",
-        },
         "SCOPE": ["profile", "email"],
         "AUTH_PARAMS": {"access_type": "online"},
     },
     "github": {
-        "APP": {
-            "client_id": os.environ.get("GITHUB_CLIENT_ID", ""),
-            "secret": os.environ.get("GITHUB_CLIENT_SECRET", ""),
-            "key": "",
-        },
         "SCOPE": ["user:email"],
     },
 }
