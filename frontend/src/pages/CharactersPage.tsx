@@ -88,12 +88,21 @@ export default function CharactersPage() {
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">
-                  <Link
-                    to={`/characters/${char.id}/edit`}
-                    className="text-sm retro-link"
-                  >
-                    Edit
-                  </Link>
+                  {char.status === 'in_simulation' ? (
+                    <span
+                      className="text-sm text-gray-400 cursor-not-allowed"
+                      title="Character is in a simulation and cannot be edited"
+                    >
+                      Edit
+                    </span>
+                  ) : (
+                    <Link
+                      to={`/characters/${char.id}/edit`}
+                      className="text-sm retro-link"
+                    >
+                      Edit
+                    </Link>
+                  )}
                   {char.status === 'in_simulation' ? (
                     <span
                       className="text-sm text-gray-400 cursor-not-allowed"

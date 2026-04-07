@@ -2,14 +2,15 @@
 Django REST Framework API views for simulation and demo endpoints.
 
 Endpoints:
-  GET  /api/v1/simulations/                        - list all simulations
-  POST /api/v1/simulations/                        - create or fork a simulation
-  GET  /api/v1/simulations/:id/                    - get simulation details
-  GET  /api/v1/simulations/:id/state/              - get current world state
-  GET  /api/v1/simulations/:id/agents/             - list agents with current state
-  GET  /api/v1/simulations/:id/agents/:agent_id/   - get detailed agent state
-  GET  /api/v1/demos/                              - list available demos
-  GET  /api/v1/demos/:id/step/:step/               - get demo data for a step
+  GET   /api/v1/simulations/                        - list all simulations
+  POST  /api/v1/simulations/                        - create or fork a simulation
+  GET   /api/v1/simulations/:id/                    - get simulation details
+  PATCH /api/v1/simulations/:id/                    - update simulation settings (admin)
+  GET   /api/v1/simulations/:id/state/              - get current world state
+  GET   /api/v1/simulations/:id/agents/             - list agents with current state
+  GET   /api/v1/simulations/:id/agents/:agent_id/   - get detailed agent state
+  GET   /api/v1/demos/                              - list available demos
+  GET   /api/v1/demos/:id/step/:step/               - get demo data for a step
 """
 
 import string
@@ -270,9 +271,12 @@ def simulations_list(request: Request) -> Response:
     )
 
 
-@api_view(["GET"])
+@api_view(["GET", "PATCH"])
 def simulation_detail(request: Request, sim_id: str) -> Response:
-    """GET /api/v1/simulations/:id/ — simulation metadata."""
+    """
+    GET  /api/v1/simulations/:id/ — simulation metadata (public).
+    PATCH /api/v1/simulations/:id/ — update simulation settings (admin only).
+    """
     try:
         sim = Simulation.objects.get(name=sim_id)
     except Simulation.DoesNotExist:
@@ -280,6 +284,32 @@ def simulation_detail(request: Request, sim_id: str) -> Response:
             {"error": f"simulation '{sim_id}' not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+    if request.method == "PATCH":
+        # Require authentication for mutations
+        if not request.user or not request.user.is_authenticated:
+            return Response({"detail": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Only admins may update
+        is_admin = SimulationMembership.objects.filter(
+            simulation=sim,
+            user=request.user,
+            role=SimulationMembership.Role.ADMIN,
+            status=SimulationMembership.MemberStatus.ACTIVE,
+        ).exists()
+        if not is_admin:
+            return Response({"detail": "Only simulation admins can update settings."}, status=status.HTTP_403_FORBIDDEN)
+
+        if "visibility" in request.data:
+            visibility = request.data["visibility"]
+            valid = [c[0] for c in Simulation.Visibility.choices]
+            if visibility not in valid:
+                return Response(
+                    {"visibility": [f"Must be one of: {', '.join(valid)}."]}, status=status.HTTP_400_BAD_REQUEST
+                )
+            sim.visibility = visibility
+            sim.save(update_fields=["visibility"])
+
     return Response(_sim_summary_from_orm(sim))
 
 

@@ -74,6 +74,7 @@ class Character(models.Model):
     backstory = models.TextField(blank=True, default="")
     currently = models.TextField(blank=True, default="")
     lifestyle = models.TextField(blank=True, default="")
+    living_area = models.CharField(max_length=500, blank=True, default="")
     daily_plan = models.TextField(blank=True, default="")
     status = models.CharField(
         max_length=20,

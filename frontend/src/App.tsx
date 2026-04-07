@@ -6,6 +6,7 @@ import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import CharactersPage from './pages/CharactersPage'
 import CreateCharacterPage from './pages/CreateCharacterPage'
+import EditCharacterPage from './pages/EditCharacterPage'
 import CreateSimulationPage from './pages/CreateSimulationPage'
 import SimulatePage from './pages/SimulatePage'
 import SimulationSettingsPage from './pages/SimulationSettingsPage'
@@ -50,6 +51,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CreateCharacterPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/characters/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditCharacterPage />
               </ProtectedRoute>
             }
           />

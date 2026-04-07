@@ -1,6 +1,6 @@
 /**
  * Auth context providing user state and auth operations.
- * Access token is stored in memory; refresh token is managed via cookie.
+ * Access token is stored in memory; refresh token is stored in localStorage.
  */
 
 import {
@@ -18,7 +18,12 @@ import {
   type UserData,
   type AuthTokens,
 } from '../api/auth'
-import { setAccessToken } from '../api/client'
+import {
+  getRefreshToken,
+  refreshAccessToken,
+  setAccessToken,
+  setRefreshToken,
+} from '../api/client'
 
 interface AuthContextValue {
   user: UserData | null
@@ -44,22 +49,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function _setTokens(tokens: AuthTokens) {
     setAccessTokenState(tokens.access)
     setAccessToken(tokens.access)
+    setRefreshToken(tokens.refresh)
     setUser(tokens.user)
   }
 
-  // On mount, try to restore session via token refresh (cookie-based)
+  // On mount, try to restore session via stored refresh token.
   useEffect(() => {
     async function tryRestoreSession() {
       try {
-        const res = await fetch('/api/v1/auth/token/refresh/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({}),
-        })
-        if (res.ok) {
-          const data = (await res.json()) as { access: string }
-          setAccessTokenState(data.access)
-          setAccessToken(data.access)
+        const access = await refreshAccessToken()
+        if (access) {
+          setAccessTokenState(access)
+          setAccessToken(access)
           const me = await apiFetchMe()
           setUser({ id: me.id, username: me.username, email: me.email })
         }
@@ -88,15 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    if (accessToken) {
+    const refresh = getRefreshToken()
+    if (refresh) {
       try {
-        await apiLogout(accessToken)
+        await apiLogout(refresh)
       } catch {
         // ignore
       }
     }
     setAccessTokenState(null)
     setAccessToken(null)
+    setRefreshToken(null)
     setUser(null)
   }
 

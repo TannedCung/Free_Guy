@@ -26,6 +26,7 @@ def _character_data(char: Character) -> dict:
         "backstory": char.backstory,
         "currently": char.currently,
         "lifestyle": char.lifestyle,
+        "living_area": char.living_area,
         "daily_plan": char.daily_plan,
         "status": char.status,
         "simulation": char.simulation_id,
@@ -63,6 +64,7 @@ def characters_list(request: Request) -> Response:
         backstory=request.data.get("backstory", ""),
         currently=request.data.get("currently", ""),
         lifestyle=request.data.get("lifestyle", ""),
+        living_area=request.data.get("living_area", ""),
         daily_plan=request.data.get("daily_plan", ""),
     )
     return Response(_character_data(char), status=status.HTTP_201_CREATED)
@@ -108,7 +110,7 @@ def character_detail(request: Request, char_id: int) -> Response:
             )
         char.name = new_name
 
-    for field in ("traits", "backstory", "currently", "lifestyle", "daily_plan"):
+    for field in ("traits", "backstory", "currently", "lifestyle", "living_area", "daily_plan"):
         if field in request.data:
             setattr(char, field, request.data[field])
 
