@@ -1761,3 +1761,385 @@ class EndToEndLifecycleTest(AuthenticatedAPITestCase):
         step_data = resp.json()
         self.assertEqual(step_data["step"], 0)
         self.assertIn("agents", step_data)
+
+
+# ---------------------------------------------------------------------------
+# Simulation PATCH (visibility update) — newly fixed endpoint
+# ---------------------------------------------------------------------------
+
+
+class SimulationPatchTests(AuthenticatedAPITestCase):
+    """
+    Tests for PATCH /api/v1/simulations/:id/ — update simulation settings.
+
+    This endpoint was previously unrouted (update_simulation view existed but
+    had no URL). Now api_views.simulation_detail handles both GET and PATCH.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Create a simulation and make the test user an admin member
+        self.sim = _make_sim("patch-test-sim", owner=self.user)
+        SimulationMembership.objects.create(
+            simulation=self.sim,
+            user=self.user,
+            role=SimulationMembership.Role.ADMIN,
+            status=SimulationMembership.MemberStatus.ACTIVE,
+        )
+
+    def _patch(self, data: dict) -> object:
+        return self.client.patch(
+            f"/api/v1/simulations/{self.sim.name}/",
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+
+    def test_admin_can_update_visibility_to_public(self) -> None:
+        resp = self._patch({"visibility": "public"})
+        self.assertEqual(resp.status_code, 200)
+        self.sim.refresh_from_db()
+        self.assertEqual(self.sim.visibility, "public")
+
+    def test_admin_can_update_visibility_to_shared(self) -> None:
+        resp = self._patch({"visibility": "shared"})
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["visibility"], "shared")
+
+    def test_invalid_visibility_returns_400(self) -> None:
+        resp = self._patch({"visibility": "super_secret"})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("visibility", resp.json())
+
+    def test_nonexistent_simulation_returns_404(self) -> None:
+        resp = self.client.patch(
+            "/api/v1/simulations/ghost-sim/",
+            data=json.dumps({"visibility": "public"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 404)
+
+    def test_non_admin_cannot_update_visibility(self) -> None:
+        user_model = get_user_model()
+        other = user_model.objects.create_user(username="other_user2", password="pass")
+        refresh = RefreshToken.for_user(other)
+        other_client = self.client_class()
+        other_client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {refresh.access_token}"
+
+        resp = other_client.patch(
+            f"/api/v1/simulations/{self.sim.name}/",
+            data=json.dumps({"visibility": "public"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_unauthenticated_patch_returns_401(self) -> None:
+        unauth_client = self.client_class()
+        resp = unauth_client.patch(
+            f"/api/v1/simulations/{self.sim.name}/",
+            data=json.dumps({"visibility": "public"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 401)
+
+    def test_get_still_works_without_auth(self) -> None:
+        """GET should remain public (no auth required)."""
+        unauth_client = self.client_class()
+        resp = unauth_client.get(f"/api/v1/simulations/{self.sim.name}/")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["id"], self.sim.name)
+
+
+# ---------------------------------------------------------------------------
+# Complete user simulation flow: login → create sim → create character →
+# edit character → drop → start → observe → pause → update visibility
+# ---------------------------------------------------------------------------
+
+
+class CompleteUserFlowTest(AuthenticatedAPITestCase):
+    """
+    End-to-end test covering the canonical user flow:
+    1. Create simulation (admin membership auto-created)
+    2. Create character with doctor/schedule/living context
+    3. Edit character profile
+    4. Drop character into simulation → persona created with all fields
+    5. Start simulation
+    6. Observe agents list
+    7. Pause simulation
+    8. Update visibility via PATCH
+    9. Verify character state transitions
+    """
+
+    def test_complete_flow_login_to_simulation_observation(self) -> None:
+        # --- Step 1: Create simulation via API ---
+        create_resp = self.client.post(
+            "/api/v1/simulations/",
+            data=json.dumps({"name": "e2e-flow-sim"}),
+            content_type="application/json",
+        )
+        self.assertEqual(create_resp.status_code, 201)
+        sim_data = create_resp.json()
+        self.assertEqual(sim_data["id"], "e2e-flow-sim")
+        sim = Simulation.objects.get(name="e2e-flow-sim")
+
+        # Admin membership must be auto-created for the creator
+        self.assertTrue(
+            SimulationMembership.objects.filter(
+                simulation=sim,
+                user=self.user,
+                role=SimulationMembership.Role.ADMIN,
+                status=SimulationMembership.MemberStatus.ACTIVE,
+            ).exists(),
+            "Admin membership not created for simulation owner",
+        )
+
+        # --- Step 2: Create doctor character with full schedule ---
+        char_resp = self.client.post(
+            "/api/v1/characters/",
+            data=json.dumps(
+                {
+                    "name": "Dr. Sarah Chen",
+                    "age": 42,
+                    "traits": "methodical, empathetic, detail-oriented",
+                    "backstory": "Trained as a physician, specializes in internal medicine",
+                    "currently": "On shift at Oak Street Clinic, managing 15 patients",
+                    "lifestyle": "Early riser, 6am runs, strong work-life balance ethic",
+                    "living_area": "the_ville:oak_street_apartment_4b",
+                    "daily_plan": "Wake 5:30am, run, clinic 8am-6pm, chart review 7pm, sleep 10pm",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(char_resp.status_code, 201)
+        char_id = char_resp.json()["id"]
+        self.assertEqual(char_resp.json()["living_area"], "the_ville:oak_street_apartment_4b")
+        self.assertEqual(char_resp.json()["status"], "available")
+
+        # --- Step 3: Edit character ---
+        edit_resp = self.client.patch(
+            f"/api/v1/characters/{char_id}/",
+            data=json.dumps(
+                {
+                    "currently": "Running morning rounds and updating patient records",
+                    "daily_plan": "Rounds 7am, consults 10am, surgery consult 2pm, charting 5pm",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(edit_resp.status_code, 200)
+
+        # --- Step 4: Drop character into simulation ---
+        drop_resp = self.client.post(
+            f"/api/v1/simulations/e2e-flow-sim/drop/",
+            data=json.dumps({"character_id": char_id}),
+            content_type="application/json",
+        )
+        self.assertEqual(drop_resp.status_code, 200)
+
+        # Verify persona was created with all mapped fields
+        persona = Persona.objects.get(simulation=sim, name="Dr. Sarah Chen")
+        self.assertEqual(persona.innate, "methodical, empathetic, detail-oriented")
+        self.assertEqual(persona.learned, "Trained as a physician, specializes in internal medicine")
+        self.assertEqual(persona.currently, "Running morning rounds and updating patient records")
+        self.assertEqual(persona.lifestyle, "Early riser, 6am runs, strong work-life balance ethic")
+        self.assertEqual(persona.living_area, "the_ville:oak_street_apartment_4b")
+        self.assertEqual(persona.daily_plan_req, "Rounds 7am, consults 10am, surgery consult 2pm, charting 5pm")
+
+        # Character state must transition to in_simulation
+        char = Character.objects.get(pk=char_id)
+        self.assertEqual(char.status, Character.Status.IN_SIMULATION)
+        self.assertEqual(char.simulation_id, sim.id)
+
+        # Cannot edit or delete a character that is in a simulation
+        edit_blocked = self.client.patch(
+            f"/api/v1/characters/{char_id}/",
+            data=json.dumps({"currently": "should fail"}),
+            content_type="application/json",
+        )
+        self.assertEqual(edit_blocked.status_code, 400)
+
+        delete_blocked = self.client.delete(f"/api/v1/characters/{char_id}/")
+        self.assertEqual(delete_blocked.status_code, 400)
+
+        # --- Step 5: Start simulation ---
+        start_resp = self.client.post("/api/v1/simulations/e2e-flow-sim/start/")
+        self.assertEqual(start_resp.status_code, 200)
+        self.assertEqual(start_resp.json()["status"], "running")
+
+        sim.refresh_from_db()
+        self.assertEqual(sim.status, Simulation.Status.RUNNING)
+        self.assertIsNotNone(sim.start_date)
+
+        # Cannot start again (already running)
+        start_again = self.client.post("/api/v1/simulations/e2e-flow-sim/start/")
+        self.assertEqual(start_again.status_code, 409)
+
+        # --- Step 6: Observe agents list ---
+        agents_resp = self.client.get("/api/v1/simulations/e2e-flow-sim/agents/")
+        self.assertEqual(agents_resp.status_code, 200)
+        agents_data = agents_resp.json()
+        self.assertEqual(agents_data["simulation_id"], "e2e-flow-sim")
+        agent_ids = [a["id"] for a in agents_data["agents"]]
+        self.assertIn("Dr. Sarah Chen", agent_ids)
+
+        # Verify agent detail
+        agent_detail_resp = self.client.get(
+            "/api/v1/simulations/e2e-flow-sim/agents/Dr.%20Sarah%20Chen/"
+        )
+        self.assertEqual(agent_detail_resp.status_code, 200)
+        detail = agent_detail_resp.json()
+        self.assertEqual(detail["name"], "Dr. Sarah Chen")
+        self.assertEqual(detail["lifestyle"], "Early riser, 6am runs, strong work-life balance ethic")
+        self.assertEqual(detail["living_area"], "the_ville:oak_street_apartment_4b")
+        self.assertEqual(detail["daily_plan_req"], "Rounds 7am, consults 10am, surgery consult 2pm, charting 5pm")
+
+        # --- Step 7: Pause simulation ---
+        pause_resp = self.client.post("/api/v1/simulations/e2e-flow-sim/pause/")
+        self.assertEqual(pause_resp.status_code, 200)
+        self.assertEqual(pause_resp.json()["status"], "paused")
+
+        # Cannot pause again (not running)
+        pause_again = self.client.post("/api/v1/simulations/e2e-flow-sim/pause/")
+        self.assertEqual(pause_again.status_code, 409)
+
+        # --- Step 8: Resume simulation ---
+        resume_resp = self.client.post("/api/v1/simulations/e2e-flow-sim/resume/")
+        self.assertEqual(resume_resp.status_code, 200)
+        self.assertEqual(resume_resp.json()["status"], "running")
+
+        # --- Step 9: Update visibility via PATCH (newly fixed endpoint) ---
+        patch_resp = self.client.patch(
+            "/api/v1/simulations/e2e-flow-sim/",
+            data=json.dumps({"visibility": "public"}),
+            content_type="application/json",
+        )
+        self.assertEqual(patch_resp.status_code, 200)
+        self.assertEqual(patch_resp.json()["visibility"], "public")
+
+        sim.refresh_from_db()
+        self.assertEqual(sim.visibility, "public")
+
+    def test_cannot_start_simulation_without_characters(self) -> None:
+        """Start must fail when no personas are in the simulation."""
+        self.client.post(
+            "/api/v1/simulations/",
+            data=json.dumps({"name": "empty-start-sim"}),
+            content_type="application/json",
+        )
+        resp = self.client.post("/api/v1/simulations/empty-start-sim/start/")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("No characters", resp.json()["detail"])
+
+    def test_multiple_characters_in_simulation_interact_correctly(self) -> None:
+        """Two characters dropped into same simulation coexist as separate personas."""
+        self.client.post(
+            "/api/v1/simulations/",
+            data=json.dumps({"name": "multi-char-sim"}),
+            content_type="application/json",
+        )
+        sim = Simulation.objects.get(name="multi-char-sim")
+
+        # Create first character: a doctor
+        resp1 = self.client.post(
+            "/api/v1/characters/",
+            data=json.dumps({
+                "name": "Doctor Marcus",
+                "age": 45,
+                "traits": "methodical, empathetic",
+                "currently": "running morning rounds",
+                "lifestyle": "structured clinical schedule",
+                "living_area": "the_ville:clinic_residence",
+                "daily_plan": "7am rounds, 10am consults, 5pm done",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(resp1.status_code, 201)
+        char1_id = resp1.json()["id"]
+
+        # Create second character: a teacher with different schedule
+        resp2 = self.client.post(
+            "/api/v1/characters/",
+            data=json.dumps({
+                "name": "Teacher Amara",
+                "age": 33,
+                "traits": "patient, creative, enthusiastic",
+                "currently": "preparing lesson plans for tomorrow",
+                "lifestyle": "early to school, afternoons grading",
+                "living_area": "the_ville:maple_apartment_1a",
+                "daily_plan": "6am wake, school 8am-3pm, grading 4pm, reading 8pm",
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(resp2.status_code, 201)
+        char2_id = resp2.json()["id"]
+
+        # Drop both characters into the same simulation
+        drop1 = self.client.post(
+            "/api/v1/simulations/multi-char-sim/drop/",
+            data=json.dumps({"character_id": char1_id}),
+            content_type="application/json",
+        )
+        self.assertEqual(drop1.status_code, 200)
+
+        drop2 = self.client.post(
+            "/api/v1/simulations/multi-char-sim/drop/",
+            data=json.dumps({"character_id": char2_id}),
+            content_type="application/json",
+        )
+        self.assertEqual(drop2.status_code, 200)
+
+        # Both personas exist in simulation with correct fields
+        self.assertEqual(sim.personas.count(), 2)
+
+        doctor_persona = Persona.objects.get(simulation=sim, name="Doctor Marcus")
+        self.assertEqual(doctor_persona.innate, "methodical, empathetic")
+        self.assertEqual(doctor_persona.living_area, "the_ville:clinic_residence")
+        self.assertEqual(doctor_persona.daily_plan_req, "7am rounds, 10am consults, 5pm done")
+
+        teacher_persona = Persona.objects.get(simulation=sim, name="Teacher Amara")
+        self.assertEqual(teacher_persona.innate, "patient, creative, enthusiastic")
+        self.assertEqual(teacher_persona.living_area, "the_ville:maple_apartment_1a")
+        self.assertEqual(teacher_persona.daily_plan_req, "6am wake, school 8am-3pm, grading 4pm, reading 8pm")
+
+        # Both characters are now in_simulation
+        c1 = Character.objects.get(pk=char1_id)
+        c2 = Character.objects.get(pk=char2_id)
+        self.assertEqual(c1.status, Character.Status.IN_SIMULATION)
+        self.assertEqual(c2.status, Character.Status.IN_SIMULATION)
+
+        # Start → both personas visible in agents list
+        self.client.post("/api/v1/simulations/multi-char-sim/start/")
+        agents_resp = self.client.get("/api/v1/simulations/multi-char-sim/agents/")
+        agent_names = [a["name"] for a in agents_resp.json()["agents"]]
+        self.assertIn("Doctor Marcus", agent_names)
+        self.assertIn("Teacher Amara", agent_names)
+
+    def test_character_cannot_be_dropped_twice(self) -> None:
+        """Dropping the same character into a simulation a second time should fail."""
+        self.client.post(
+            "/api/v1/simulations/",
+            data=json.dumps({"name": "double-drop-sim"}),
+            content_type="application/json",
+        )
+
+        char_resp = self.client.post(
+            "/api/v1/characters/",
+            data=json.dumps({"name": "solo_character"}),
+            content_type="application/json",
+        )
+        char_id = char_resp.json()["id"]
+
+        self.client.post(
+            "/api/v1/simulations/double-drop-sim/drop/",
+            data=json.dumps({"character_id": char_id}),
+            content_type="application/json",
+        )
+        # Second drop must fail (character already in_simulation)
+        second = self.client.post(
+            "/api/v1/simulations/double-drop-sim/drop/",
+            data=json.dumps({"character_id": char_id}),
+            content_type="application/json",
+        )
+        self.assertEqual(second.status_code, 400)
+        self.assertIn("already in a simulation", second.json()["detail"])

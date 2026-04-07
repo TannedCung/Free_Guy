@@ -18,6 +18,7 @@ export default function EditCharacterPage() {
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [inSimulation, setInSimulation] = useState(false)
 
   const charId = id ? parseInt(id, 10) : NaN
 
@@ -38,6 +39,9 @@ export default function EditCharacterPage() {
         setLifestyle(char.lifestyle)
         setLivingArea(char.living_area)
         setDailyPlan(char.daily_plan)
+        if (char.status === 'in_simulation') {
+          setInSimulation(true)
+        }
       })
       .catch(() => {
         setNotFound(true)
@@ -95,6 +99,30 @@ export default function EditCharacterPage() {
         <main className="retro-main max-w-2xl">
           <div className="retro-panel p-6">
             <h2 className="retro-title mb-2">Character not found</h2>
+            <button
+              type="button"
+              onClick={() => navigate('/characters')}
+              className="retro-button retro-button-primary"
+            >
+              Back to characters
+            </button>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (inSimulation) {
+    return (
+      <div className="retro-page">
+        <Header />
+        <main className="retro-main max-w-2xl">
+          <div className="retro-panel p-6">
+            <h2 className="retro-title mb-2">Character is in a simulation</h2>
+            <p className="text-gray-600 mb-4">
+              <strong>{name}</strong> is currently active in a simulation and cannot be edited.
+              Characters can only be edited when they are available (not in any simulation).
+            </p>
             <button
               type="button"
               onClick={() => navigate('/characters')}
