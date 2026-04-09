@@ -5,7 +5,6 @@
  */
 
 import { useEffect, useRef, useState, useCallback, type MutableRefObject } from 'react'
-import { getAccessToken } from '../api/client'
 
 export interface StepUpdatePayload {
   step?: number
@@ -40,13 +39,11 @@ export function useSimulationWebSocket({
 
   const connect = useCallback(() => {
     if (unmountedRef.current) return
-    const token = getAccessToken()
-    if (!token) {
-      onAuthError()
-      return
-    }
     setWsStatus('connecting')
-    const url = `${BASE_URL}/ws/simulations/${encodeURIComponent(simId)}/?token=${encodeURIComponent(token)}`
+    // Auth cookies are sent automatically by the browser on same-origin WS
+    // connections (routed through nginx).  Token validation in the consumer
+    // will use the cookie when implemented (US-017).
+    const url = `${BASE_URL}/ws/simulations/${encodeURIComponent(simId)}/`
     const ws = new WebSocket(url)
     wsRef.current = ws
 

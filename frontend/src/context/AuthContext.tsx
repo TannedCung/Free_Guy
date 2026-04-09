@@ -1,6 +1,9 @@
 /**
- * Auth context providing user state and auth operations.
- * Access token is stored in memory; refresh token is stored in localStorage.
+ * Auth context.
+ *
+ * Session state is derived entirely from the server: on mount we call /auth/me/
+ * (which triggers an automatic cookie-based token refresh if needed).  There is
+ * no client-side token storage — the httpOnly cookies are invisible to JS.
  */
 
 import {
@@ -16,18 +19,10 @@ import {
   apiLogout,
   apiFetchMe,
   type UserData,
-  type AuthTokens,
 } from '../api/auth'
-import {
-  getRefreshToken,
-  refreshAccessToken,
-  setAccessToken,
-  setRefreshToken,
-} from '../api/client'
 
 interface AuthContextValue {
   user: UserData | null
-  accessToken: string | null
   isLoading: boolean
   login: (username: string, password: string) => Promise<void>
   register: (
@@ -43,39 +38,22 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null)
-  const [accessToken, setAccessTokenState] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  function _setTokens(tokens: AuthTokens) {
-    setAccessTokenState(tokens.access)
-    setAccessToken(tokens.access)
-    setRefreshToken(tokens.refresh)
-    setUser(tokens.user)
-  }
-
-  // On mount, try to restore session via stored refresh token.
+  // On mount, check if the server considers us authenticated.
+  // apiFetch will transparently refresh the access cookie if it has expired.
   useEffect(() => {
-    async function tryRestoreSession() {
-      try {
-        const access = await refreshAccessToken()
-        if (access) {
-          setAccessTokenState(access)
-          setAccessToken(access)
-          const me = await apiFetchMe()
-          setUser({ id: me.id, username: me.username, email: me.email })
-        }
-      } catch {
-        // No valid session
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    void tryRestoreSession()
+    apiFetchMe()
+      .then((me) => setUser({ id: me.id, username: me.username, email: me.email }))
+      .catch(() => {
+        // No valid session — stay logged out.
+      })
+      .finally(() => setIsLoading(false))
   }, [])
 
   async function login(username: string, password: string) {
-    const tokens = await apiLogin(username, password)
-    _setTokens(tokens)
+    const { user: userData } = await apiLogin(username, password)
+    setUser(userData)
   }
 
   async function register(
@@ -84,29 +62,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     passwordConfirm: string,
   ) {
-    const tokens = await apiRegister(username, email, password, passwordConfirm)
-    _setTokens(tokens)
+    const { user: userData } = await apiRegister(username, email, password, passwordConfirm)
+    setUser(userData)
   }
 
   async function logout() {
-    const refresh = getRefreshToken()
-    if (refresh) {
-      try {
-        await apiLogout(refresh)
-      } catch {
-        // ignore
-      }
+    try {
+      await apiLogout()
+    } catch {
+      // ignore network errors on logout
     }
-    setAccessTokenState(null)
-    setAccessToken(null)
-    setRefreshToken(null)
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider
-      value={{ user, accessToken, isLoading, login, register, logout }}
-    >
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   )
