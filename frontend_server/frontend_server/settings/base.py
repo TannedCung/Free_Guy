@@ -32,8 +32,10 @@ if not SECRET_KEY:
 
 # Application definition
 
+_enable_channels = os.environ.get("ENABLE_CHANNELS", "true").lower() != "false"
+
 INSTALLED_APPS = [
-    "daphne",
+    *(["daphne"] if _enable_channels else []),
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -44,7 +46,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
-    "channels",
+    *(["channels"] if _enable_channels else []),
     "corsheaders",
     "storages",
     "allauth",
@@ -91,14 +93,18 @@ WSGI_APPLICATION = "frontend_server.wsgi.application"
 ASGI_APPLICATION = "frontend_server.asgi.application"
 
 # Django Channels — Redis channel layer
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("redis", 6379)],
+# Set ENABLE_CHANNELS=false to disable (e.g. on Vercel where Channels is not used).
+# REDIS_URL supports standard redis:// and TLS rediss:// URLs (Upstash format).
+if os.environ.get("ENABLE_CHANNELS", "true").lower() != "false":
+    _redis_url = os.environ.get("REDIS_URL", "redis://redis:6379")
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [_redis_url],
+            },
         },
-    },
-}
+    }
 
 
 # Password validation

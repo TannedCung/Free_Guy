@@ -52,6 +52,11 @@ class Simulation(models.Model):
     maze_name = models.CharField(max_length=255, blank=True, null=True)
     step = models.IntegerField(default=0)
     config = models.JSONField(default=dict, blank=True)
+    # Tracks maze tile object events that must be cleared at the start of the
+    # next simulation step. Serialized as a list of [event_tuple, tile_xy] pairs
+    # because JSON does not support tuple keys. Populated by run_execute() and
+    # consumed by _load_from_db() on the next step.
+    game_obj_cleanup = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -311,6 +316,42 @@ class RuntimeState(models.Model):
     key = models.CharField(max_length=255, unique=True)
     value = models.JSONField(default=dict, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class SimulationStepCache(models.Model):
+    """Stores intermediate results between serverless simulation stage calls.
+
+    Each simulation step is split into 5 stages (perceive, retrieve, plan,
+    reflect, execute). Because each stage runs as a separate Vercel Python
+    Function invocation, intermediate outputs (perceived events, retrieved
+    memories, etc.) must be persisted between stages.
+
+    Rows are scoped to (simulation, step, stage) and overwritten on retry.
+    Old rows can be pruned once a step advances past them.
+    """
+
+    class Stage(models.TextChoices):
+        PERCEIVE = "perceive", "Perceive"
+        RETRIEVE = "retrieve", "Retrieve"
+        PLAN = "plan", "Plan"
+        REFLECT = "reflect", "Reflect"
+        EXECUTE = "execute", "Execute"
+
+    simulation = models.ForeignKey(Simulation, on_delete=models.CASCADE, related_name="step_caches")
+    step = models.IntegerField()
+    stage = models.CharField(max_length=20, choices=Stage.choices)
+    # JSON blob keyed by persona name → stage-specific output data.
+    data = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [("simulation", "step", "stage")]
+        indexes = [
+            models.Index(fields=["simulation", "step"], name="step_cache_sim_step_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"StepCache({self.simulation.name}, step={self.step}, stage={self.stage})"
 
     def __str__(self) -> str:
         return f"RuntimeState({self.key})"

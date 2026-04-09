@@ -662,6 +662,347 @@ class ReverieServer:
                 print("Error.")
 
 
+    # -----------------------------------------------------------------------
+    # Stateless stage methods — for Vercel serverless step execution
+    # -----------------------------------------------------------------------
+    # Each method loads ReverieServer state from DB, runs one cognitive stage
+    # for all personas, persists intermediate results to SimulationStepCache,
+    # and returns a JSON-serializable result dict.
+    #
+    # Execution order per step:
+    #   run_perceive → run_retrieve → run_plan → run_reflect → run_execute
+    # -----------------------------------------------------------------------
+
+    @classmethod
+    def _load_for_stage(cls, sim_code: str) -> "ReverieServer":
+        """Load a ReverieServer from DB without starting the polling loop.
+
+        Reconstructs personas_tile from PersonaScratch.curr_tile and restores
+        maze tile events from the saved game_obj_cleanup list.
+        """
+        init_django()
+
+        from translator.models import EnvironmentState as EnvironmentStateModel  # noqa: PLC0415
+        from translator.models import Persona as PersonaModel  # noqa: PLC0415
+        from translator.models import Simulation as SimulationModel  # noqa: PLC0415
+
+        try:
+            sim_db = SimulationModel.objects.get(name=sim_code)
+        except Exception as exc:
+            raise RuntimeError(f"Simulation '{sim_code}' not found in DB: {exc}") from exc
+
+        server: "ReverieServer" = cls.__new__(cls)
+        server.fork_sim_code = sim_code
+        server.sim_code = sim_code
+        server._db_sim = sim_db
+        server._db_agents = {}
+        server._db_memory_counts = {}
+        server.server_sleep = 1.0
+
+        def _naive(dt: Optional[Any]) -> Optional[datetime.datetime]:
+            if dt is None:
+                return None
+            return dt.replace(tzinfo=None) if getattr(dt, "tzinfo", None) else dt
+
+        server.start_time = _naive(sim_db.start_date) or datetime.datetime.now()
+        server.curr_time = _naive(sim_db.curr_time) or server.start_time
+        server.sec_per_step = sim_db.sec_per_step or 10
+        server.maze = Maze(sim_db.maze_name or "")
+        server.step = sim_db.step
+
+        # Load all active personas from DB.
+        server.personas = {}
+        server.personas_tile = {}
+
+        persona_rows = PersonaModel.objects.filter(simulation=sim_db, status="active")
+        for persona_row in persona_rows:
+            curr_persona = Persona(persona_id=persona_row.pk)
+            persona_name = curr_persona.name
+            server.personas[persona_name] = curr_persona
+            # personas_tile is reconstructed from the persisted curr_tile value.
+            tile = curr_persona.scratch.curr_tile
+            server.personas_tile[persona_name] = tuple(tile) if tile else (0, 0)  # type: ignore[arg-type]
+
+        # Restore persona events on maze tiles.
+        for persona_name, persona in server.personas.items():
+            tile = server.personas_tile[persona_name]
+            server.maze.tiles[tile[1]][tile[0]]["events"].add(persona.scratch.get_curr_event_and_desc())
+
+        # Clean up previous step's object events (turn them idle) using the
+        # game_obj_cleanup list saved from the last run_execute call.
+        for entry in (sim_db.game_obj_cleanup or []):
+            # Stored as [event_tuple, tile_xy] — tuples were serialized as lists.
+            event_tuple, tile_xy = entry
+            server.maze.turn_event_from_tile_idle(tuple(event_tuple), tuple(tile_xy))
+
+        return server
+
+    @classmethod
+    def _get_step_cache(cls, sim_code: str, step: int, stage: str) -> Optional[dict]:
+        """Load cached stage results from SimulationStepCache, or None if missing."""
+        from translator.models import Simulation as SimulationModel  # noqa: PLC0415
+        from translator.models import SimulationStepCache  # noqa: PLC0415
+
+        try:
+            sim_db = SimulationModel.objects.get(name=sim_code)
+            cache = SimulationStepCache.objects.get(simulation=sim_db, step=step, stage=stage)
+            return cache.data  # type: ignore[return-value]
+        except Exception:
+            return None
+
+    @classmethod
+    def _save_step_cache(cls, sim_code: str, step: int, stage: str, data: dict) -> None:
+        """Persist stage results to SimulationStepCache (upsert)."""
+        from translator.models import Simulation as SimulationModel  # noqa: PLC0415
+        from translator.models import SimulationStepCache  # noqa: PLC0415
+
+        sim_db = SimulationModel.objects.get(name=sim_code)
+        SimulationStepCache.objects.update_or_create(
+            simulation=sim_db,
+            step=step,
+            stage=stage,
+            defaults={"data": data},
+        )
+
+    @classmethod
+    def run_perceive(cls, sim_code: str) -> dict:
+        """Stage 1: Perceive environment for all personas.
+
+        Loads simulation state, runs perceive() for each persona (may include
+        LLM poignancy scoring calls), saves perceived node_ids to StepCache.
+
+        Returns: {"status": "ok", "step": N}
+        """
+        server = cls._load_for_stage(sim_code)
+        cache_data: dict = {}
+
+        for persona_name, persona in server.personas.items():
+            perceived_nodes = persona.perceive(server.maze)
+            # Serialize ConceptNodes as node_ids — they are reconstructed from DB
+            # in subsequent stages by looking up a_mem.id_to_node.
+            cache_data[persona_name] = {
+                "perceived_node_ids": [node.node_id for node in perceived_nodes],
+            }
+            # Persist new concept nodes created during perceive (poignancy scores).
+            persona.save()
+
+        cls._save_step_cache(sim_code, server.step, "perceive", cache_data)
+        return {"status": "ok", "step": server.step}
+
+    @classmethod
+    def run_retrieve(cls, sim_code: str) -> dict:
+        """Stage 2: Retrieve relevant memories for perceived events.
+
+        Runs Qdrant vector search for each persona's perceived events.
+        No LLM calls — fast (1–3s total).
+
+        Returns: {"status": "ok", "step": N}
+        """
+        server = cls._load_for_stage(sim_code)
+
+        perceive_cache = cls._get_step_cache(sim_code, server.step, "perceive")
+        if perceive_cache is None:
+            raise RuntimeError(f"perceive cache missing for sim '{sim_code}' step {server.step}")
+
+        cache_data: dict = {}
+
+        for persona_name, persona in server.personas.items():
+            persona_perceive = perceive_cache.get(persona_name, {})
+            perceived_node_ids: list = persona_perceive.get("perceived_node_ids", [])
+
+            # Reconstruct ConceptNode objects from persisted node_ids.
+            perceived_nodes = [
+                persona.a_mem.id_to_node[nid]
+                for nid in perceived_node_ids
+                if nid in persona.a_mem.id_to_node
+            ]
+
+            retrieved = persona.retrieve(perceived_nodes)
+
+            # Serialize retrieved dict as node_ids.
+            serialized: dict = {}
+            for description, val in retrieved.items():
+                curr_event = val.get("curr_event")
+                serialized[description] = {
+                    "curr_event_id": curr_event.node_id if curr_event else None,
+                    "event_ids": [n.node_id for n in val.get("events", [])],
+                    "thought_ids": [n.node_id for n in val.get("thoughts", [])],
+                }
+            cache_data[persona_name] = serialized
+
+        cls._save_step_cache(sim_code, server.step, "retrieve", cache_data)
+        return {"status": "ok", "step": server.step}
+
+    @classmethod
+    def run_plan(cls, sim_code: str) -> dict:
+        """Stage 3: Generate plans for all personas (LLM-intensive).
+
+        This is the slowest stage — typically 10–30s for 3 agents (2–5 LLM
+        calls each). Saves act_address (plan string) to StepCache.
+
+        Returns: {"status": "ok", "step": N}
+        """
+        server = cls._load_for_stage(sim_code)
+
+        perceive_cache = cls._get_step_cache(sim_code, server.step, "perceive")
+        retrieve_cache = cls._get_step_cache(sim_code, server.step, "retrieve")
+        if perceive_cache is None or retrieve_cache is None:
+            raise RuntimeError(f"perceive/retrieve cache missing for sim '{sim_code}' step {server.step}")
+
+        cache_data: dict = {}
+
+        for persona_name, persona in server.personas.items():
+            # Determine new_day flag (same logic as persona.move()).
+            new_day: Any = False
+            if not persona.scratch.curr_time:
+                new_day = "First day"
+            elif persona.scratch.curr_time.strftime("%A %B %d") != server.curr_time.strftime("%A %B %d"):
+                new_day = "New day"
+            persona.scratch.curr_time = server.curr_time
+
+            # Reconstruct retrieved dict from serialized node_ids.
+            raw_retrieve = retrieve_cache.get(persona_name, {})
+            retrieved: dict = {}
+            for description, val in raw_retrieve.items():
+                curr_event_id = val.get("curr_event_id")
+                retrieved[description] = {
+                    "curr_event": persona.a_mem.id_to_node.get(curr_event_id) if curr_event_id else None,
+                    "events": [
+                        persona.a_mem.id_to_node[nid]
+                        for nid in val.get("event_ids", [])
+                        if nid in persona.a_mem.id_to_node
+                    ],
+                    "thoughts": [
+                        persona.a_mem.id_to_node[nid]
+                        for nid in val.get("thought_ids", [])
+                        if nid in persona.a_mem.id_to_node
+                    ],
+                }
+
+            act_address = persona.plan(server.maze, server.personas, new_day, retrieved)
+            cache_data[persona_name] = {
+                "act_address": act_address,
+                "new_day": new_day,
+            }
+            # Persist scratch changes (schedule, action fields) from plan.
+            persona.save()
+
+        cls._save_step_cache(sim_code, server.step, "plan", cache_data)
+        return {"status": "ok", "step": server.step}
+
+    @classmethod
+    def run_reflect(cls, sim_code: str) -> dict:
+        """Stage 4: Reflection — create new thoughts if importance threshold met.
+
+        Conditionally calls LLMs (0–3 calls per persona). Fast if no reflection
+        is triggered; up to 20s if all agents reflect.
+
+        Returns: {"status": "ok", "step": N}
+        """
+        server = cls._load_for_stage(sim_code)
+
+        for persona_name, persona in server.personas.items():
+            persona.reflect()
+            persona.save()
+
+        cls._save_step_cache(sim_code, server.step, "reflect", {"completed": True})
+        return {"status": "ok", "step": server.step}
+
+    @classmethod
+    def run_execute(cls, sim_code: str) -> dict:
+        """Stage 5: Execute plans — pathfinding and movement finalization.
+
+        No LLM calls. Computes next tile for each persona, writes MovementRecord
+        to DB, updates Simulation.step and Simulation.game_obj_cleanup.
+
+        Returns: {"movements": {persona_name: {movement, pronunciatio, description, chat}},
+                  "meta": {"curr_time": "..."}, "step": N}
+        """
+        server = cls._load_for_stage(sim_code)
+
+        plan_cache = cls._get_step_cache(sim_code, server.step, "plan")
+        if plan_cache is None:
+            raise RuntimeError(f"plan cache missing for sim '{sim_code}' step {server.step}")
+
+        # Apply env positions — use latest EnvironmentState for the current step.
+        from translator.models import EnvironmentState as EnvironmentStateModel  # noqa: PLC0415
+
+        env_row = EnvironmentStateModel.objects.filter(
+            simulation=server._db_sim, step=server.step
+        ).first()
+        if env_row:
+            new_env = env_row.agent_positions or {}
+            for persona_name, persona in server.personas.items():
+                curr_tile = server.personas_tile[persona_name]
+                new_tile_data = new_env.get(persona_name, {})
+                new_tile = (int(new_tile_data.get("x", curr_tile[0])), int(new_tile_data.get("y", curr_tile[1])))
+                server.personas_tile[persona_name] = new_tile
+                server.maze.remove_subject_events_from_tile(persona.name, curr_tile)
+                server.maze.add_event_from_tile(persona.scratch.get_curr_event_and_desc(), new_tile)
+
+        # Track new object events for cleanup at next step start.
+        new_game_obj_cleanup: list = []
+
+        movements: dict = {"persona": {}, "meta": {}}
+        for persona_name, persona in server.personas.items():
+            persona_plan = plan_cache.get(persona_name, {})
+            act_address = persona_plan.get("act_address")
+
+            new_tile = server.personas_tile[persona_name]
+            if not persona.scratch.planned_path:
+                event_desc = persona.scratch.get_curr_obj_event_and_desc()
+                new_game_obj_cleanup.append([list(event_desc), list(new_tile)])
+                server.maze.add_event_from_tile(event_desc, new_tile)
+                blank = (event_desc[0], None, None, None)
+                server.maze.remove_event_from_tile(blank, new_tile)
+
+            next_tile, pronunciatio, description = persona.execute(server.maze, server.personas, act_address)
+            movements["persona"][persona_name] = {
+                "movement": next_tile,
+                "pronunciatio": pronunciatio,
+                "description": description,
+                "chat": persona.scratch.chat,
+            }
+            persona.save()
+
+        movements["meta"]["curr_time"] = server.curr_time.strftime("%B %d, %Y, %H:%M:%S")
+
+        next_step = server.step + 1
+        next_time = server.curr_time + datetime.timedelta(seconds=server.sec_per_step)
+
+        from django.db import transaction  # noqa: PLC0415
+        from django.utils import timezone  # noqa: PLC0415
+        from translator.models import MovementRecord as MovementRecordModel  # noqa: PLC0415
+        from translator.models import Simulation as SimulationModel  # noqa: PLC0415
+
+        curr_time_aware = timezone.make_aware(server.curr_time) if server.curr_time.tzinfo is None else server.curr_time
+        next_time_aware = timezone.make_aware(next_time) if next_time.tzinfo is None else next_time
+
+        with transaction.atomic():
+            MovementRecordModel.objects.update_or_create(
+                simulation=server._db_sim,
+                step=server.step,
+                defaults={
+                    "sim_curr_time": curr_time_aware,
+                    "persona_movements": movements,
+                },
+            )
+            SimulationModel.objects.filter(pk=server._db_sim.pk).update(
+                step=next_step,
+                curr_time=next_time_aware,
+                status="running",
+                game_obj_cleanup=new_game_obj_cleanup,
+            )
+            set_runtime_state("curr_sim_code", {"sim_code": sim_code})
+            set_runtime_state("curr_step", {"step": next_step})
+
+        return {
+            "movements": movements,
+            "step": server.step,
+            "next_step": next_step,
+        }
+
+
 if __name__ == "__main__":
     origin = input("Enter the name of the forked simulation: ").strip()
     target = input("Enter the name of the new simulation: ").strip()
