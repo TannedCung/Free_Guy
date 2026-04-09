@@ -175,9 +175,16 @@ X_FRAME_OPTIONS = "DENY"
 # Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # Reads JWT from httpOnly 'access_token' cookie; falls back to
+        # the Authorization: Bearer header for non-browser clients.
+        "translator.authentication.JWTCookieAuthentication",
     ],
 }
+
+# Where allauth redirects after a successful OAuth login.
+# Our callback view exchanges the allauth session for httpOnly JWT cookies
+# and then redirects to the React SPA.
+LOGIN_REDIRECT_URL = "/api/v1/auth/social/callback/"
 
 
 # SimpleJWT configuration

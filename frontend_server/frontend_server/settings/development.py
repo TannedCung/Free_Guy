@@ -30,6 +30,11 @@ WHITENOISE_ROOT = REACT_DIST_DIR  # noqa: F405
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "*"]
 
+# Trust forwarded headers from nginx (or the Vite dev proxy in local-only mode)
+# so Django builds correct absolute URLs and OAuth redirect_uris.
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = None  # HTTP only in dev — don't force HTTPS
+
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
@@ -44,12 +49,23 @@ else:
         }
     }
 
-# CORS — allow the React dev server (port 3000) to call the Django API
-CORS_ALLOWED_ORIGINS = [
+# CORS — allow all local origins in dev
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+# CSRF — trust all local origins.
+# With nginx on port 80, the primary origin is http://localhost (no port).
+# Ports 3000/8000 are kept for local dev without Docker.
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost",
+    "http://localhost:80",
     "http://localhost:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1",
+    "http://127.0.0.1:80",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
 ]
-CORS_ALLOW_CREDENTIALS = False
 
 # Cookie security — disable HTTPS enforcement in local dev
 SESSION_COOKIE_SECURE = False
