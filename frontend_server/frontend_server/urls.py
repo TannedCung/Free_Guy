@@ -22,6 +22,8 @@ urlpatterns = [
     # REST API v1 — social login redirect endpoints
     path("api/v1/auth/social/google/", social_auth_views.social_login_google, name="api-social-google"),
     path("api/v1/auth/social/github/", social_auth_views.social_login_github, name="api-social-github"),
+    # OAuth callback: allauth → JWT cookies → redirect to SPA (LOGIN_REDIRECT_URL)
+    path("api/v1/auth/social/callback/", social_auth_views.oauth_complete, name="api-social-callback"),
     # REST API v1 — auth endpoints
     path("api/v1/auth/register/", auth_views.register, name="api-auth-register"),
     path("api/v1/auth/login/", auth_views.login_view, name="api-auth-login"),
@@ -71,8 +73,12 @@ urlpatterns = [
         name="api-simulation-latest-movement",
     ),
     # REST API v1 — simulation step stage endpoints (Vercel serverless microservices)
-    path("api/v1/simulations/<str:sim_id>/step/perceive/", api_views.simulation_step_perceive, name="api-step-perceive"),
-    path("api/v1/simulations/<str:sim_id>/step/retrieve/", api_views.simulation_step_retrieve, name="api-step-retrieve"),
+    path(
+        "api/v1/simulations/<str:sim_id>/step/perceive/", api_views.simulation_step_perceive, name="api-step-perceive"
+    ),
+    path(
+        "api/v1/simulations/<str:sim_id>/step/retrieve/", api_views.simulation_step_retrieve, name="api-step-retrieve"
+    ),
     path("api/v1/simulations/<str:sim_id>/step/plan/", api_views.simulation_step_plan, name="api-step-plan"),
     path("api/v1/simulations/<str:sim_id>/step/reflect/", api_views.simulation_step_reflect, name="api-step-reflect"),
     path("api/v1/simulations/<str:sim_id>/step/execute/", api_views.simulation_step_execute, name="api-step-execute"),
