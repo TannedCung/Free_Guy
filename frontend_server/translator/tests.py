@@ -22,12 +22,13 @@ from django.core.management import call_command
 from django.test import TestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 from translator.models import (
-    ConceptNode,
     Character,
+    ConceptNode,
     Demo,
     DemoMovement,
     EnvironmentState,
     KeywordStrength,
+    Map,
     MovementRecord,
     Persona,
     PersonaScratch,
@@ -54,6 +55,32 @@ class AuthenticatedAPITestCase(TestCase):
         )
         refresh = RefreshToken.for_user(self.user)
         self.client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {refresh.access_token}"
+
+
+def _make_map(
+    map_id: str = "test_ville",
+    *,
+    name: str = "Test Ville",
+    maze_name: str = "the_ville",
+    max_agents: int = 25,
+    is_active: bool = True,
+) -> Map:
+    """Create-or-update a Map row for testing.
+
+    Uses get_or_create so tests work even when migration 0015 has already
+    seeded a row with the same primary key (e.g. 'the_ville').
+    """
+    obj, _ = Map.objects.update_or_create(
+        id=map_id,
+        defaults={
+            "name": name,
+            "description": "A cosy test town.",
+            "maze_name": maze_name,
+            "max_agents": max_agents,
+            "is_active": is_active,
+        },
+    )
+    return obj
 
 
 def _make_sim(name: str = "test-sim", **kwargs) -> Simulation:
@@ -145,6 +172,11 @@ class SimulationsListGetTests(AuthenticatedAPITestCase):
 
 
 class SimulationsListPostTests(AuthenticatedAPITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # The create endpoint resolves map_id against the DB; seed the default.
+        self.default_map = _make_map("the_ville")
+
     def _post(self, data: dict) -> object:
         return self.client.post(
             "/api/v1/simulations/",
@@ -188,6 +220,161 @@ class SimulationsListPostTests(AuthenticatedAPITestCase):
     def test_fork_from_nonexistent_returns_404(self) -> None:
         resp = self._post({"name": "orphan", "fork_from": "ghost-sim"})
         self.assertEqual(resp.status_code, 404)
+
+
+# ---------------------------------------------------------------------------
+# Maps list (GET /api/v1/maps/)
+# ---------------------------------------------------------------------------
+
+
+class MapsListTests(AuthenticatedAPITestCase):
+    """
+    Tests for GET /api/v1/maps/.
+
+    Note: migration 0015 seeds a 'the_ville' map into every test DB, so the
+    list is never truly empty.  Tests that need a clean slate deactivate the
+    seeded row first.
+    """
+
+    def _deactivate_seeded(self) -> None:
+        """Hide the migration-seeded maps so individual tests start clean."""
+        Map.objects.update(is_active=False)
+
+    def test_unauthenticated_returns_401(self) -> None:
+        self.client.defaults.pop("HTTP_AUTHORIZATION", None)
+        resp = self.client.get("/api/v1/maps/")
+        self.assertEqual(resp.status_code, 401)
+
+    def test_seeded_map_is_visible_by_default(self) -> None:
+        """The_ville is seeded by migration and must appear in the list."""
+        resp = self.client.get("/api/v1/maps/")
+        self.assertEqual(resp.status_code, 200)
+        ids = [m["id"] for m in resp.json()["maps"]]
+        self.assertIn("the_ville", ids)
+
+    def test_no_active_maps_returns_empty_list(self) -> None:
+        self._deactivate_seeded()
+        resp = self.client.get("/api/v1/maps/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), {"maps": []})
+
+    def test_lists_active_maps(self) -> None:
+        self._deactivate_seeded()
+        _make_map("test_ville", name="Test Ville")
+        _make_map("test_town", name="Test Town", maze_name="small_town")
+        resp = self.client.get("/api/v1/maps/")
+        ids = [m["id"] for m in resp.json()["maps"]]
+        self.assertIn("test_ville", ids)
+        self.assertIn("test_town", ids)
+
+    def test_inactive_maps_excluded(self) -> None:
+        self._deactivate_seeded()
+        _make_map("active_map", name="Active Map", is_active=True)
+        _make_map("hidden_map", name="Hidden Map", maze_name="hidden", is_active=False)
+        resp = self.client.get("/api/v1/maps/")
+        ids = [m["id"] for m in resp.json()["maps"]]
+        self.assertIn("active_map", ids)
+        self.assertNotIn("hidden_map", ids)
+
+    def test_maps_ordered_alphabetically_by_name(self) -> None:
+        self._deactivate_seeded()
+        _make_map("z_map", name="Zara Town", maze_name="z_map")
+        _make_map("a_map", name="Alpha City", maze_name="a_map")
+        resp = self.client.get("/api/v1/maps/")
+        names = [m["name"] for m in resp.json()["maps"]]
+        self.assertEqual(names, sorted(names))
+
+    def test_map_response_has_required_fields(self) -> None:
+        resp = self.client.get("/api/v1/maps/")
+        m = resp.json()["maps"][0]
+        for field in ("id", "name", "description", "preview_image_url", "max_agents"):
+            self.assertIn(field, m)
+
+    def test_maze_name_not_exposed_in_response(self) -> None:
+        """maze_name is an internal field and must not leak to the client."""
+        resp = self.client.get("/api/v1/maps/")
+        m = resp.json()["maps"][0]
+        self.assertNotIn("maze_name", m)
+
+
+# ---------------------------------------------------------------------------
+# Simulation creation with map selection
+# ---------------------------------------------------------------------------
+
+
+class SimulationMapSelectionTests(AuthenticatedAPITestCase):
+    """End-to-end tests for the map-selection flow in simulation creation."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        # "the_ville" is already seeded by migration 0015; update_or_create is safe.
+        self.ville = _make_map("the_ville", name="The Ville", maze_name="the_ville")
+        self.forest = _make_map("test_forest", name="The Forest", maze_name="forest_maze")
+
+    def _post(self, data: dict):
+        return self.client.post(
+            "/api/v1/simulations/",
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+
+    def test_creates_simulation_with_explicit_map(self) -> None:
+        resp = self._post({"name": "forest-run", "map_id": "test_forest"})
+        self.assertEqual(resp.status_code, 201)
+        data = resp.json()
+        self.assertEqual(data["map_id"], "test_forest")
+        self.assertEqual(data["maze_name"], "forest_maze")
+
+    def test_creates_simulation_defaults_to_the_ville(self) -> None:
+        resp = self._post({"name": "default-map-sim"})
+        self.assertEqual(resp.status_code, 201)
+        data = resp.json()
+        self.assertEqual(data["map_id"], "the_ville")
+        self.assertEqual(data["maze_name"], "the_ville")
+
+    def test_maze_name_copied_from_map(self) -> None:
+        """maze_name on the simulation row must come from the selected map."""
+        self._post({"name": "check-maze", "map_id": "test_forest"})
+        sim = Simulation.objects.get(name="check-maze")
+        self.assertEqual(sim.maze_name, self.forest.maze_name)
+
+    def test_map_fk_stored_on_simulation(self) -> None:
+        resp = self._post({"name": "fk-check", "map_id": "test_forest"})
+        self.assertEqual(resp.status_code, 201)
+        sim = Simulation.objects.get(name="fk-check")
+        self.assertEqual(sim.map_id_id, "test_forest")
+
+    def test_invalid_map_id_returns_400(self) -> None:
+        resp = self._post({"name": "bad-map-sim", "map_id": "does_not_exist"})
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("error", resp.json())
+
+    def test_creator_gets_admin_membership(self) -> None:
+        self._post({"name": "member-check", "map_id": "the_ville"})
+        sim = Simulation.objects.get(name="member-check")
+        membership = SimulationMembership.objects.get(simulation=sim, user=self.user)
+        self.assertEqual(membership.role, SimulationMembership.Role.ADMIN)
+
+    def test_response_includes_map_and_maze_fields(self) -> None:
+        resp = self._post({"name": "resp-check", "map_id": "test_forest"})
+        data = resp.json()
+        self.assertIn("map_id", data)
+        self.assertIn("maze_name", data)
+
+    def test_visibility_stored_correctly(self) -> None:
+        resp = self._post({"name": "public-sim", "map_id": "the_ville", "visibility": "public"})
+        self.assertEqual(resp.status_code, 201)
+        sim = Simulation.objects.get(name="public-sim")
+        self.assertEqual(sim.visibility, "public")
+
+    @patch("qdrant_utils.copy_persona_embeddings")
+    def test_fork_inherits_map_from_request_not_source(self, _mock) -> None:
+        """When forking, the new map_id comes from the request, not the source sim."""
+        src = _make_sim("src-for-fork", map_id=self.ville)
+        _make_persona(src, "Carol")
+        resp = self._post({"name": "forked-forest", "fork_from": "src-for-fork", "map_id": "test_forest"})
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.json()["map_id"], "test_forest")
 
 
 # ---------------------------------------------------------------------------
@@ -1931,7 +2118,7 @@ class CompleteUserFlowTest(AuthenticatedAPITestCase):
 
         # --- Step 4: Drop character into simulation ---
         drop_resp = self.client.post(
-            f"/api/v1/simulations/e2e-flow-sim/drop/",
+            "/api/v1/simulations/e2e-flow-sim/drop/",
             data=json.dumps({"character_id": char_id}),
             content_type="application/json",
         )
@@ -1984,9 +2171,7 @@ class CompleteUserFlowTest(AuthenticatedAPITestCase):
         self.assertIn("Dr. Sarah Chen", agent_ids)
 
         # Verify agent detail
-        agent_detail_resp = self.client.get(
-            "/api/v1/simulations/e2e-flow-sim/agents/Dr.%20Sarah%20Chen/"
-        )
+        agent_detail_resp = self.client.get("/api/v1/simulations/e2e-flow-sim/agents/Dr.%20Sarah%20Chen/")
         self.assertEqual(agent_detail_resp.status_code, 200)
         detail = agent_detail_resp.json()
         self.assertEqual(detail["name"], "Dr. Sarah Chen")
@@ -2043,15 +2228,17 @@ class CompleteUserFlowTest(AuthenticatedAPITestCase):
         # Create first character: a doctor
         resp1 = self.client.post(
             "/api/v1/characters/",
-            data=json.dumps({
-                "name": "Doctor Marcus",
-                "age": 45,
-                "traits": "methodical, empathetic",
-                "currently": "running morning rounds",
-                "lifestyle": "structured clinical schedule",
-                "living_area": "the_ville:clinic_residence",
-                "daily_plan": "7am rounds, 10am consults, 5pm done",
-            }),
+            data=json.dumps(
+                {
+                    "name": "Doctor Marcus",
+                    "age": 45,
+                    "traits": "methodical, empathetic",
+                    "currently": "running morning rounds",
+                    "lifestyle": "structured clinical schedule",
+                    "living_area": "the_ville:clinic_residence",
+                    "daily_plan": "7am rounds, 10am consults, 5pm done",
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(resp1.status_code, 201)
@@ -2060,15 +2247,17 @@ class CompleteUserFlowTest(AuthenticatedAPITestCase):
         # Create second character: a teacher with different schedule
         resp2 = self.client.post(
             "/api/v1/characters/",
-            data=json.dumps({
-                "name": "Teacher Amara",
-                "age": 33,
-                "traits": "patient, creative, enthusiastic",
-                "currently": "preparing lesson plans for tomorrow",
-                "lifestyle": "early to school, afternoons grading",
-                "living_area": "the_ville:maple_apartment_1a",
-                "daily_plan": "6am wake, school 8am-3pm, grading 4pm, reading 8pm",
-            }),
+            data=json.dumps(
+                {
+                    "name": "Teacher Amara",
+                    "age": 33,
+                    "traits": "patient, creative, enthusiastic",
+                    "currently": "preparing lesson plans for tomorrow",
+                    "lifestyle": "early to school, afternoons grading",
+                    "living_area": "the_ville:maple_apartment_1a",
+                    "daily_plan": "6am wake, school 8am-3pm, grading 4pm, reading 8pm",
+                }
+            ),
             content_type="application/json",
         )
         self.assertEqual(resp2.status_code, 201)
