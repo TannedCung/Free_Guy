@@ -1,5 +1,9 @@
 /**
  * Auth API functions.
+ *
+ * Tokens are managed entirely via httpOnly cookies on the server side.
+ * Login and register return only user data; the cookies are set automatically
+ * by the server on every auth response.
  */
 
 import { apiFetch } from './client'
@@ -10,16 +14,10 @@ export interface UserData {
   email: string
 }
 
-export interface AuthTokens {
-  access: string
-  refresh: string
-  user: UserData
-}
-
 export async function apiLogin(
   username: string,
   password: string,
-): Promise<AuthTokens> {
+): Promise<{ user: UserData }> {
   const res = await apiFetch('/auth/login/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -29,7 +27,7 @@ export async function apiLogin(
     const err = (await res.json()) as { detail?: string }
     throw new Error(err.detail ?? 'Login failed')
   }
-  return res.json() as Promise<AuthTokens>
+  return res.json() as Promise<{ user: UserData }>
 }
 
 export async function apiRegister(
@@ -37,7 +35,7 @@ export async function apiRegister(
   email: string,
   password: string,
   passwordConfirm: string,
-): Promise<AuthTokens> {
+): Promise<{ user: UserData }> {
   const res = await apiFetch('/auth/register/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -52,19 +50,16 @@ export async function apiRegister(
     const err = (await res.json()) as Record<string, string[]>
     throw err
   }
-  return res.json() as Promise<AuthTokens>
+  return res.json() as Promise<{ user: UserData }>
 }
 
-export async function apiLogout(refresh: string): Promise<void> {
-  await apiFetch('/auth/logout/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh }),
-  })
+export async function apiLogout(): Promise<void> {
+  // Server reads the refresh cookie, blacklists it, and clears both cookies.
+  await apiFetch('/auth/logout/', { method: 'POST' })
 }
 
 export async function apiFetchMe(): Promise<UserData & { date_joined: string }> {
   const res = await apiFetch('/auth/me/')
-  if (!res.ok) throw new Error('Failed to fetch user profile')
+  if (!res.ok) throw new Error('Not authenticated')
   return res.json() as Promise<UserData & { date_joined: string }>
 }

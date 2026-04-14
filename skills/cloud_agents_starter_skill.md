@@ -152,6 +152,13 @@ LLM safety for tests:
   - Re-run login and use fresh access token (access tokens are short-lived).
 - Backend pytest import error from missing `OPENAI_API_KEY`:
   - `export OPENAI_API_KEY=test-key-for-testing` before running tests.
+- Google/GitHub social login returns 500 error in docker-compose:
+  - Ensure `VITE_API_PROXY_TARGET=http://backend:8000` is set in docker-compose.yml frontend environment.
+  - The Vite proxy must use service names (`backend`) not `localhost` inside containers.
+- Social login redirects to Google but fails to complete OAuth flow:
+  - Run `docker compose exec backend python manage.py setup_social_auth` to configure OAuth providers.
+  - Ensure `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set in `.env`.
+  - This command is automatically run on container startup (see `frontend_server/Dockerfile.py`).
 
 ## 7) Keep this skill updated
 

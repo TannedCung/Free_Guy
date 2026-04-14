@@ -8,8 +8,7 @@
  * Replaces useSimulationWebSocket.ts — same interface, different transport.
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { getAccessToken } from '../api/client'
+import { useEffect, useRef, useState, useCallback, type MutableRefObject } from 'react'
 
 export interface StepUpdatePayload {
   step?: number
@@ -31,30 +30,24 @@ export type SseStatus = 'connecting' | 'connected' | 'disconnected'
 export function useSimulationSSE({
   simId,
   onStepUpdate,
-  onForbidden,
-  onAuthError,
 }: UseSimulationSSEOptions) {
   const [sseStatus, setSseStatus] = useState<SseStatus>('disconnected')
   const esRef = useRef<EventSource | null>(null)
   const backoffRef = useRef(1000)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const unmountedRef = useRef(false)
+  // Ref lets the timeout/error handlers call connect() without a circular
+  // const-TDZ reference inside the useCallback body.
+  const connectRef: MutableRefObject<(() => void) | null> = useRef(null)
 
   const connect = useCallback(() => {
     if (unmountedRef.current) return
 
-    const token = getAccessToken()
-    if (!token) {
-      onAuthError()
-      return
-    }
-
     setSseStatus('connecting')
 
-    // The SSE edge function is at /api/simulations/:id/stream.
-    // We pass the JWT as a query parameter because EventSource does not support
-    // custom headers. The edge function forwards it to the Django API.
-    const url = `/api/simulations/${encodeURIComponent(simId)}/stream?token=${encodeURIComponent(token)}`
+    // Auth cookies are sent automatically by the browser on same-origin
+    // EventSource connections (routed through nginx).
+    const url = `/api/simulations/${encodeURIComponent(simId)}/stream`
     const es = new EventSource(url)
     esRef.current = es
 
@@ -77,7 +70,7 @@ export function useSimulationSSE({
     es.addEventListener('timeout', () => {
       // Edge function stream expired — reconnect immediately.
       es.close()
-      if (!unmountedRef.current) connect()
+      connectRef.current?.()
     })
 
     es.onerror = () => {
@@ -86,9 +79,13 @@ export function useSimulationSSE({
       setSseStatus('disconnected')
       const delay = Math.min(backoffRef.current, 30000)
       backoffRef.current = Math.min(backoffRef.current * 2, 30000)
-      reconnectTimerRef.current = setTimeout(connect, delay)
+      reconnectTimerRef.current = setTimeout(() => connectRef.current?.(), delay)
     }
-  }, [simId, onStepUpdate, onForbidden, onAuthError])
+  }, [simId, onStepUpdate])
+
+  useEffect(() => {
+    connectRef.current = connect
+  })
 
   useEffect(() => {
     unmountedRef.current = false

@@ -31,10 +31,26 @@ def _parse_json_post(request):
 
 
 def spa_index(request):
-    """Serve the React SPA index.html for all non-API, non-admin routes."""
+    """Serve the React SPA index.html for all non-API, non-admin routes.
+
+    In the Docker / nginx setup the frontend is served by the Vite container,
+    so the built dist/ does not exist inside the backend image.  Return a
+    plain 404 JSON response for unmatched /api/ paths; for all other paths
+    the request should never reach this view (nginx routes them to the
+    frontend container).
+    """
+    if request.path.startswith("/api/"):
+        return JsonResponse({"detail": "Not found."}, status=404)
+
     index_path = os.path.join(settings.REACT_DIST_DIR, "index.html")
-    with open(index_path, "rb") as f:
-        return HttpResponse(f.read(), content_type="text/html")
+    try:
+        with open(index_path, "rb") as f:
+            return HttpResponse(f.read(), content_type="text/html")
+    except FileNotFoundError:
+        return JsonResponse(
+            {"detail": "SPA not built. In Docker, access the app through nginx (port 80)."},
+            status=404,
+        )
 
 
 @csrf_exempt  # Exempt: called from Phaser game loop via XMLHttpRequest (no HTML form/session context)

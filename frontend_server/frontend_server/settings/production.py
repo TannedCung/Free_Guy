@@ -51,6 +51,10 @@ ALLOWED_HOSTS += [h for h in [".vercel.app"] if h not in ALLOWED_HOSTS]
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
+# Trust forwarded headers from the nginx reverse proxy
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 # whitenoise for serving compressed static files in production
 # https://whitenoise.readthedocs.io/en/stable/django.html
 INSTALLED_APPS = ["whitenoise.runserver_nostatic"] + INSTALLED_APPS  # noqa: F405

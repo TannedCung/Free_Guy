@@ -175,9 +175,16 @@ X_FRAME_OPTIONS = "DENY"
 # Django REST Framework
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # Reads JWT from httpOnly 'access_token' cookie; falls back to
+        # the Authorization: Bearer header for non-browser clients.
+        "translator.authentication.JWTCookieAuthentication",
     ],
 }
+
+# Where allauth redirects after a successful OAuth login.
+# Our callback view exchanges the allauth session for httpOnly JWT cookies
+# and then redirects to the React SPA.
+LOGIN_REDIRECT_URL = "/api/v1/auth/social/callback/"
 
 
 # SimpleJWT configuration
@@ -201,23 +208,15 @@ ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["username*", "password1*", "password2*"]
 SOCIALACCOUNT_QUERY_EMAIL = True
 
-# Social OAuth providers — client IDs/secrets read from environment variables
+# Social OAuth providers are configured in the database via SocialApp model
+# Run `python manage.py setup_social_auth` to configure from environment variables
+# Note: SOCIALACCOUNT_PROVIDERS can be used here for provider-specific settings
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
-        "APP": {
-            "client_id": os.environ.get("GOOGLE_CLIENT_ID", ""),
-            "secret": os.environ.get("GOOGLE_CLIENT_SECRET", ""),
-            "key": "",
-        },
         "SCOPE": ["profile", "email"],
         "AUTH_PARAMS": {"access_type": "online"},
     },
     "github": {
-        "APP": {
-            "client_id": os.environ.get("GITHUB_CLIENT_ID", ""),
-            "secret": os.environ.get("GITHUB_CLIENT_SECRET", ""),
-            "key": "",
-        },
         "SCOPE": ["user:email"],
     },
 }

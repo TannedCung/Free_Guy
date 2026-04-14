@@ -7,10 +7,30 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
+    // These proxies are only used when running Vite directly (no Docker/nginx).
+    // In Docker, nginx routes /api/* and /accounts/* to the backend directly.
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            const host = req.headers['host'] || 'localhost:3000'
+            proxyReq.setHeader('X-Forwarded-Host', host)
+            proxyReq.setHeader('X-Forwarded-Proto', 'http')
+          })
+        },
+      },
+      '/accounts': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            const host = req.headers['host'] || 'localhost:3000'
+            proxyReq.setHeader('X-Forwarded-Host', host)
+            proxyReq.setHeader('X-Forwarded-Proto', 'http')
+          })
+        },
       },
     },
   },
