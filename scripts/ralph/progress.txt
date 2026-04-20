@@ -20,3 +20,15 @@ Started: Mon Apr 20 05:44:41 PM +07 2026
   - Pre-commit auto-formats via ruff; must re-stage after first commit attempt
   - `SimulationStepCache.stage` uses TextChoices: perceive/retrieve/plan/reflect/execute
 ---
+
+## 2026-04-20 - US-003
+- Added `sidebarTab` state (`'agents' | 'debug'`, default `'agents'`) to `SimulationViewer`
+- Replaced flat `<aside>` sidebar with tabbed layout: two buttons at top, content panel below
+- Agents tab shows existing agent list; Debug tab shows placeholder `<div>Debug view coming soon</div>`
+- Active tab styled with `retro-button-primary` + blue border highlight
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - Sidebar structure changed to `flex flex-col`; content scrolls inside `flex-1 overflow-y-auto` child
+  - Tab buttons use inline conditional classes; `retro-button-primary` adds blue bg highlight
+  - Manual browser verification needed (no browser MCP tools available)
+---
