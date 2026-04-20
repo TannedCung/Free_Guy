@@ -1,0 +1,264 @@
+/* ============================================================
+   Reverie Pixel Town — Design Tokens
+   Colors, type, spacing, borders, shadows.
+   Source of truth for the retro pixel aesthetic.
+   ============================================================ */
+
+/* Fonts — Press Start 2P (display/UI), VT323 (dense body/mono) */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+
+:root {
+  /* ─── Core palette (from frontend/src/index.css) ───────────── */
+  --retro-sky:     #77bef0;  /* cool primary — links, focus, primary buttons */
+  --retro-sun:     #ffcb61;  /* warm secondary — step markers, warm buttons */
+  --retro-orange:  #ff894f;  /* accent — panel borders, hover on sun */
+  --retro-rose:    #ea5b6f;  /* danger / link text */
+  --retro-paper:   #fffdf3;  /* page background — cream, not white */
+  --retro-ink:     #2f2a3a;  /* near-black foreground with violet undertone */
+  --retro-shadow:  #9d4f5c;  /* dusty plum — hard offset shadows */
+
+  /* ─── Tints & darks (for hover / borders / grid) ───────────── */
+  --retro-sky-dark:     #5ea8dc;
+  --retro-rose-dark:    #cf4c61;
+  --retro-orange-dark:  #b94053;   /* used for link hover */
+  --retro-ink-violet:   #42395b;   /* slightly lifted ink for headers */
+  --retro-ink-dim:      #5a4f79;
+  --retro-ink-soft:     #74679a;
+  --retro-cream-warm:   #f6f1dd;   /* ghost button hover */
+
+  /* Sky / sun grid wash (used on body bg) */
+  --retro-sky-wash:     rgb(119 190 240 / 15%);
+  --retro-sun-wash:     rgb(255 203 97 / 20%);
+
+  /* ─── Semantic foreground ──────────────────────────────────── */
+  --fg-1: var(--retro-ink);
+  --fg-2: color-mix(in srgb, var(--retro-ink) 82%, white);
+  --fg-3: color-mix(in srgb, var(--retro-ink) 74%, white);
+  --fg-4: color-mix(in srgb, var(--retro-ink) 45%, white);
+  --fg-danger: var(--retro-rose);
+  --fg-link: var(--retro-rose);
+  --fg-link-hover: var(--retro-orange-dark);
+
+  /* ─── Semantic background ──────────────────────────────────── */
+  --bg-page:    var(--retro-paper);
+  --bg-surface: #fffdf7;           /* panel fill — very slightly warmer than paper */
+  --bg-input:   #ffffff;
+  --bg-header:  var(--retro-sky);
+  --bg-accent-warm:  var(--retro-sun);
+  --bg-accent-cool:  var(--retro-sky);
+  --bg-danger:  var(--retro-rose);
+
+  /* Soft tints for status pills / steps */
+  --bg-info-soft:    color-mix(in srgb, var(--retro-sky) 20%, white);
+  --bg-success-soft: #d4f0c8;  /* pastel green — matches grass in cover art */
+  --bg-warn-soft:    color-mix(in srgb, var(--retro-sun) 40%, white);
+  --bg-danger-soft:  color-mix(in srgb, var(--retro-rose) 22%, white);
+
+  /* ─── Borders ──────────────────────────────────────────────── */
+  --border-ink:     2px solid var(--retro-ink);      /* inputs, buttons, badges */
+  --border-panel:   3px solid var(--retro-orange);   /* cards / panels */
+  --border-steps:   3px solid var(--retro-sky);      /* step callouts */
+  --border-dashed-sky: 2px dashed var(--retro-sky);  /* empty states */
+
+  /* ─── Shadows (hard offset, never blurred) ─────────────────── */
+  --shadow-panel: 6px 6px 0 var(--retro-shadow);          /* cards */
+  --shadow-panel-sm: 4px 4px 0 var(--retro-shadow);       /* small cards */
+  --shadow-header: 0 6px 0 var(--retro-shadow);           /* bottom-only */
+  --shadow-soft:  5px 5px 0 rgb(159 77 95 / 65%);         /* overridden tailwind */
+
+  /* ─── Radii ────────────────────────────────────────────────── */
+  --radius-0: 0;   /* the only radius. everything is hard-edged. */
+
+  /* ─── Spacing scale (coarse, pixel-grid friendly) ──────────── */
+  --sp-0: 0;
+  --sp-1: 0.25rem;  /*  4px */
+  --sp-2: 0.5rem;   /*  8px */
+  --sp-3: 0.75rem;  /* 12px */
+  --sp-4: 1rem;     /* 16px */
+  --sp-5: 1.5rem;   /* 24px */
+  --sp-6: 2rem;     /* 32px */
+  --sp-7: 2.5rem;   /* 40px */
+  --sp-8: 3rem;     /* 48px */
+
+  /* Container */
+  --max-main: 76rem;  /* 1216px */
+
+  /* ─── Grid backdrop (the body pattern) ─────────────────────── */
+  --bg-page-grid:
+    linear-gradient(90deg, var(--retro-sky-wash) 1px, transparent 1px) 0 0 / 20px 20px,
+    linear-gradient(var(--retro-sun-wash) 1px, transparent 1px) 0 0 / 20px 20px,
+    var(--retro-paper);
+
+  /* ─── Typography ───────────────────────────────────────────── */
+  --ff-display: 'Press Start 2P', 'Trebuchet MS', Verdana, sans-serif;
+  --ff-body:    'Press Start 2P', 'Trebuchet MS', Verdana, sans-serif;
+  --ff-dense:   'VT323', 'Menlo', monospace;          /* for dense logs / system */
+  --ff-mono:    ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Size ramp — pixel fonts are hard to read small; we bias UP */
+  --fs-xs:   0.64rem;  /* 10px — badges */
+  --fs-sm:   0.72rem;  /* 11.5px — buttons, meta */
+  --fs-base: 0.8rem;   /* 12.8px — input, body */
+  --fs-md:   0.95rem;  /* 15.2px — subtitle paragraphs */
+  --fs-lg:   1.125rem; /* 18px — card H3 */
+  --fs-xl:   1.3rem;   /* 20.8px — H2 min */
+  --fs-2xl:  2rem;     /* 32px — H2 max (clamp target) */
+
+  /* Tracking (Press Start 2P benefits from OPEN tracking) */
+  --tr-tight:  0.03em;
+  --tr-normal: 0.04em;
+  --tr-wide:   0.05em;
+  --tr-wider:  0.06em;
+
+  /* Weights (Press Start 2P only has 400, but we declare for mapping) */
+  --fw-regular: 400;
+  --fw-bold:    800;
+}
+
+/* ============================================================
+   Base elements
+   ============================================================ */
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: var(--fg-1);
+  font-family: var(--ff-body);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  background: var(--bg-page-grid);
+  background-attachment: fixed;
+}
+
+/* Semantic text roles — use these instead of reaching for raw sizes */
+.t-h1,
+h1.t {
+  font-family: var(--ff-display);
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-normal);
+  color: var(--fg-1);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.t-h2,
+h2.t {
+  font-family: var(--ff-display);
+  font-size: clamp(var(--fs-xl), 3vw, var(--fs-2xl));
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-normal);
+  color: var(--fg-1);
+  line-height: 1.25;
+  margin: 0;
+}
+
+.t-h3,
+h3.t {
+  font-family: var(--ff-display);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-normal);
+  color: var(--fg-1);
+  margin: 0;
+}
+
+.t-eyebrow {
+  font-family: var(--ff-display);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-wider);
+  color: var(--fg-3);
+}
+
+.t-p {
+  font-family: var(--ff-body);
+  font-size: var(--fs-md);
+  line-height: 1.7;
+  color: var(--fg-2);
+}
+
+.t-caption {
+  font-family: var(--ff-body);
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+}
+
+.t-dialog {
+  /* The in-game speech bubble / replay script voice. Mono, crisp. */
+  font-family: var(--ff-mono);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--fg-1);
+}
+
+.t-mono {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-sm);
+  color: var(--fg-1);
+}
+
+.t-dense {
+  /* VT323 — use for long logs, terminal, dense data */
+  font-family: var(--ff-dense);
+  font-size: 1.15rem;
+  line-height: 1.35;
+  color: var(--fg-1);
+}
+
+.t-link {
+  color: var(--fg-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: var(--fw-bold);
+}
+
+.t-link:hover {
+  color: var(--fg-link-hover);
+}
+
+/* ============================================================
+   Primitive surfaces (match the frontend's retro-* classes but
+   re-expressed with tokens so they can be reused cleanly).
+   ============================================================ */
+
+.surface-panel {
+  background: var(--bg-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-0);
+  box-shadow: var(--shadow-panel);
+}
+
+.surface-panel-sm {
+  background: var(--bg-surface);
+  border: var(--border-panel);
+  border-radius: var(--radius-0);
+  box-shadow: var(--shadow-panel-sm);
+}
+
+.surface-header {
+  background: var(--bg-header);
+  border-bottom: 4px solid var(--retro-orange);
+  box-shadow: var(--shadow-header);
+}
+
+.surface-steps {
+  border: var(--border-steps);
+  background: var(--bg-info-soft);
+  padding: var(--sp-4);
+}
+
+.surface-empty {
+  text-align: center;
+  color: var(--fg-3);
+  border: var(--border-dashed-sky);
+  background: var(--bg-input);
+  padding: var(--sp-5);
+}

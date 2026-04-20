@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reverie Pixel Town — UI Kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  html, body { margin: 0; padding: 0; min-height: 100vh; }
+  body {
+    font-family: var(--ff-body);
+    color: var(--fg-1);
+    background: var(--bg-page-grid);
+    background-attachment: fixed;
+  }
+  .rpt-btn {
+    border: 2px solid var(--retro-ink);
+    border-radius: 0;
+    padding: .55rem .95rem;
+    font-family: var(--ff-display);
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: .72rem;
+    letter-spacing: .05em;
+    cursor: pointer;
+  }
+  .rpt-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .rpt-panel {
+    background: var(--bg-surface);
+    border: 3px solid var(--retro-orange);
+    box-shadow: 6px 6px 0 var(--retro-shadow);
+    border-radius: 0;
+  }
+  .rpt-navlink {
+    border: 2px solid var(--retro-ink);
+    color: var(--retro-ink);
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: .7rem;
+    letter-spacing: .03em;
+    padding: .35rem .55rem;
+    font-family: var(--ff-display);
+    text-decoration: none;
+    cursor: pointer;
+    display: inline-block;
+  }
+  .rpt-input {
+    width: 100%;
+    border: 2px solid var(--retro-ink);
+    background: #fff;
+    color: var(--retro-ink);
+    padding: .65rem .8rem;
+    font-size: .8rem;
+    font-family: var(--ff-body);
+    box-sizing: border-box;
+  }
+  .rpt-input:focus { outline: 3px solid var(--retro-sky); outline-offset: 1px; }
+  .rpt-badge {
+    border: 2px solid var(--retro-ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.4rem;
+    min-height: 1.4rem;
+    font-weight: 800;
+    font-family: var(--ff-display);
+    font-size: .64rem;
+  }
+  img { image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="Primitives.jsx"></script>
+<script type="text/babel" src="Header.jsx"></script>
+<script type="text/babel" src="LandingPage.jsx"></script>
+<script type="text/babel" src="LoginPage.jsx"></script>
+<script type="text/babel" src="DashboardPage.jsx"></script>
+<script type="text/babel" src="CharactersPage.jsx"></script>
+<script type="text/babel" src="ObservePage.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+const seedChars = [
+  { id:1, name:'Isabella Rodriguez', age:34, portrait:'Isabella_Rodriguez', status:'In simulation' },
+  { id:2, name:'Klaus Mueller',      age:28, portrait:'Klaus_Mueller',      status:'In simulation' },
+  { id:3, name:'Maria Lopez',        age:21, portrait:'Maria_Lopez',        status:'Available' },
+  { id:4, name:'Abigail Chen',       age:24, portrait:'Abigail_Chen',       status:'In simulation' },
+  { id:5, name:'Sam Moore',          age:45, portrait:'Sam_Moore',          status:'Available' },
+  { id:6, name:'Wolfgang Schulz',    age:22, portrait:'Wolfgang_Schulz',    status:'Available' },
+];
+const seedSims = [
+  { id:'s1', name:'my_ville_experiment',  status:'running',   map:'the_ville', charCount:3, step:128 },
+  { id:'s2', name:'late_night_chat',      status:'paused',    map:'the_ville', charCount:5, step:412 },
+  { id:'s3', name:'test_fork_2',          status:'completed', map:'the_ville', charCount:3, step:600 },
+];
+
+function App() {
+  const [route, setRoute] = useState('/');
+  const [user, setUser] = useState(null);
+  const [activeSim, setActiveSim] = useState(null);
+
+  const goto = (r) => setRoute(r);
+  const login = (u) => { setUser(u); setRoute('/dashboard'); };
+  const logout = () => { setUser(null); setRoute('/'); };
+
+  // Routes that don't need the standard header (landing owns its own, login is centered)
+  const bareRoutes = new Set(['/', '/login', '/register']);
+  const showHeader = !bareRoutes.has(route);
+
+  return (
+    <div>
+      {showHeader && (
+        <Header
+          user={user}
+          pendingInvites={2}
+          route={route}
+          goto={goto}
+          onLogout={logout}
+        />
+      )}
+      {route === '/' && <LandingPage goto={goto} />}
+      {route === '/login' && <LoginPage goto={goto} onLogin={login} />}
+      {route === '/register' && <LoginPage goto={goto} onLogin={login} />}
+      {route === '/dashboard' && (
+        <DashboardPage
+          user={user || { username:'guest' }}
+          sims={seedSims}
+          chars={seedChars}
+          goto={goto}
+          onObserve={(s)=>{ setActiveSim(s); setRoute('/observe'); }}
+        />
+      )}
+      {route === '/characters' && <CharactersPage chars={seedChars} goto={goto} />}
+      {route === '/observe' && <ObservePage sim={activeSim} goto={goto} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
