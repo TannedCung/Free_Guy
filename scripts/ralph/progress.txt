@@ -1,11 +1,22 @@
+## Codebase Patterns
+- Access control for simulation endpoints: check `sim.owner == request.user` OR `SimulationMembership` active member OR `sim.visibility == PUBLIC`
+- Pre-commit hooks run ruff + ruff-format; always re-stage after first failed commit attempt
+- `SimulationStepCache` model: unique_together (simulation, step, stage); `data` is JSONField keyed by persona name
+- `_can_observe` helper lives in `simulation_views.py` but api_views.py does its own inline check (same logic)
+- URL patterns: new simulation endpoints go in `urls.py` between the SSE and step endpoints section
+
 # Ralph Progress Log
-Started: 2026-04-20
+Started: Mon Apr 20 05:44:41 PM +07 2026
 ---
 
-## Codebase Patterns
-- SimulationStepCache model in `frontend_server/translator/models.py` stores per-step, per-stage data keyed by (simulation, step, stage). Stages: PERCEIVE, RETRIEVE, PLAN, REFLECT, EXECUTE.
-- `CanObserveSimulation` DRF permission class already defined in `frontend_server/translator/api_views.py` — use it on all simulation-scoped read endpoints.
-- Frontend uses `retro-*` Tailwind utility classes from `design-system/colors_and_type.css` for all UI components.
-- API client pattern: authenticated fetch wrapper in `frontend/src/api/simulations.ts` — follow existing function signatures.
-- SimulatePage `meta.step` is the authoritative current step; SSE events update it via `useSimulationSSE` hook.
-- Agent movement/action data arrives via SSE (`useSimulationSSE`) as `StepUpdatePayload` with `persona_movements` field.
+## 2026-04-20 - US-001
+- Implemented `GET /api/v1/simulations/{sim_id}/debug/?step=N` endpoint
+- Added `SimulationStepCache` import to `api_views.py`
+- Added `simulation_debug_step` view function with owner/member/public access check
+- Registered URL in `urls.py` as `api-simulation-debug`
+- Files changed: `frontend_server/translator/api_views.py`, `frontend_server/frontend_server/urls.py`
+- **Learnings for future iterations:**
+  - `CanObserveSimulation` did not exist as a DRF permission class — implemented inline access check matching `_can_observe` in simulation_views.py
+  - Pre-commit auto-formats via ruff; must re-stage after first commit attempt
+  - `SimulationStepCache.stage` uses TextChoices: perceive/retrieve/plan/reflect/execute
+---
