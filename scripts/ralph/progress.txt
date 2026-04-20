@@ -4,6 +4,7 @@
 - `SimulationStepCache` model: unique_together (simulation, step, stage); `data` is JSONField keyed by persona name
 - `_can_observe` helper lives in `simulation_views.py` but api_views.py does its own inline check (same logic)
 - URL patterns: new simulation endpoints go in `urls.py` between the SSE and step endpoints section
+- ESLint rule `react-hooks/set-state-in-effect` blocks synchronous setState in useEffect body; wrap async fetches in useCallback and call them from within the effect instead
 
 # Ralph Progress Log
 Started: Mon Apr 20 05:44:41 PM +07 2026
@@ -30,5 +31,19 @@ Started: Mon Apr 20 05:44:41 PM +07 2026
 - **Learnings for future iterations:**
   - Sidebar structure changed to `flex flex-col`; content scrolls inside `flex-1 overflow-y-auto` child
   - Tab buttons use inline conditional classes; `retro-button-primary` adds blue bg highlight
+  - Manual browser verification needed (no browser MCP tools available)
+---
+
+## 2026-04-20 - US-004
+- Added `DebugPanel` component to `SimulatePage.tsx`
+- Shows current step number and `meta.curr_time` in the Debug tab
+- Renders 5-stage cognitive pipeline (Perceive → Retrieve → Plan → Reflect → Execute) with grey/green pills
+- Pills turn green when `DebugStepData.stages[stage]` has data; re-fetches via `fetchDebugStep` on each `step` change
+- Used `useCallback` wrapper for async fetch to satisfy ESLint `react-hooks/set-state-in-effect` rule
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - ESLint blocks synchronous setState directly in useEffect body; wrap async ops in useCallback and call from effect
+  - Run `node_modules/.bin/eslint src/pages/SimulatePage.tsx` to check frontend lint before committing
+  - Run `node_modules/.bin/tsc -p tsconfig.app.json --noEmit` (not `tsc -b`) to avoid vite.config.ts type errors
   - Manual browser verification needed (no browser MCP tools available)
 ---
