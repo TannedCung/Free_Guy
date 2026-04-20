@@ -208,6 +208,18 @@ ACCOUNT_LOGIN_METHODS = {"username", "email"}
 ACCOUNT_SIGNUP_FIELDS = ["username*", "password1*", "password2*"]
 SOCIALACCOUNT_QUERY_EMAIL = True
 
+# Use https:// when building OAuth redirect_uris so allauth generates the
+# correct callback URL when the app is served through ngrok or any TLS proxy.
+_site_domain = os.environ.get("DJANGO_SITE_DOMAIN", "")
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https" if _site_domain else "http"
+
+# Trust the ngrok (or any configured) domain for CSRF so Django accepts
+# POST requests (token refresh, logout, etc.) originating from it.
+_csrf_trusted = ["http://localhost", "http://127.0.0.1"]
+if _site_domain:
+    _csrf_trusted.append(f"https://{_site_domain}")
+CSRF_TRUSTED_ORIGINS = _csrf_trusted
+
 # Social OAuth providers are configured in the database via SocialApp model
 # Run `python manage.py setup_social_auth` to configure from environment variables
 # Note: SOCIALACCOUNT_PROVIDERS can be used here for provider-specific settings

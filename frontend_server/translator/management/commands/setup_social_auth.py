@@ -16,7 +16,16 @@ class Command(BaseCommand):
     help = "Set up social authentication providers from environment variables"
 
     def handle(self, *args, **options):
+        # Update the Site domain from DJANGO_SITE_DOMAIN if set, so allauth
+        # builds the correct redirect_uri for OAuth providers.
+        site_domain = os.environ.get("DJANGO_SITE_DOMAIN", "")
         site = Site.objects.get_current()
+        if site_domain and site.domain != site_domain:
+            site.domain = site_domain
+            site.name = site_domain
+            site.save()
+            self.stdout.write(self.style.SUCCESS(f"✓ Site domain updated to: {site_domain}"))
+
         self.stdout.write(f"Configuring social auth for site: {site.domain}")
 
         # Google OAuth
