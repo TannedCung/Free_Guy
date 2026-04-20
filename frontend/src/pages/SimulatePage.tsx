@@ -510,6 +510,8 @@ function DebugPanel({
 }) {
   const [debugData, setDebugData] = useState<DebugStepData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [expandedAgentName, setExpandedAgentName] = useState<string | null>(null)
+  const [openStages, setOpenStages] = useState<Set<string>>(new Set())
 
   const loadDebugData = useCallback(
     async (s: number) => {
@@ -530,6 +532,28 @@ function DebugPanel({
     if (step === null) return
     void loadDebugData(step)
   }, [step, loadDebugData])
+
+  const toggleAgent = (name: string) => {
+    if (expandedAgentName === name) {
+      setExpandedAgentName(null)
+      setOpenStages(new Set())
+    } else {
+      setExpandedAgentName(name)
+      setOpenStages(new Set())
+    }
+  }
+
+  const toggleStage = (stage: string) => {
+    setOpenStages((prev) => {
+      const next = new Set(prev)
+      if (next.has(stage)) {
+        next.delete(stage)
+      } else {
+        next.add(stage)
+      }
+      return next
+    })
+  }
 
   return (
     <div className="space-y-3">
@@ -584,22 +608,75 @@ function DebugPanel({
         {agents.length === 0 ? (
           <p className="text-xs text-gray-600">No agents.</p>
         ) : (
-          <div className="space-y-1">
+          <div>
             {agents.map((agent) => {
               const mv = agentMovements[agent.name]
               const emoji = mv?.pronunciatio ?? agent.pronunciatio ?? null
               const description = mv?.description ?? null
+              const isExpanded = expandedAgentName === agent.name
               return (
-                <div key={agent.id} className="flex items-start gap-2 text-xs py-1 border-b border-gray-800">
-                  <span className="text-base leading-none shrink-0 w-5 text-center">
-                    {emoji ?? '·'}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="font-medium text-gray-300 truncate">{agent.name}</div>
-                    <div className="text-gray-500 leading-snug">
-                      {description ?? '—'}
+                <div key={agent.id}>
+                  <button
+                    onClick={() => toggleAgent(agent.name)}
+                    className="w-full flex items-start gap-2 text-xs py-1 border-b border-gray-800 hover:bg-gray-800/50 text-left"
+                  >
+                    <span className="text-base leading-none shrink-0 w-5 text-center">
+                      {emoji ?? '·'}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-300 truncate">{agent.name}</div>
+                      <div className="text-gray-500 leading-snug">
+                        {description ?? '—'}
+                      </div>
                     </div>
-                  </div>
+                    <span className="text-gray-600 text-xs shrink-0 mt-0.5">
+                      {isExpanded ? '▲' : '▼'}
+                    </span>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-1 mb-2 pl-1">
+                      {loading ? (
+                        <div className="text-xs text-gray-600 py-1">Loading…</div>
+                      ) : (
+                        PIPELINE_STAGES.map((stage) => {
+                          const stageData = debugData?.stages[stage]
+                          const agentData = stageData !== undefined ? stageData[agent.name] : undefined
+                          const isStageOpen = openStages.has(stage)
+                          return (
+                            <div key={stage} className="mb-1">
+                              <button
+                                onClick={() => toggleStage(stage)}
+                                className="w-full flex items-center justify-between text-xs py-1 px-2 bg-gray-800 hover:bg-gray-700 rounded"
+                              >
+                                <span
+                                  className={`capitalize font-medium ${
+                                    agentData !== undefined ? 'text-green-400' : 'text-gray-500'
+                                  }`}
+                                >
+                                  {stage}
+                                </span>
+                                <span className="text-gray-600">{isStageOpen ? '▲' : '▼'}</span>
+                              </button>
+                              {isStageOpen && (
+                                <div className="mt-0.5 bg-gray-800/50 rounded p-1">
+                                  {agentData !== undefined ? (
+                                    <pre className="text-xs text-gray-300 whitespace-pre-wrap break-all overflow-hidden">
+                                      {JSON.stringify(agentData, null, 2)}
+                                    </pre>
+                                  ) : (
+                                    <p className="text-xs text-gray-600 italic py-0.5">
+                                      No data for this stage
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
