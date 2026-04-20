@@ -47,3 +47,17 @@ Started: Mon Apr 20 05:44:41 PM +07 2026
   - Run `node_modules/.bin/tsc -p tsconfig.app.json --noEmit` (not `tsc -b`) to avoid vite.config.ts type errors
   - Manual browser verification needed (no browser MCP tools available)
 ---
+
+## 2026-04-20 - US-005
+- Added `AgentMovement` interface to `SimulatePage.tsx` for typed movement data
+- Added `agentMovements` state to `SimulationViewer` tracking SSE `persona_movements`
+- Updated `handleStepUpdate` to accept full `StepUpdatePayload` (imported type) and extract `pronunciatio`/`description` per agent name
+- Extended `DebugPanel` props to accept `agents: Agent[]` and `agentMovements: Record<string, AgentMovement>`
+- Rendered Agent Actions feed below the pipeline: emoji | agent name | description (shows `—` if no action yet)
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - `StepUpdatePayload` is exported from `useSimulationSSE.ts` — import it rather than re-declaring the type
+  - SSE `persona_movements` values are `Record<string, unknown>` at runtime; cast carefully to extract typed fields
+  - `agent.pronunciatio` from the agents list is a useful fallback for the emoji column before first SSE update
+  - Manual browser verification needed (no browser MCP tools available)
+---
