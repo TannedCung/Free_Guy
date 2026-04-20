@@ -34,6 +34,7 @@ from translator.models import (
     PersonaScratch,
     Simulation,
     SimulationMembership,
+    SimulationStepCache,
     SpatialMemory,
 )
 
@@ -456,6 +457,56 @@ def simulation_agent_detail(request: Request, sim_id: str, agent_id: str) -> Res
 
 
 # ---------------------------------------------------------------------------
+# Debug endpoint
+# ---------------------------------------------------------------------------
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def simulation_debug_step(request: Request, sim_id: str) -> Response:
+    """
+    GET /api/v1/simulations/:id/debug/?step=N
+
+    Returns cached cognitive-stage data for a given simulation step.
+    Response: { step: N, stages: { perceive: {<agent>: <data>}, ... } }
+    Defaults to the simulation's current step if step param is omitted.
+    Returns 404 if no cache rows exist for that step.
+    """
+    try:
+        sim = Simulation.objects.get(name=sim_id)
+    except Simulation.DoesNotExist:
+        return Response({"detail": f"Simulation '{sim_id}' not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # Access check: owner, active member, or public simulation
+    is_owner = sim.owner == request.user
+    is_member = SimulationMembership.objects.filter(
+        simulation=sim, user=request.user, status=SimulationMembership.MemberStatus.ACTIVE
+    ).exists()
+    is_public = sim.visibility == Simulation.Visibility.PUBLIC
+    if not (is_owner or is_member or is_public):
+        return Response({"detail": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
+
+    step_param = request.query_params.get("step")
+    if step_param is not None:
+        try:
+            step = int(step_param)
+        except ValueError:
+            return Response({"detail": "step must be an integer."}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        step = sim.step
+
+    caches = SimulationStepCache.objects.filter(simulation=sim, step=step)
+    if not caches.exists():
+        return Response({"detail": f"No cache data for step {step}."}, status=status.HTTP_404_NOT_FOUND)
+
+    stages: dict = {}
+    for cache in caches:
+        stages[cache.stage] = cache.data
+
+    return Response({"step": step, "stages": stages})
+
+
+# ---------------------------------------------------------------------------
 # Demo helpers
 # ---------------------------------------------------------------------------
 
@@ -551,9 +602,7 @@ def simulation_latest_movement(request: Request, sim_id: str) -> Response:
 
     after_step = int(request.query_params.get("after_step", -1))
 
-    record = (
-        MovementRecord.objects.filter(simulation=sim, step__gt=after_step).order_by("-step").first()
-    )
+    record = MovementRecord.objects.filter(simulation=sim, step__gt=after_step).order_by("-step").first()
     if record is None:
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -578,18 +627,22 @@ def simulation_latest_movement(request: Request, sim_id: str) -> Response:
 
 def _run_stage(request: Request, sim_id: str, stage_fn_name: str) -> Response:
     """Shared implementation: load ReverieServer, run one stage, return result."""
-    import sys  # noqa: PLC0415
     import os  # noqa: PLC0415
+    import sys  # noqa: PLC0415
 
     # Ensure backend_server is on sys.path so reverie imports work.
-    backend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend_server")
+    backend_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend_server"
+    )
     if backend_dir not in sys.path:
         sys.path.insert(0, backend_dir)
 
     try:
         from reverie import ReverieServer  # noqa: PLC0415
     except ImportError as exc:
-        return Response({"detail": f"Could not import ReverieServer: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(
+            {"detail": f"Could not import ReverieServer: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     # Verify simulation exists and requester has access.
     try:

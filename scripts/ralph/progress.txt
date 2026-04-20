@@ -1,11 +1,92 @@
+## Codebase Patterns
+- Access control for simulation endpoints: check `sim.owner == request.user` OR `SimulationMembership` active member OR `sim.visibility == PUBLIC`
+- Pre-commit hooks run ruff + ruff-format; always re-stage after first failed commit attempt
+- `SimulationStepCache` model: unique_together (simulation, step, stage); `data` is JSONField keyed by persona name
+- `_can_observe` helper lives in `simulation_views.py` but api_views.py does its own inline check (same logic)
+- URL patterns: new simulation endpoints go in `urls.py` between the SSE and step endpoints section
+- ESLint rule `react-hooks/set-state-in-effect` blocks synchronous setState in useEffect body; wrap async fetches in useCallback and call them from within the effect instead
+
 # Ralph Progress Log
-Started: 2026-04-20
+Started: Mon Apr 20 05:44:41 PM +07 2026
 ---
 
-## Codebase Patterns
-- SimulationStepCache model in `frontend_server/translator/models.py` stores per-step, per-stage data keyed by (simulation, step, stage). Stages: PERCEIVE, RETRIEVE, PLAN, REFLECT, EXECUTE.
-- `CanObserveSimulation` DRF permission class already defined in `frontend_server/translator/api_views.py` — use it on all simulation-scoped read endpoints.
-- Frontend uses `retro-*` Tailwind utility classes from `design-system/colors_and_type.css` for all UI components.
-- API client pattern: authenticated fetch wrapper in `frontend/src/api/simulations.ts` — follow existing function signatures.
-- SimulatePage `meta.step` is the authoritative current step; SSE events update it via `useSimulationSSE` hook.
-- Agent movement/action data arrives via SSE (`useSimulationSSE`) as `StepUpdatePayload` with `persona_movements` field.
+## 2026-04-20 - US-001
+- Implemented `GET /api/v1/simulations/{sim_id}/debug/?step=N` endpoint
+- Added `SimulationStepCache` import to `api_views.py`
+- Added `simulation_debug_step` view function with owner/member/public access check
+- Registered URL in `urls.py` as `api-simulation-debug`
+- Files changed: `frontend_server/translator/api_views.py`, `frontend_server/frontend_server/urls.py`
+- **Learnings for future iterations:**
+  - `CanObserveSimulation` did not exist as a DRF permission class — implemented inline access check matching `_can_observe` in simulation_views.py
+  - Pre-commit auto-formats via ruff; must re-stage after first commit attempt
+  - `SimulationStepCache.stage` uses TextChoices: perceive/retrieve/plan/reflect/execute
+---
+
+## 2026-04-20 - US-003
+- Added `sidebarTab` state (`'agents' | 'debug'`, default `'agents'`) to `SimulationViewer`
+- Replaced flat `<aside>` sidebar with tabbed layout: two buttons at top, content panel below
+- Agents tab shows existing agent list; Debug tab shows placeholder `<div>Debug view coming soon</div>`
+- Active tab styled with `retro-button-primary` + blue border highlight
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - Sidebar structure changed to `flex flex-col`; content scrolls inside `flex-1 overflow-y-auto` child
+  - Tab buttons use inline conditional classes; `retro-button-primary` adds blue bg highlight
+  - Manual browser verification needed (no browser MCP tools available)
+---
+
+## 2026-04-20 - US-004
+- Added `DebugPanel` component to `SimulatePage.tsx`
+- Shows current step number and `meta.curr_time` in the Debug tab
+- Renders 5-stage cognitive pipeline (Perceive → Retrieve → Plan → Reflect → Execute) with grey/green pills
+- Pills turn green when `DebugStepData.stages[stage]` has data; re-fetches via `fetchDebugStep` on each `step` change
+- Used `useCallback` wrapper for async fetch to satisfy ESLint `react-hooks/set-state-in-effect` rule
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - ESLint blocks synchronous setState directly in useEffect body; wrap async ops in useCallback and call from effect
+  - Run `node_modules/.bin/eslint src/pages/SimulatePage.tsx` to check frontend lint before committing
+  - Run `node_modules/.bin/tsc -p tsconfig.app.json --noEmit` (not `tsc -b`) to avoid vite.config.ts type errors
+  - Manual browser verification needed (no browser MCP tools available)
+---
+
+## 2026-04-20 - US-005
+- Added `AgentMovement` interface to `SimulatePage.tsx` for typed movement data
+- Added `agentMovements` state to `SimulationViewer` tracking SSE `persona_movements`
+- Updated `handleStepUpdate` to accept full `StepUpdatePayload` (imported type) and extract `pronunciatio`/`description` per agent name
+- Extended `DebugPanel` props to accept `agents: Agent[]` and `agentMovements: Record<string, AgentMovement>`
+- Rendered Agent Actions feed below the pipeline: emoji | agent name | description (shows `—` if no action yet)
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - `StepUpdatePayload` is exported from `useSimulationSSE.ts` — import it rather than re-declaring the type
+  - SSE `persona_movements` values are `Record<string, unknown>` at runtime; cast carefully to extract typed fields
+  - `agent.pronunciatio` from the agents list is a useful fallback for the emoji column before first SSE update
+  - Manual browser verification needed (no browser MCP tools available)
+---
+
+## 2026-04-20 - US-007
+- Added `activeTab: 'agents' | 'debug'` prop to `DebugPanel`
+- `loadDebugData` now resets `debugData` to `null` before fetching so pipeline pills go grey immediately on step change
+- `useEffect` guarded by `activeTab !== 'debug'` to avoid fetches when tab is inactive
+- Switched sidebar content from conditional rendering to `display: none/block` so `DebugPanel` stays mounted across tab switches — avoids remount re-fetches when step hasn't changed
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - Use `display: none/block` (inline style) instead of conditional rendering when you want a component to stay mounted but hidden — avoids remounting and re-fetching stale state on tab switch
+  - `setDebugData(null)` before an async fetch is the idiomatic way to reset derived UI (pills, accordion data) to an empty/loading state before new data arrives
+  - Manual browser verification needed (no browser MCP tools available)
+---
+
+## 2026-04-20 - US-006
+- Added `expandedAgentName` and `openStages` state to `DebugPanel` for accordion behavior
+- Converted agent rows to `<button>` elements with `▼/▲` chevron indicators
+- Accordion detail section shows per-stage collapsible sub-panels below the expanded agent row
+- Stage sub-panels use `<pre>` with `whitespace-pre-wrap break-all` for formatted JSON rendering
+- Stage header color is green when `debugData.stages[stage][agentName]` exists, grey otherwise
+- Shows "No data for this stage" when agent has no cache for that stage
+- Only one agent expanded at a time; clicking another collapses the previous and resets open stages
+- Loading state reuses existing `loading` flag from `fetchDebugStep`
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - `debugData.stages[stage]` is `Record<string, unknown>`, so `stageData[agentName]` gives per-agent data
+  - Reuse already-loaded `debugData` rather than re-fetching on accordion open — avoids duplicate requests
+  - `openStages` is a `Set<string>` stored in state; must create a `new Set(prev)` to trigger re-render
+  - Manual browser verification needed (no browser MCP tools available)
+---

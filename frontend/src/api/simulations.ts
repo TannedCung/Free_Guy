@@ -353,6 +353,25 @@ export async function fetchAgentDetail(simId: string, agentId: string): Promise<
   return res.json() as Promise<AgentDetail>
 }
 
+// ─── Debug step data ──────────────────────────────────────────────────────────
+
+export interface DebugStepData {
+  step: number
+  stages: Record<string, Record<string, unknown>>
+}
+
+export async function fetchDebugStep(simId: string, step?: number): Promise<DebugStepData> {
+  const url = step !== undefined
+    ? `/simulations/${encodeURIComponent(simId)}/debug/?step=${step}`
+    : `/simulations/${encodeURIComponent(simId)}/debug/`
+  const res = await apiFetch(url)
+  if (!res.ok) {
+    const err = (await res.json()) as { detail?: string }
+    throw new Error(err.detail ?? `Failed to fetch debug step: ${res.status}`)
+  }
+  return res.json() as Promise<DebugStepData>
+}
+
 // ─── Serverless step orchestration (Phase 5) ─────────────────────────────────
 
 export interface AgentPosition {

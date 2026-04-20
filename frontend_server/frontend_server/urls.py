@@ -66,6 +66,8 @@ urlpatterns = [
     # REST API v1 — replay endpoints
     path("api/v1/simulations/<str:sim_id>/replay/", simulation_views.replay_meta, name="api-replay-meta"),
     path("api/v1/simulations/<str:sim_id>/replay/<int:step>/", simulation_views.replay_step, name="api-replay-step"),
+    # REST API v1 — debug endpoint
+    path("api/v1/simulations/<str:sim_id>/debug/", api_views.simulation_debug_step, name="api-simulation-debug"),
     # REST API v1 — SSE polling endpoint (used by Vercel Edge Function stream)
     path(
         "api/v1/simulations/<str:sim_id>/movements/latest/",

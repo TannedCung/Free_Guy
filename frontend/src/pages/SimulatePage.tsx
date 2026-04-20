@@ -6,6 +6,7 @@ import {
   fetchSimulationAgents,
   fetchSimulations,
   fetchAgentDetail,
+  fetchDebugStep,
   dropCharacter,
   startSimulation,
   pauseSimulation,
@@ -15,10 +16,11 @@ import {
   type AgentDetail,
   type AgentPosition,
   type SimulationMeta,
+  type DebugStepData,
 } from '../api/simulations'
 import { fetchCharacters, createCharacter, type Character } from '../api/characters'
 import { useAuth } from '../context/AuthContext'
-import { useSimulationSSE } from '../hooks/useSimulationSSE'
+import { useSimulationSSE, type StepUpdatePayload } from '../hooks/useSimulationSSE'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -484,6 +486,210 @@ function AdminToolbar({
   )
 }
 
+// ─── Debug panel ─────────────────────────────────────────────────────────────
+
+const PIPELINE_STAGES = ['perceive', 'retrieve', 'plan', 'reflect', 'execute'] as const
+
+interface AgentMovement {
+  pronunciatio?: string
+  description?: string
+}
+
+function DebugPanel({
+  simId,
+  step,
+  meta,
+  agents,
+  agentMovements,
+  activeTab,
+}: {
+  simId: string
+  step: number | null
+  meta: SimulationMeta | null
+  agents: Agent[]
+  agentMovements: Record<string, AgentMovement>
+  activeTab: 'agents' | 'debug'
+}) {
+  const [debugData, setDebugData] = useState<DebugStepData | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [expandedAgentName, setExpandedAgentName] = useState<string | null>(null)
+  const [openStages, setOpenStages] = useState<Set<string>>(new Set())
+
+  const loadDebugData = useCallback(
+    async (s: number) => {
+      setDebugData(null)
+      setLoading(true)
+      try {
+        const data = await fetchDebugStep(simId, s)
+        setDebugData(data)
+      } catch {
+        setDebugData(null)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [simId],
+  )
+
+  useEffect(() => {
+    if (activeTab !== 'debug' || step === null) return
+    void loadDebugData(step)
+  }, [step, loadDebugData, activeTab])
+
+  const toggleAgent = (name: string) => {
+    if (expandedAgentName === name) {
+      setExpandedAgentName(null)
+      setOpenStages(new Set())
+    } else {
+      setExpandedAgentName(name)
+      setOpenStages(new Set())
+    }
+  }
+
+  const toggleStage = (stage: string) => {
+    setOpenStages((prev) => {
+      const next = new Set(prev)
+      if (next.has(stage)) {
+        next.delete(stage)
+      } else {
+        next.add(stage)
+      }
+      return next
+    })
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-gray-400 space-y-1">
+        {step !== null && (
+          <div>
+            <span className="font-medium text-gray-300">Step:</span> {step}
+          </div>
+        )}
+        {meta?.curr_time && (
+          <div>
+            <span className="font-medium text-gray-300">Time:</span> {meta.curr_time}
+          </div>
+        )}
+      </div>
+
+      <hr className="border-gray-700" />
+
+      <div>
+        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          Cognitive Pipeline
+        </div>
+        <div className="flex flex-wrap gap-1 items-center">
+          {PIPELINE_STAGES.map((stage, i) => {
+            const stageData = debugData?.stages[stage]
+            const hasData = stageData !== undefined && Object.keys(stageData).length > 0
+            return (
+              <div key={stage} className="flex items-center gap-1">
+                {i > 0 && <span className="text-gray-600 text-xs">→</span>}
+                <span
+                  className={`text-xs px-2 py-1 rounded capitalize font-medium ${
+                    hasData ? 'bg-green-700 text-green-100' : 'bg-gray-700 text-gray-400'
+                  }`}
+                >
+                  {stage}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        {loading && (
+          <div className="text-xs text-gray-600 mt-1">Refreshing…</div>
+        )}
+      </div>
+
+      <hr className="border-gray-700" />
+
+      <div>
+        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          Agent Actions
+        </div>
+        {agents.length === 0 ? (
+          <p className="text-xs text-gray-600">No agents.</p>
+        ) : (
+          <div>
+            {agents.map((agent) => {
+              const mv = agentMovements[agent.name]
+              const emoji = mv?.pronunciatio ?? agent.pronunciatio ?? null
+              const description = mv?.description ?? null
+              const isExpanded = expandedAgentName === agent.name
+              return (
+                <div key={agent.id}>
+                  <button
+                    onClick={() => toggleAgent(agent.name)}
+                    className="w-full flex items-start gap-2 text-xs py-1 border-b border-gray-800 hover:bg-gray-800/50 text-left"
+                  >
+                    <span className="text-base leading-none shrink-0 w-5 text-center">
+                      {emoji ?? '·'}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-300 truncate">{agent.name}</div>
+                      <div className="text-gray-500 leading-snug">
+                        {description ?? '—'}
+                      </div>
+                    </div>
+                    <span className="text-gray-600 text-xs shrink-0 mt-0.5">
+                      {isExpanded ? '▲' : '▼'}
+                    </span>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-1 mb-2 pl-1">
+                      {loading ? (
+                        <div className="text-xs text-gray-600 py-1">Loading…</div>
+                      ) : (
+                        PIPELINE_STAGES.map((stage) => {
+                          const stageData = debugData?.stages[stage]
+                          const agentData = stageData !== undefined ? stageData[agent.name] : undefined
+                          const isStageOpen = openStages.has(stage)
+                          return (
+                            <div key={stage} className="mb-1">
+                              <button
+                                onClick={() => toggleStage(stage)}
+                                className="w-full flex items-center justify-between text-xs py-1 px-2 bg-gray-800 hover:bg-gray-700 rounded"
+                              >
+                                <span
+                                  className={`capitalize font-medium ${
+                                    agentData !== undefined ? 'text-green-400' : 'text-gray-500'
+                                  }`}
+                                >
+                                  {stage}
+                                </span>
+                                <span className="text-gray-600">{isStageOpen ? '▲' : '▼'}</span>
+                              </button>
+                              {isStageOpen && (
+                                <div className="mt-0.5 bg-gray-800/50 rounded p-1">
+                                  {agentData !== undefined ? (
+                                    <pre className="text-xs text-gray-300 whitespace-pre-wrap break-all overflow-hidden">
+                                      {JSON.stringify(agentData, null, 2)}
+                                    </pre>
+                                  ) : (
+                                    <p className="text-xs text-gray-600 italic py-0.5">
+                                      No data for this stage
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Full simulation viewer ───────────────────────────────────────────────────
 
 function SimulationViewer({ simId }: { simId: string }) {
@@ -497,6 +703,8 @@ function SimulationViewer({ simId }: { simId: string }) {
   const [wsError, setWsError] = useState<string | null>(null)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null)
+
+  const [agentMovements, setAgentMovements] = useState<Record<string, AgentMovement>>({})
 
   // Drop-mode state
   const [dropMode, setDropMode] = useState(false)
@@ -530,9 +738,22 @@ function SimulationViewer({ simId }: { simId: string }) {
       )
   }, [simId])
 
-  const handleStepUpdate = useCallback((payload: { step?: number; sim_curr_time?: string }) => {
+  const handleStepUpdate = useCallback((payload: StepUpdatePayload) => {
     if (payload.step !== undefined) setStep(payload.step)
     setLastPoll(new Date())
+    if (payload.persona_movements) {
+      const mv: Record<string, AgentMovement> = {}
+      for (const [name, val] of Object.entries(payload.persona_movements)) {
+        if (val && typeof val === 'object') {
+          const v = val as Record<string, unknown>
+          mv[name] = {
+            pronunciatio: typeof v.pronunciatio === 'string' ? v.pronunciatio : undefined,
+            description: typeof v.description === 'string' ? v.description : undefined,
+          }
+        }
+      }
+      setAgentMovements(mv)
+    }
     void pollAgents()
   }, [pollAgents])
 
@@ -642,6 +863,8 @@ function SimulationViewer({ simId }: { simId: string }) {
     setShowAddCharModal(true)
   }, [])
 
+  const [sidebarTab, setSidebarTab] = useState<'agents' | 'debug'>('agents')
+
   const statusColors: Record<string, string> = {
     pending: 'bg-gray-600',
     running: 'bg-green-600 text-gray-900',
@@ -720,44 +943,76 @@ function SimulationViewer({ simId }: { simId: string }) {
         </div>
 
         {/* Agent sidebar */}
-        <aside className="w-64 shrink-0 bg-gray-900 border-l border-gray-700 overflow-y-auto p-3">
-          <div className="mb-3">
-            {meta?.curr_time && (
-              <div className="text-xs text-gray-400 mb-1">
-                <span className="font-medium text-gray-300">Time:</span> {meta.curr_time}
-              </div>
-            )}
-            {step !== null && (
-              <div className="text-xs text-gray-400 mb-1">
-                <span className="font-medium text-gray-300">Step:</span> {step}
-              </div>
-            )}
-            {lastPoll && (
-              <div className="text-xs text-gray-600">
-                Updated {lastPoll.toLocaleTimeString()}
-              </div>
-            )}
+        <aside className="w-64 shrink-0 bg-gray-900 border-l border-gray-700 flex flex-col">
+          {/* Tab buttons */}
+          <div className="flex shrink-0 border-b border-gray-700">
+            <button
+              onClick={() => setSidebarTab('agents')}
+              className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                sidebarTab === 'agents'
+                  ? 'retro-button-primary text-white bg-blue-700 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              Agents
+            </button>
+            <button
+              onClick={() => setSidebarTab('debug')}
+              className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                sidebarTab === 'debug'
+                  ? 'retro-button-primary text-white bg-blue-700 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              Debug
+            </button>
           </div>
 
-          <hr className="border-gray-700 mb-3" />
+          <div className="flex-1 overflow-y-auto p-3">
+            <div style={{ display: sidebarTab === 'agents' ? 'block' : 'none' }}>
+              <div className="mb-3">
+                {meta?.curr_time && (
+                  <div className="text-xs text-gray-400 mb-1">
+                    <span className="font-medium text-gray-300">Time:</span> {meta.curr_time}
+                  </div>
+                )}
+                {step !== null && (
+                  <div className="text-xs text-gray-400 mb-1">
+                    <span className="font-medium text-gray-300">Step:</span> {step}
+                  </div>
+                )}
+                {lastPoll && (
+                  <div className="text-xs text-gray-600">
+                    Updated {lastPoll.toLocaleTimeString()}
+                  </div>
+                )}
+              </div>
 
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Agents ({agents.length})
-          </h2>
+              <hr className="border-gray-700 mb-3" />
 
-          {agents.length === 0 ? (
-            <p className="text-xs text-gray-600">No agents found.</p>
-          ) : (
-            agents.map((agent) => (
-              <button
-                key={agent.id}
-                onClick={() => selectAgent(agent.id)}
-                className="w-full text-left"
-              >
-                <AgentCard agent={agent} />
-              </button>
-            ))
-          )}
+              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                Agents ({agents.length})
+              </h2>
+
+              {agents.length === 0 ? (
+                <p className="text-xs text-gray-600">No agents found.</p>
+              ) : (
+                agents.map((agent) => (
+                  <button
+                    key={agent.id}
+                    onClick={() => selectAgent(agent.id)}
+                    className="w-full text-left"
+                  >
+                    <AgentCard agent={agent} />
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div style={{ display: sidebarTab === 'debug' ? 'block' : 'none' }}>
+              <DebugPanel simId={simId} step={step} meta={meta} agents={agents} agentMovements={agentMovements} activeTab={sidebarTab} />
+            </div>
+          </div>
         </aside>
       </div>
 
