@@ -20,7 +20,7 @@ import {
 } from '../api/simulations'
 import { fetchCharacters, createCharacter, type Character } from '../api/characters'
 import { useAuth } from '../context/AuthContext'
-import { useSimulationSSE } from '../hooks/useSimulationSSE'
+import { useSimulationSSE, type StepUpdatePayload } from '../hooks/useSimulationSSE'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -490,14 +490,23 @@ function AdminToolbar({
 
 const PIPELINE_STAGES = ['perceive', 'retrieve', 'plan', 'reflect', 'execute'] as const
 
+interface AgentMovement {
+  pronunciatio?: string
+  description?: string
+}
+
 function DebugPanel({
   simId,
   step,
   meta,
+  agents,
+  agentMovements,
 }: {
   simId: string
   step: number | null
   meta: SimulationMeta | null
+  agents: Agent[]
+  agentMovements: Record<string, AgentMovement>
 }) {
   const [debugData, setDebugData] = useState<DebugStepData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -565,6 +574,38 @@ function DebugPanel({
           <div className="text-xs text-gray-600 mt-1">Refreshing…</div>
         )}
       </div>
+
+      <hr className="border-gray-700" />
+
+      <div>
+        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          Agent Actions
+        </div>
+        {agents.length === 0 ? (
+          <p className="text-xs text-gray-600">No agents.</p>
+        ) : (
+          <div className="space-y-1">
+            {agents.map((agent) => {
+              const mv = agentMovements[agent.name]
+              const emoji = mv?.pronunciatio ?? agent.pronunciatio ?? null
+              const description = mv?.description ?? null
+              return (
+                <div key={agent.id} className="flex items-start gap-2 text-xs py-1 border-b border-gray-800">
+                  <span className="text-base leading-none shrink-0 w-5 text-center">
+                    {emoji ?? '·'}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-300 truncate">{agent.name}</div>
+                    <div className="text-gray-500 leading-snug">
+                      {description ?? '—'}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -582,6 +623,8 @@ function SimulationViewer({ simId }: { simId: string }) {
   const [wsError, setWsError] = useState<string | null>(null)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null)
+
+  const [agentMovements, setAgentMovements] = useState<Record<string, AgentMovement>>({})
 
   // Drop-mode state
   const [dropMode, setDropMode] = useState(false)
@@ -615,9 +658,22 @@ function SimulationViewer({ simId }: { simId: string }) {
       )
   }, [simId])
 
-  const handleStepUpdate = useCallback((payload: { step?: number; sim_curr_time?: string }) => {
+  const handleStepUpdate = useCallback((payload: StepUpdatePayload) => {
     if (payload.step !== undefined) setStep(payload.step)
     setLastPoll(new Date())
+    if (payload.persona_movements) {
+      const mv: Record<string, AgentMovement> = {}
+      for (const [name, val] of Object.entries(payload.persona_movements)) {
+        if (val && typeof val === 'object') {
+          const v = val as Record<string, unknown>
+          mv[name] = {
+            pronunciatio: typeof v.pronunciatio === 'string' ? v.pronunciatio : undefined,
+            description: typeof v.description === 'string' ? v.description : undefined,
+          }
+        }
+      }
+      setAgentMovements(mv)
+    }
     void pollAgents()
   }, [pollAgents])
 
@@ -876,7 +932,7 @@ function SimulationViewer({ simId }: { simId: string }) {
             )}
 
             {sidebarTab === 'debug' && (
-              <DebugPanel simId={simId} step={step} meta={meta} />
+              <DebugPanel simId={simId} step={step} meta={meta} agents={agents} agentMovements={agentMovements} />
             )}
           </div>
         </aside>
