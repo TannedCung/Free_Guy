@@ -6,6 +6,7 @@ import {
   fetchSimulationAgents,
   fetchSimulations,
   fetchAgentDetail,
+  fetchDebugStep,
   dropCharacter,
   startSimulation,
   pauseSimulation,
@@ -15,6 +16,7 @@ import {
   type AgentDetail,
   type AgentPosition,
   type SimulationMeta,
+  type DebugStepData,
 } from '../api/simulations'
 import { fetchCharacters, createCharacter, type Character } from '../api/characters'
 import { useAuth } from '../context/AuthContext'
@@ -484,6 +486,89 @@ function AdminToolbar({
   )
 }
 
+// ─── Debug panel ─────────────────────────────────────────────────────────────
+
+const PIPELINE_STAGES = ['perceive', 'retrieve', 'plan', 'reflect', 'execute'] as const
+
+function DebugPanel({
+  simId,
+  step,
+  meta,
+}: {
+  simId: string
+  step: number | null
+  meta: SimulationMeta | null
+}) {
+  const [debugData, setDebugData] = useState<DebugStepData | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const loadDebugData = useCallback(
+    async (s: number) => {
+      setLoading(true)
+      try {
+        const data = await fetchDebugStep(simId, s)
+        setDebugData(data)
+      } catch {
+        setDebugData(null)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [simId],
+  )
+
+  useEffect(() => {
+    if (step === null) return
+    void loadDebugData(step)
+  }, [step, loadDebugData])
+
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-gray-400 space-y-1">
+        {step !== null && (
+          <div>
+            <span className="font-medium text-gray-300">Step:</span> {step}
+          </div>
+        )}
+        {meta?.curr_time && (
+          <div>
+            <span className="font-medium text-gray-300">Time:</span> {meta.curr_time}
+          </div>
+        )}
+      </div>
+
+      <hr className="border-gray-700" />
+
+      <div>
+        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          Cognitive Pipeline
+        </div>
+        <div className="flex flex-wrap gap-1 items-center">
+          {PIPELINE_STAGES.map((stage, i) => {
+            const stageData = debugData?.stages[stage]
+            const hasData = stageData !== undefined && Object.keys(stageData).length > 0
+            return (
+              <div key={stage} className="flex items-center gap-1">
+                {i > 0 && <span className="text-gray-600 text-xs">→</span>}
+                <span
+                  className={`text-xs px-2 py-1 rounded capitalize font-medium ${
+                    hasData ? 'bg-green-700 text-green-100' : 'bg-gray-700 text-gray-400'
+                  }`}
+                >
+                  {stage}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        {loading && (
+          <div className="text-xs text-gray-600 mt-1">Refreshing…</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Full simulation viewer ───────────────────────────────────────────────────
 
 function SimulationViewer({ simId }: { simId: string }) {
@@ -791,7 +876,7 @@ function SimulationViewer({ simId }: { simId: string }) {
             )}
 
             {sidebarTab === 'debug' && (
-              <div>Debug view coming soon</div>
+              <DebugPanel simId={simId} step={step} meta={meta} />
             )}
           </div>
         </aside>
