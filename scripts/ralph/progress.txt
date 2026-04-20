@@ -61,3 +61,20 @@ Started: Mon Apr 20 05:44:41 PM +07 2026
   - `agent.pronunciatio` from the agents list is a useful fallback for the emoji column before first SSE update
   - Manual browser verification needed (no browser MCP tools available)
 ---
+
+## 2026-04-20 - US-006
+- Added `expandedAgentName` and `openStages` state to `DebugPanel` for accordion behavior
+- Converted agent rows to `<button>` elements with `▼/▲` chevron indicators
+- Accordion detail section shows per-stage collapsible sub-panels below the expanded agent row
+- Stage sub-panels use `<pre>` with `whitespace-pre-wrap break-all` for formatted JSON rendering
+- Stage header color is green when `debugData.stages[stage][agentName]` exists, grey otherwise
+- Shows "No data for this stage" when agent has no cache for that stage
+- Only one agent expanded at a time; clicking another collapses the previous and resets open stages
+- Loading state reuses existing `loading` flag from `fetchDebugStep`
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - `debugData.stages[stage]` is `Record<string, unknown>`, so `stageData[agentName]` gives per-agent data
+  - Reuse already-loaded `debugData` rather than re-fetching on accordion open — avoids duplicate requests
+  - `openStages` is a `Set<string>` stored in state; must create a `new Set(prev)` to trigger re-render
+  - Manual browser verification needed (no browser MCP tools available)
+---
