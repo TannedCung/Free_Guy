@@ -40,6 +40,11 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"   # exposed for direct access during dev; use port 80 (nginx) normally
+    volumes:
+      # The symlink frontend/public/assets → ../../frontend_server/static_dirs/assets
+      # is broken inside the Docker build context. Mount the real directory here so
+      # Vite can serve game assets (tilemap JSON, tilesets, sprites) as static files.
+      - ./frontend_server/static_dirs/assets:/app/public/assets:ro
     depends_on:
       backend:
         condition: service_healthy

@@ -62,6 +62,10 @@ export interface GameCanvasProps {
   className?: string
   /** Agents to render as sprites on the map */
   agents?: Agent[]
+  /** When true, clicking the map fires onMapClick with tile coordinates */
+  dropMode?: boolean
+  /** Called with tile (x, y) when user clicks in dropMode */
+  onMapClick?: (tileX: number, tileY: number) => void
 }
 
 /**
@@ -69,9 +73,16 @@ export interface GameCanvasProps {
  * The game is initialised on mount and destroyed on unmount (no memory leaks).
  * Pass `agents` to render agent sprites on the map; updates are picked up each frame.
  */
-export default function GameCanvas({ className, agents }: GameCanvasProps) {
+export default function GameCanvas({ className, agents, dropMode, onMapClick }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<Phaser.Game | null>(null)
+
+  // Keep drop-mode state accessible inside the long-lived Phaser closure
+  const dropModeRef = useRef(false)
+  const onMapClickRef = useRef<((tileX: number, tileY: number) => void) | undefined>(undefined)
+
+  useEffect(() => { dropModeRef.current = dropMode ?? false }, [dropMode])
+  useEffect(() => { onMapClickRef.current = onMapClick }, [onMapClick])
 
   // Bridge: React writes targets here; Phaser reads each frame
   const bridgeRef = useRef<SceneBridge>({
@@ -286,6 +297,14 @@ export default function GameCanvas({ className, agents }: GameCanvasProps) {
       this.data.set('player', player)
       this.data.set('cursors', cursors)
 
+      // Drop-mode: convert pointer click → tile coordinates → React callback
+      this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        if (!dropModeRef.current) return
+        const tileX = Math.floor(pointer.worldX / TILE_WIDTH)
+        const tileY = Math.floor(pointer.worldY / TILE_WIDTH)
+        onMapClickRef.current?.(tileX, tileY)
+      })
+
       // Create sprites for any agents that arrived before the scene was ready
       for (const [id, target] of bridge.agentTargets) {
         createAgentSprite(this, bridge, id, target)
@@ -388,7 +407,7 @@ export default function GameCanvas({ className, agents }: GameCanvasProps) {
     <div
       ref={containerRef}
       className={className}
-      style={{ width: '100%', height: '100%' }}
+      style={{ width: '100%', height: '100%', cursor: dropMode ? 'crosshair' : undefined }}
     />
   )
 }

@@ -1,0 +1,253 @@
+# Ralph Progress Log
+Started: Tue Mar 17 03:54:12 PM +07 2026
+---
+
+## Codebase Patterns
+- Settings split into base.py + development.py + production.py; use `from .base import *` pattern
+- Run `python3 manage.py` (not `python`) on this system
+- Install packages with `--break-system-packages` flag since no venv is active
+- `DJANGO_SECRET_KEY` env var is required; use `DJANGO_ENV=development` for dev settings
+- Pre-commit hooks run ruff + mypy + ESLint; all must pass before commit
+
+## 2026-03-17 - US-001
+- Added `djangorestframework-simplejwt>=5.3.0` to frontend_server/requirements.txt
+- Added `rest_framework_simplejwt` and `rest_framework_simplejwt.token_blacklist` to INSTALLED_APPS in base.py
+- Added `REST_FRAMEWORK` setting with JWTAuthentication as default auth class
+- Added `SIMPLE_JWT` config: 15min access token, 30day refresh, rotate+blacklist enabled
+- Migrations applied cleanly (token_blacklist tables created)
+- Files changed: frontend_server/requirements.txt, frontend_server/frontend_server/settings/base.py
+- **Learnings for future iterations:**
+  - The `from datetime import timedelta` import goes at the bottom of base.py (after all other imports); ruff was fine with it
+  - Token blacklist migration applies automatically via `python3 manage.py migrate`
+  - Django system check (`python3 manage.py check`) is a good typecheck proxy for backend
+---
+
+## 2026-03-17 - US-002
+- Map model was already implemented in models.py with all required fields (id CharField PK, name, description, preview_image_url blank, maze_name, max_agents default 25, is_active default True)
+- MapAdmin registered in admin.py with list_display=[id, name, maze_name, max_agents, is_active]
+- Migration 0014_add_map_model.py creates the Map table
+- Migration 0015_seed_the_ville_map.py data migration seeds 'the_ville' entry
+- All migrations applied cleanly (verified via showmigrations)
+- Files changed: frontend_server/translator/models.py, frontend_server/translator/admin.py, frontend_server/translator/migrations/0014_add_map_model.py, frontend_server/translator/migrations/0015_seed_the_ville_map.py
+- **Learnings for future iterations:**
+  - When checking if a story is done, verify git status: untracked migration files mean work was done but not committed yet
+  - Data migrations use `apps.get_model()` pattern and `get_or_create()` for idempotency
+  - Pre-commit hooks stash unstaged files before running checks, then restore them after
+---
+
+## 2026-03-17 - US-003
+- Added `owner` ForeignKey to User (null=True, on_delete=SET_NULL) to Simulation model
+- Added `map_id` ForeignKey to Map (null=True, on_delete=SET_NULL) to Simulation model
+- Added `visibility` CharField with Visibility choices (private/public/shared), default private
+- Added `get_user_model()` import pattern to models.py
+- Updated SimulationAdmin list_display to include owner, map_id, visibility
+- Migration 0016_add_simulation_owner_visibility.py generated and applied cleanly
+- Files changed: frontend_server/translator/models.py, frontend_server/translator/admin.py, frontend_server/translator/migrations/0016_add_simulation_owner_visibility.py
+- **Learnings for future iterations:**
+  - Use `get_user_model()` and store result as `User = get_user_model()` at module level; don't import User directly from auth
+  - ForeignKey to other models in same app can use string reference `"Map"` (forward reference) or class directly
+---
+
+## 2026-03-17 - US-004
+- Added Character model with fields: owner (FK User CASCADE), name, age (nullable), traits, backstory, currently, lifestyle, daily_plan (all TextField blank), status (available/in_simulation), simulation (FK nullable SET_NULL)
+- UNIQUE constraint on (owner, name) using UniqueConstraint
+- Migration 0017_add_character_model.py generated and applied cleanly
+- CharacterAdmin registered with list_display=[name, owner, age, status, simulation]
+- Files changed: frontend_server/translator/models.py, frontend_server/translator/admin.py, frontend_server/translator/migrations/0017_add_character_model.py
+- **Learnings for future iterations:**
+  - Nested TextChoices classes inside models work fine (Status, Visibility, Role, etc.)
+  - Import model in admin.py when registering - keep alphabetical order in imports
+---
+
+## 2026-03-17 - US-005
+- Added SimulationMembership model with fields: simulation (FK CASCADE), user (FK CASCADE), role (admin/observer), status (invited/active/declined), invited_at (auto_now_add), joined_at (nullable)
+- UNIQUE constraint on (simulation, user)
+- Migration 0018_add_simulation_membership_model.py generated and applied cleanly
+- SimulationMembershipAdmin registered with list_display=[simulation, user, role, status]
+- Files changed: frontend_server/translator/models.py, frontend_server/translator/admin.py, frontend_server/translator/migrations/0018_add_simulation_membership_model.py
+- **Learnings for future iterations:**
+  - Inner TextChoices class named `MemberStatus` (not `Status`) to avoid conflicts with other Status classes in same model definition scope
+---
+
+## 2026-03-17 - US-006/US-007/US-008
+- Created frontend_server/translator/auth_views.py with all auth endpoints
+- register(): POST /api/v1/auth/register/ - validates, creates user, returns tokens+user (201)
+- login_view(): POST /api/v1/auth/login/ - authenticate, return tokens+user (401 on fail)
+- token_refresh(): POST /api/v1/auth/token/refresh/ - returns new access token or 401
+- logout_view(): POST /api/v1/auth/logout/ - blacklists refresh token (requires auth)
+- me(): GET/PATCH /api/v1/auth/me/ - profile view and update (requires auth)
+- password_reset(): POST /api/v1/auth/password-reset/ - logs reset link to console
+- password_reset_confirm(): POST /api/v1/auth/password-reset/confirm/ - confirms token and resets password
+- Updated frontend_server/frontend_server/urls.py to add all auth endpoints
+- Files changed: frontend_server/translator/auth_views.py, frontend_server/frontend_server/urls.py
+- **Learnings for future iterations:**
+  - ruff auto-fixes import organization (separate lines → combined import) on commit
+  - Use `@permission_classes([AllowAny])` explicitly for public endpoints since JWT auth is default
+  - `RefreshToken.for_user(user)` generates both access and refresh in one call
+  - Inline imports (inside functions) are acceptable in Django views for rarely-used utilities
+---
+
+## 2026-03-17 - US-009/US-010
+- Created frontend_server/translator/maps_views.py with maps_list endpoint (GET /api/v1/maps/, IsAuthenticated)
+- Updated api_views.py simulations_list POST to require auth, accept map_id/visibility, set owner, create SimulationMembership admin
+- Updated _sim_summary_from_orm to include map_id, visibility, owner, status fields
+- Note: ForeignKey `map_id` field's actual column ID value is accessed as `sim.map_id_id` in Django ORM
+- Files changed: frontend_server/translator/maps_views.py, frontend_server/translator/api_views.py, frontend_server/frontend_server/urls.py
+- **Learnings for future iterations:**
+  - Django ForeignKey named `map_id` has the DB column as `map_id_id` - avoid naming FKs with `_id` suffix to prevent double underscore confusion
+  - `get_or_create()` with `defaults=` dict is the safe pattern for idempotent membership creation
+  - `@permission_classes([IsAuthenticated])` works on function-based views with `@api_view` decorator
+---
+
+## 2026-03-17 - US-011/012/013/014/015
+- Created character_views.py: GET/POST /api/v1/characters/, GET/PATCH/DELETE /api/v1/characters/{id}/
+- Created simulation_views.py with drop_character, start/pause/resume simulation, mine/public list, update visibility (PATCH), member management (GET/POST/DELETE), invite accept/decline
+- Added PATCH endpoint at same URL as simulation_detail (added update_simulation view) - note: separate URL from existing GET simulation_detail
+- Added mine/ and public/ before <str:sim_id>/ in urlpatterns to prevent conflict
+- Files changed: character_views.py, simulation_views.py, urls.py
+- **Learnings for future iterations:**
+  - URL ordering matters: put `mine/` and `public/` routes BEFORE `<str:sim_id>/` to avoid "mine" being captured as a sim_id
+  - Reuse `_sim_summary_from_orm` from api_views.py via direct import - circular import not an issue here
+  - `update_fields=` on save() is more efficient than full save when updating few fields
+  - `sim.personas.exists()` is more efficient than `sim.personas.count() > 0`
+---
+
+## 2026-03-17 - US-016/017
+- Added `channels>=4.0.0`, `channels-redis>=4.2.0`, `daphne>=4.0.0` to requirements.txt
+- Added `daphne` and `channels` to INSTALLED_APPS (daphne must come first, before django apps)
+- Added `ASGI_APPLICATION` and `CHANNEL_LAYERS` with RedisChannelLayer pointing to redis:6379
+- Created frontend_server/frontend_server/asgi.py with ProtocolTypeRouter routing HTTP and WebSocket
+- Created frontend_server/translator/consumers.py with SimulationConsumer (basic connect/disconnect/broadcast_step)
+- Added `redis:7-alpine` service to docker-compose.yml with healthcheck
+- Files changed: requirements.txt, settings/base.py, asgi.py, consumers.py, docker-compose.yml
+- **Learnings for future iterations:**
+  - `daphne` must be FIRST in INSTALLED_APPS before other django apps
+  - channels consumer imports must come after Django setup (import inside function or after asgi setup)
+  - `get_channel_layer()` is the runtime way to get the channel layer in broadcast class methods
+  - Install with `pip3 install channels channels-redis daphne --break-system-packages` for system Python
+---
+
+## 2026-03-17 - US-018 through US-022
+- Created frontend auth API (api/client.ts, api/auth.ts, context/AuthContext.tsx)
+- Created Login, Register, Dashboard, Characters, CreateCharacter, CreateSimulation pages
+- Added Header component with auth-aware nav
+- Wired ProtectedRoute in App.tsx for all authenticated routes
+- Frontend ESLint (plugin-react-hooks v7) enforces strict rules: exports must be components-only in files, and set-state-in-effect is a warning
+- Files changed: api/client.ts, api/auth.ts, context/AuthContext.tsx, pages/Login,Register,Dashboard,Characters,CreateCharacter,CreateSimulation, components/Header.tsx, App.tsx
+- **Learnings for future iterations:**
+  - eslint-plugin-react-hooks v7 adds `set-state-in-effect` rule; wrap state-setting calls in setTimeout(fn, 0) when needed inside useEffect
+  - `react-refresh/only-export-components` lint rule: add `// eslint-disable-next-line react-refresh/only-export-components` above any non-component export from a file that also exports a component
+  - Node.js available at `~/.local/bin/node`; npm wrapper delegates to `node node_modules/.bin/eslint .`
+---
+
+## 2026-03-17 - US-023
+- Enhanced SimulatePage with AdminToolbar: Drop Character modal, Start/Pause/Resume buttons
+- AdminToolbar visible only when `user.id === meta.owner`
+- Drop modal fetches characters filtered to status='available', calls POST /api/v1/simulations/{id}/drop/
+- Status badge shown with color-coded background (running=green, paused=yellow, etc.)
+- Files changed: frontend/src/pages/SimulatePage.tsx, frontend/src/api/simulations.ts
+- **Learnings for future iterations:**
+  - `fetchCharacters` returns `{ characters: [...] }` shape - filter by status='available' client-side
+  - Simulation owner field is `meta.owner` (user ID number); compare to `user.id` from useAuth()
+---
+
+## 2026-03-17 - US-024
+- Created useSimulationWebSocket hook with JWT auth in WS URL query param
+- Exponential backoff reconnect: 1s → 2s → 4s → ... → max 30s
+- Close code 4001 → call onAuthError; close code 4003 → call onForbidden, no reconnect
+- SimulatePage: shows green 'Live' / grey 'Disconnected' indicator; falls back to polling when WS disconnected
+- Files changed: frontend/src/hooks/useSimulationWebSocket.ts, frontend/src/pages/SimulatePage.tsx
+- **Learnings for future iterations:**
+  - `react-hooks/set-state-in-effect` (eslint-plugin-react-hooks v7): defer connect() call with `setTimeout(connect, 0)` inside useEffect to avoid calling state setters synchronously
+  - Use MutableRefObject<(() => void) | null> pattern for the connectRef to avoid closure/dependency cycle
+  - BASE_URL derived from `window.location.origin.replace(/^http/, 'ws')` for environment-agnostic WS URL
+---
+
+## 2026-03-17 - US-025
+- Created SimulationSettingsPage at /simulate/:id/settings
+- Visibility selector calls PATCH /api/v1/simulations/{id}/ on change
+- Members list from GET /api/v1/simulations/{id}/members/ with remove buttons
+- Invite form submits POST /api/v1/simulations/{id}/members/ with username
+- Admin-only: redirects to /simulate/:id if user is not simulation owner
+- Settings link added to AdminToolbar in SimulatePage
+- Added updateSimulation, fetchSimulationMembers, inviteMember, removeMember to simulations.ts
+- Files changed: api/simulations.ts, pages/SimulationSettingsPage.tsx, pages/SimulatePage.tsx, App.tsx
+- **Learnings for future iterations:**
+  - Guard admin-only pages by checking `simData.owner !== user.id` inside the data fetch and navigate away
+  - Promise.all for parallel fetches is cleaner than sequential when both results needed together
+---
+
+## 2026-03-17 - US-026
+- Created InvitesPage at /invites: lists pending invites, Accept navigates to sim, Decline removes invite
+- Updated Header to fetch pending invite count on load and show badge
+- Updated my_invites backend to include simulation_id (= sim.name), simulation_name, invited_by
+- Added fetchMyInvites, acceptInvite, declineInvite to frontend/src/api/simulations.ts
+- Files changed: api/simulations.ts, pages/InvitesPage.tsx, components/Header.tsx, App.tsx, simulation_views.py
+- **Learnings for future iterations:**
+  - Simulation API `id` = `sim.name` (not DB pk) — use `m.simulation.name` not `m.simulation.pk`
+  - `fetchMyInvites` in Header useEffect is safe because API returns [] for users with no invites
+---
+
+## 2026-03-17 - US-027
+- Created ExplorePage at /explore with simulation cards and status filter
+- Status filter calls fetchPublicSimulations(status) on change
+- Each card shows name, status badge, map, agent count and an Observe button to /simulate/:id
+- Route /explore added to App.tsx (protected)
+- Files changed: pages/ExplorePage.tsx, App.tsx
+- **Learnings for future iterations:**
+  - `set-state-in-effect` rule: wrap setLoading(true)/setError(null) + fetch in setTimeout(fn, 0) with cancelled flag for cleanup
+  - This pattern: `let cancelled = false; const timer = setTimeout(()=>{...}, 0); return () => { cancelled=true; clearTimeout(timer) }` avoids the ESLint error for data-fetching effects that need to reset state on dependency change
+---
+
+## 2026-03-17 - US-028
+- Added replay_meta (GET /replay/) and replay_step (GET /replay/{step}/) views to simulation_views.py
+- Both views reuse _can_observe and _get_simulation helpers
+- replay_meta uses MovementRecord.aggregate(Min, Max, Count) for step range
+- replay_step converts persona_movements dict to {x, y, pronunciatio, description} per agent
+- Added routes to urls.py before legacy endpoints
+- Files changed: simulation_views.py, urls.py
+- **Learnings for future iterations:**
+  - Import `from django.db import models` to use models.Min/Max/Count in aggregate()
+  - ruff-format reformats dict literals in Response() — re-stage after first failed commit
+---
+
+## 2026-03-17 - US-029
+- Created ReplayPage at /simulate/:id/replay with step scrubber and playback
+- Fetches replay meta and sim meta in parallel; loads step data on currentStep change
+- Play button auto-advances via setInterval; speed 1x/2x/5x via SPEED_INTERVALS map
+- Converts ReplayStepResponse.agents to Agent[] for GameCanvas compatibility
+- 'Watch Live' link shown if simulation status === 'running'
+- Files changed: pages/ReplayPage.tsx, App.tsx, api/simulations.ts
+- **Learnings for future iterations:**
+  - Convert replay agent format to Agent[] via: `{id: name, name, location: {maze:'', x, y}, currently: description, pronunciatio}`
+  - useEffect for playback: return clearInterval(interval) — playback stops on unmount or speed change
+---
+
+## 2026-03-17 - US-030
+- Added agent detail panel to SimulationViewer: click agent name to open
+- Panel shows: current action (act_description), chatting_with, daily_req list, recent 5 concept nodes
+- Panel updates on each step_update (re-fetches fetchAgentDetail for selectedAgentId)
+- Panel closes on Escape keydown or click-outside
+- Backend api_views.simulation_agent_detail enhanced with act_description, daily_req, chatting_with, recent_concepts (last 5 by created)
+- Files changed: pages/SimulatePage.tsx, api/simulations.ts, api_views.py
+- **Learnings for future iterations:**
+  - `persona.concept_nodes.order_by("-created").values(...)[:5]` is efficient for last 5 nodes
+  - Background panel with click-outside: wrap in overlay div with onClick, stop propagation in panel
+---
+
+## 2026-03-17 - US-031
+- Added django-allauth>=65.0.0 and dj-rest-auth>=7.0.0 to requirements.txt
+- Added allauth INSTALLED_APPS: allauth, allauth.account, allauth.socialaccount, providers.google/github
+- Added allauth AccountMiddleware to MIDDLEWARE (after AuthenticationMiddleware)
+- Added django.contrib.sites + SITE_ID=1 (required by allauth)
+- Configured SOCIALACCOUNT_PROVIDERS reading from GOOGLE_CLIENT_ID/SECRET, GITHUB_CLIENT_ID/SECRET env vars
+- Created social_auth_views.py with redirect endpoints to allauth's OAuth URLs
+- Added /accounts/ include for allauth URLs and /api/v1/auth/social/google|github/ endpoints
+- LoginPage shows 'Continue with Google/GitHub' buttons below password form
+- Files changed: settings/base.py, urls.py, social_auth_views.py, requirements.txt, pages/LoginPage.tsx
+- **Learnings for future iterations:**
+  - allauth v65+ uses ACCOUNT_LOGIN_METHODS and ACCOUNT_SIGNUP_FIELDS (not the deprecated ACCOUNT_EMAIL_REQUIRED/AUTHENTICATION_METHOD)
+  - allauth requires django.contrib.sites in INSTALLED_APPS with SITE_ID=1
+  - AccountMiddleware must be added to MIDDLEWARE after AuthenticationMiddleware
+  - Social login redirect flow: /api/v1/auth/social/google/ → allauth's /accounts/google/login/ → Google OAuth → allauth callback
+---

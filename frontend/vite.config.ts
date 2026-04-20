@@ -13,6 +13,7 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    allowedHosts: ['multipointed-vanna-nonrectangularly.ngrok-free.dev'],
     // These proxies are only used when running Vite directly (no Docker/nginx).
     // In Docker, nginx routes /api/* and /accounts/* to the backend directly.
     proxy: {

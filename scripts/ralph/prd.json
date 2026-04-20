@@ -1,541 +1,121 @@
 {
   "project": "Free_Guy",
-  "branchName": "ralph/simulator-game-platform",
-  "description": "Transform Free_Guy into a drop-in simulator game platform. Users register accounts, design characters, drop them into simulation worlds, and observe them living autonomously. Includes JWT auth, character ownership, map selection, WebSocket live observation, and per-simulation access control.",
+  "branchName": "ralph/simulation-debug-tab",
+  "description": "Add a Debug tab to the simulation observation view so users can observe how agents think, act, and progress through each cognitive stage (perceive, retrieve, plan, reflect, execute) in real-time.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Install and configure JWT authentication",
-      "description": "As a developer, I need JWT auth configured in Django so all subsequent auth endpoints can issue and validate tokens.",
+      "title": "Backend API: expose SimulationStepCache data per step",
+      "description": "As a developer, I need an API endpoint that returns cached cognitive-stage data for a given simulation step so the frontend can display what each agent did at each stage.",
       "acceptanceCriteria": [
-        "Add `djangorestframework-simplejwt` to `frontend_server/requirements.txt`",
-        "Add `rest_framework_simplejwt` to INSTALLED_APPS in `frontend_server/frontend_server/settings/base.py`",
-        "Set `DEFAULT_AUTHENTICATION_CLASSES` in DRF settings to `[JWTAuthentication]`",
-        "Configure SimpleJWT: ACCESS_TOKEN_LIFETIME=15 minutes, REFRESH_TOKEN_LIFETIME=30 days",
-        "Add `ROTATE_REFRESH_TOKENS=True` and `BLACKLIST_AFTER_ROTATION=True` to SIMPLE_JWT settings",
-        "Add `rest_framework_simplejwt.token_blacklist` to INSTALLED_APPS and run migration",
+        "Add `GET /api/v1/simulations/{sim_id}/debug/?step=N` endpoint in `frontend_server/translator/api_views.py`",
+        "Returns `{ step: N, stages: { perceive: {<agent>: <data>}, retrieve: {...}, plan: {...}, reflect: {...}, execute: {...} } }` using SimulationStepCache rows",
+        "If `step` param omitted, defaults to the simulation's current step",
+        "Returns 404 if no cache rows exist for that step",
+        "Requires `CanObserveSimulation` permission (already defined in codebase)",
+        "Endpoint registered in `frontend_server/frontend_server/urls.py`",
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-002",
-      "title": "Add Map model to database",
-      "description": "As a developer, I need a Map model so available simulation worlds are stored in the database with no code changes required to add new maps.",
+      "title": "Frontend API client: add fetchDebugStep function",
+      "description": "As a developer, I need a typed API client function for the new debug endpoint so SimulatePage can fetch stage data.",
       "acceptanceCriteria": [
-        "`Map` model added to `frontend_server/translator/models.py` with fields: id (CharField primary key, e.g. 'the_ville'), name (CharField), description (TextField), preview_image_url (CharField, blank=True), maze_name (CharField), max_agents (IntegerField default 25), is_active (BooleanField default True)",
-        "Migration generated and applies cleanly against PostgreSQL",
-        "Model registered in Django admin with list_display=[id, name, maze_name, max_agents, is_active]",
-        "A data migration (or fixture) creates the initial 'the_ville' map entry",
+        "Add `DebugStepData` TypeScript interface to `frontend/src/api/simulations.ts` matching the backend response shape: `{ step: number, stages: Record<string, Record<string, unknown>> }`",
+        "Add `fetchDebugStep(simId: string, step?: number): Promise<DebugStepData>` function using the existing authenticated fetch pattern",
+        "Function exported from `simulations.ts`",
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-003",
-      "title": "Add owner and visibility fields to Simulation model",
-      "description": "As a developer, I need Simulation to track its owner and visibility so access control can be enforced.",
+      "title": "Frontend: add tab navigation to simulation sidebar",
+      "description": "As an observer, I want tab buttons at the top of the simulation right sidebar so I can switch between Agents view and Debug view.",
       "acceptanceCriteria": [
-        "`Simulation` model gains `owner` ForeignKey to `django.contrib.auth.User` (nullable=True, on_delete=SET_NULL) to preserve existing simulations",
-        "`Simulation` model gains `map_id` ForeignKey to `Map` (nullable=True, on_delete=SET_NULL)",
-        "`Simulation` model gains `visibility` CharField with choices ['private', 'public', 'shared'], default 'private'",
-        "Migration generated and applies cleanly",
-        "Admin updated to show owner, map_id, visibility in list_display",
-        "Typecheck passes"
+        "Add two tab buttons (`Agents` and `Debug`) at the top of the right sidebar in `frontend/src/pages/SimulatePage.tsx`",
+        "Active tab has a visible highlight (use existing `retro-button` / `retro-button-primary` classes)",
+        "Clicking `Agents` shows the existing agent list panel; clicking `Debug` shows a placeholder `<div>Debug view coming soon</div>`",
+        "Default active tab is `Agents`",
+        "Tab state is local React state (no URL change needed)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-004",
-      "title": "Add Character model to database",
-      "description": "As a developer, I need a Character model so users can create and own reusable agent personas.",
+      "title": "Frontend: Debug tab — step progress pipeline",
+      "description": "As an observer, I want to see the current step number and which cognitive stages have completed so I understand where the simulation is in its cycle.",
       "acceptanceCriteria": [
-        "`Character` model added to `frontend_server/translator/models.py` with fields: id (auto), owner (FK to User, on_delete=CASCADE), name (CharField), age (IntegerField, nullable), traits (TextField, blank=True), backstory (TextField, blank=True), currently (TextField, blank=True), lifestyle (TextField, blank=True), daily_plan (TextField, blank=True), status (CharField choices=['available','in_simulation'], default='available'), simulation (FK to Simulation, nullable=True, on_delete=SET_NULL)",
-        "UNIQUE constraint on (owner, name)",
-        "Migration generated and applies cleanly",
-        "Model registered in Django admin",
-        "Typecheck passes"
+        "Inside the Debug tab panel, show the current step number and sim_curr_time (from existing `meta` state)",
+        "Show a 5-stage pipeline row: Perceive → Retrieve → Plan → Reflect → Execute",
+        "Each stage pill is grey by default; turns green when SimulationStepCache data exists for that stage at the current step (polled via `fetchDebugStep`)",
+        "Pipeline updates automatically whenever `meta.step` changes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-005",
-      "title": "Add SimulationMembership model to database",
-      "description": "As a developer, I need a SimulationMembership model so per-simulation roles and invite status can be tracked.",
+      "title": "Frontend: Debug tab — agent actions feed",
+      "description": "As an observer, I want a live feed of each agent's most recent action description and emoji so I can see what every agent is doing at a glance.",
       "acceptanceCriteria": [
-        "`SimulationMembership` model added with fields: id (auto), simulation (FK to Simulation, on_delete=CASCADE), user (FK to User, on_delete=CASCADE), role (CharField choices=['admin','observer']), status (CharField choices=['invited','active','declined']), invited_at (DateTimeField auto_now_add), joined_at (DateTimeField nullable)",
-        "UNIQUE constraint on (simulation, user)",
-        "Migration generated and applies cleanly",
-        "Model registered in Django admin with list_display=[simulation, user, role, status]",
-        "Typecheck passes"
+        "Inside the Debug tab panel, below the step pipeline, show a list of all agents",
+        "Each agent row shows: agent name, pronunciatio emoji (from latest MovementRecord `persona_movements`), and act_description",
+        "Data sourced from existing `agents` state (already populated in SimulatePage) and latest SSE movement data",
+        "Rows update whenever the SSE step event fires",
+        "If an agent has no action yet, show a dash placeholder",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-006",
-      "title": "User registration API endpoint",
-      "description": "As a new user, I want to register an account via POST /api/v1/auth/register/ so I can own characters and simulations.",
+      "title": "Frontend: Debug tab — per-agent cognitive stage detail viewer",
+      "description": "As an observer, I want to click on an agent in the Debug tab and see the full output of each cognitive stage for the current step so I can understand their reasoning.",
       "acceptanceCriteria": [
-        "`POST /api/v1/auth/register/` accepts `{ username, email, password, password_confirm }`",
-        "Returns 400 with field errors if: username/email already taken, passwords don't match, password < 8 chars or all-numeric",
-        "On success creates User, returns `{ access, refresh, user: { id, username, email } }` with HTTP 201",
-        "Endpoint added to `frontend_server/frontend_server/urls.py`",
-        "Typecheck passes"
+        "Clicking an agent row in the Debug tab expands an accordion/detail section below that row",
+        "Detail section shows collapsible sub-panels for each stage: Perceive, Retrieve, Plan, Reflect, Execute",
+        "Each sub-panel renders the raw JSON from SimulationStepCache as formatted text (use `<pre>` with word-wrap)",
+        "Data fetched via `fetchDebugStep` when the user clicks the agent row; show a loading state while fetching",
+        "If no cache data exists for a stage, show 'No data for this stage'",
+        "Only one agent expanded at a time (clicking another collapses the previous)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
       "id": "US-007",
-      "title": "User login and token refresh API endpoints",
-      "description": "As a registered user, I want to log in and get JWT tokens so I can access protected endpoints.",
+      "title": "Frontend: Debug tab — auto-refresh on step change",
+      "description": "As an observer, I want the debug tab to automatically reload cognitive stage data whenever the simulation advances to a new step.",
       "acceptanceCriteria": [
-        "`POST /api/v1/auth/login/` accepts `{ username, password }`, returns `{ access, refresh, user: { id, username, email } }` on success, 401 on failure",
-        "`POST /api/v1/auth/token/refresh/` accepts `{ refresh }`, returns `{ access }` or 401 if refresh token invalid/expired",
-        "`POST /api/v1/auth/logout/` accepts `{ refresh }`, blacklists the refresh token, returns 200",
-        "All three endpoints added to `frontend_server/frontend_server/urls.py`",
-        "Typecheck passes"
+        "When the active tab is `Debug` and `meta.step` increments (detected via `useEffect` dependency on `meta.step`), re-fetch debug data for the new step via `fetchDebugStep`",
+        "Stage pipeline pills reset to grey on new step, then update as data arrives",
+        "Expanded agent accordion auto-refreshes its stage data for the new step",
+        "No unnecessary fetches when the step has not changed",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
       ],
       "priority": 7,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-008",
-      "title": "User profile and password reset API endpoints",
-      "description": "As a logged-in user, I want to view/update my profile and reset my password so I can manage my account.",
-      "acceptanceCriteria": [
-        "`GET /api/v1/auth/me/` returns `{ id, username, email, date_joined }` for authenticated user, 401 if unauthenticated",
-        "`PATCH /api/v1/auth/me/` accepts `{ username?, email? }`, updates and returns updated user object",
-        "`POST /api/v1/auth/password-reset/` accepts `{ email }`, logs reset link to console in development (no real email required), returns 200",
-        "`POST /api/v1/auth/password-reset/confirm/` accepts `{ token, password, password_confirm }`, returns 400 if token invalid/expired or passwords don't match, 200 on success",
-        "All endpoints added to `frontend_server/frontend_server/urls.py`",
-        "Typecheck passes"
-      ],
-      "priority": 8,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-009",
-      "title": "Maps list API endpoint",
-      "description": "As a developer, I need a maps endpoint so the frontend can show available simulation worlds.",
-      "acceptanceCriteria": [
-        "`GET /api/v1/maps/` returns `{ maps: [{ id, name, description, preview_image_url, max_agents }] }` for all active maps",
-        "Endpoint requires authentication (401 if unauthenticated)",
-        "Added to `frontend_server/frontend_server/urls.py`",
-        "Typecheck passes"
-      ],
-      "priority": 9,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-010",
-      "title": "Update simulation create API to accept map and visibility",
-      "description": "As a developer, I need the simulation create endpoint to accept map_id, visibility, and set the authenticated user as owner/admin.",
-      "acceptanceCriteria": [
-        "`POST /api/v1/simulations/` now accepts `{ name, map_id?, visibility? }` in addition to existing fields",
-        "If `map_id` provided, validates it exists in Map table; returns 400 if not found",
-        "`map_id` defaults to `'the_ville'` if omitted",
-        "`visibility` defaults to `'private'` if omitted",
-        "Creating user is set as `simulation.owner`",
-        "A `SimulationMembership` row is created for the creating user with role=`'admin'`, status=`'active'`",
-        "Endpoint now requires authentication; returns 401 if unauthenticated",
-        "API response includes `map_id` and `visibility` fields",
-        "Typecheck passes"
-      ],
-      "priority": 10,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-011",
-      "title": "Character CRUD API endpoints",
-      "description": "As a logged-in user, I want API endpoints to create, list, edit, and delete my characters.",
-      "acceptanceCriteria": [
-        "`GET /api/v1/characters/` returns `{ characters: [...] }` for authenticated user's characters only",
-        "`POST /api/v1/characters/` accepts `{ name, age?, traits?, backstory?, currently?, lifestyle?, daily_plan? }`, creates character for authenticated user, returns 201",
-        "Returns 400 if name is blank or if (owner, name) combination already exists",
-        "`GET /api/v1/characters/{id}/` returns character detail; 404 if not owned by user",
-        "`PATCH /api/v1/characters/{id}/` updates character; 403 if not owner; 400 if character is in_simulation",
-        "`DELETE /api/v1/characters/{id}/` deletes character; 403 if not owner; 400 with error message if character status is 'in_simulation'",
-        "All endpoints require authentication; return 401 if unauthenticated",
-        "Added to `frontend_server/frontend_server/urls.py`",
-        "Typecheck passes"
-      ],
-      "priority": 11,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-012",
-      "title": "Drop character into simulation API endpoint",
-      "description": "As a simulation admin, I want to assign a character to a simulation via POST /api/v1/simulations/{id}/drop/ so the AI engine can bring them to life.",
-      "acceptanceCriteria": [
-        "`POST /api/v1/simulations/{sim_id}/drop/` accepts `{ character_id }`",
-        "Returns 403 if authenticated user is not the simulation admin (role='admin' in SimulationMembership)",
-        "Returns 400 if character does not belong to the authenticated user",
-        "Returns 400 if character status is already 'in_simulation'",
-        "Returns 404 if character_id not found",
-        "On success: sets `character.status='in_simulation'`, sets `character.simulation=sim`, creates Persona row from character fields, returns updated simulation object",
-        "Endpoint requires authentication",
-        "Added to urls.py",
-        "Typecheck passes"
-      ],
-      "priority": 12,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-013",
-      "title": "Start, pause, and resume simulation API endpoints",
-      "description": "As a simulation admin, I want to start, pause, and resume my simulation via API so I can control when the engine runs.",
-      "acceptanceCriteria": [
-        "`POST /api/v1/simulations/{sim_id}/start/` sets simulation status to 'running', sets start_date if null; returns 403 if not admin; returns 400 if no characters dropped; returns 409 if already running",
-        "`POST /api/v1/simulations/{sim_id}/pause/` sets status to 'paused'; returns 403 if not admin; returns 409 if not running",
-        "`POST /api/v1/simulations/{sim_id}/resume/` sets status back to 'running'; returns 403 if not admin; returns 409 if not paused",
-        "All three endpoints require authentication",
-        "Added to urls.py",
-        "Typecheck passes"
-      ],
-      "priority": 13,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-014",
-      "title": "Simulation access control and visibility API",
-      "description": "As a developer, I need access control enforced on simulation read endpoints and a PATCH endpoint to update visibility.",
-      "acceptanceCriteria": [
-        "Create `IsSimulationAdmin` DRF permission class: passes if user has SimulationMembership role='admin' for the simulation",
-        "Create `CanObserveSimulation` DRF permission class: passes if simulation.visibility='public' OR user has active SimulationMembership for the simulation",
-        "`GET /api/v1/simulations/{sim_id}/`, agents, state endpoints now require `CanObserveSimulation`; return 403 if user lacks access",
-        "`PATCH /api/v1/simulations/{sim_id}/` accepts `{ visibility? }` (admin only); returns 403 if not admin",
-        "`GET /api/v1/simulations/mine/` returns simulations where user has an active SimulationMembership",
-        "`GET /api/v1/simulations/public/` returns all simulations with visibility='public' (requires auth)",
-        "Added to urls.py",
-        "Typecheck passes"
-      ],
-      "priority": 14,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-015",
-      "title": "Simulation invite system API endpoints",
-      "description": "As a simulation admin, I want to invite users to observe my simulation, and as an invitee I want to accept or decline.",
-      "acceptanceCriteria": [
-        "`POST /api/v1/simulations/{sim_id}/members/` accepts `{ username }`, creates SimulationMembership with role='observer', status='invited'; returns 403 if not admin; returns 404 if username not found; returns 409 if already a member",
-        "`GET /api/v1/simulations/{sim_id}/members/` returns list of members with id, username, role, status; requires CanObserveSimulation",
-        "`DELETE /api/v1/simulations/{sim_id}/members/{user_id}/` removes membership; returns 403 if not admin",
-        "`GET /api/v1/invites/` returns pending invites (status='invited') for authenticated user",
-        "`POST /api/v1/invites/{membership_id}/accept/` sets status='active', sets joined_at=now()",
-        "`POST /api/v1/invites/{membership_id}/decline/` sets status='declined'",
-        "Both accept/decline return 404 if membership not found or doesn't belong to authenticated user",
-        "Added to urls.py",
-        "Typecheck passes"
-      ],
-      "priority": 15,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-016",
-      "title": "Add Redis and Django Channels to docker-compose and requirements",
-      "description": "As a developer, I need Redis and Django Channels configured so WebSocket connections can be handled.",
-      "acceptanceCriteria": [
-        "Add `redis:7-alpine` service to `docker-compose.yml` with healthcheck `redis-cli ping`",
-        "Add `channels`, `channels-redis`, and `daphne` to `frontend_server/requirements.txt`",
-        "Add `channels` and `daphne` to `INSTALLED_APPS` in `frontend_server/frontend_server/settings/base.py`",
-        "Configure `CHANNEL_LAYERS` in settings with `RedisChannelLayer` pointing to `redis://redis:6379`",
-        "Set `ASGI_APPLICATION = 'frontend_server.asgi.application'`",
-        "Create `frontend_server/frontend_server/asgi.py` with Django Channels `ProtocolTypeRouter` routing HTTP to Django and WebSocket to `SimulationConsumer` (file can stub the consumer import for now)",
-        "Typecheck passes"
-      ],
-      "priority": 16,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-017",
-      "title": "Implement SimulationConsumer WebSocket handler",
-      "description": "As a developer, I need a WebSocket consumer so clients can connect to receive live simulation updates.",
-      "acceptanceCriteria": [
-        "Create `frontend_server/translator/consumers.py` with `SimulationConsumer(AsyncJsonWebsocketConsumer)`",
-        "On connect: extract `token` from query string; validate JWT; look up simulation by `sim_id` URL kwarg; enforce CanObserveSimulation logic; reject with close code 4001 if invalid token or 4003 if forbidden",
-        "On connect success: add to channel group `simulation_{sim_id}`",
-        "On disconnect: remove from channel group",
-        "Class method `broadcast_step(sim_id, payload)`: sends payload to group `simulation_{sim_id}` with type `step_update`",
-        "WebSocket routing added to `asgi.py`: `path('ws/simulations/<str:sim_id>/', SimulationConsumer.as_asgi())`",
-        "Typecheck passes"
-      ],
-      "priority": 17,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-018",
-      "title": "Frontend auth state management and API client",
-      "description": "As a developer, I need auth state management and an API client in the React frontend so all pages can access the current user and make authenticated requests.",
-      "acceptanceCriteria": [
-        "Create `frontend/src/context/AuthContext.tsx` with `AuthProvider` holding `{ user, accessToken, login, logout, register }` and a `useAuth()` hook",
-        "Access token stored in memory (React state); refresh token managed via cookie (sent automatically by browser)",
-        "Create `frontend/src/api/client.ts` with a `fetch` wrapper that attaches `Authorization: Bearer <token>` header and auto-calls `/api/v1/auth/token/refresh/` on 401 then retries once",
-        "Create `frontend/src/api/auth.ts` with `apiLogin`, `apiRegister`, `apiLogout`, `apiFetchMe` functions",
-        "Update `frontend/src/App.tsx` to wrap app in `<AuthProvider>` and add protected route logic: unauthenticated users are redirected to `/login` from protected pages",
-        "Typecheck passes"
-      ],
-      "priority": 18,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-019",
-      "title": "Login and registration pages",
-      "description": "As a user, I want /login and /register pages so I can create an account and sign in.",
-      "acceptanceCriteria": [
-        "Route `/login` renders a login form with username and password fields and a submit button",
-        "Successful login calls `apiLogin`, stores tokens via `AuthContext.login()`, redirects to `/dashboard`",
-        "Failed login shows inline error message below the form",
-        "Route `/register` renders a registration form with username, email, password, and confirm password fields",
-        "Successful registration calls `apiRegister`, auto-logs in, redirects to `/dashboard`",
-        "Failed registration shows per-field error messages",
-        "Both pages show a link to the other (Login page has 'Create account', Register has 'Already have an account?')",
-        "Header nav shows 'Login' / 'Register' links when unauthenticated; shows username + 'Logout' when authenticated",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 19,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-020",
-      "title": "Dashboard page",
-      "description": "As a logged-in user, I want a /dashboard page showing my simulations and characters so I can manage them.",
-      "acceptanceCriteria": [
-        "Route `/dashboard` requires authentication; redirects to `/login` if unauthenticated",
-        "Calls `GET /api/v1/simulations/mine/` and displays simulation cards: name, map, status badge (pending/running/paused/completed), character count, step count",
-        "Each simulation card has an 'Observe' button linking to `/simulate/{id}` and a 'Settings' button (admin only) linking to `/simulate/{id}/settings`",
-        "Shows 'Create simulation' button linking to `/simulations/new`",
-        "Below simulations, shows character cards from `GET /api/v1/characters/` with name, status, current simulation (if any)",
-        "Shows 'Create character' button linking to `/characters/new`",
-        "Empty state messages shown when no simulations or characters exist",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 20,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-021",
-      "title": "Character creation and list pages",
-      "description": "As a logged-in user, I want /characters and /characters/new pages so I can create and manage my characters.",
-      "acceptanceCriteria": [
-        "Route `/characters` lists all characters from `GET /api/v1/characters/` as cards showing name, age, status",
-        "Each card has Edit and Delete buttons; Delete is disabled with tooltip 'Character is in a simulation' when status='in_simulation'",
-        "Route `/characters/new` shows a form with fields: Name (required), Age, Traits (who they are), Backstory, Currently (what they're doing), Lifestyle, Daily Plan",
-        "All text fields have placeholder examples",
-        "On submit calls `POST /api/v1/characters/` and navigates to `/characters` on success",
-        "Shows inline error messages on failure",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 21,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-022",
-      "title": "Simulation creation page with map picker",
-      "description": "As a logged-in user, I want a /simulations/new page with a map picker so I can create a new simulation world.",
-      "acceptanceCriteria": [
-        "Route `/simulations/new` requires authentication",
-        "Page fetches `GET /api/v1/maps/` and renders maps as a card grid (2 columns on desktop)",
-        "Each map card shows name, description, max_agents hint; selected card has a visible highlight border",
-        "'The Ville' is pre-selected by default",
-        "Page has a 'Simulation Name' text input (required) and a visibility selector (Private / Public / Shared, defaulting to Private)",
-        "Submit button calls `POST /api/v1/simulations/` with name, map_id, and visibility",
-        "On success navigates to `/simulate/{sim_id}`",
-        "On error shows inline error message",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 22,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-023",
-      "title": "Simulation detail page with drop character and start controls",
-      "description": "As a simulation admin, I want the simulation detail page to let me drop a character and start the simulation.",
-      "acceptanceCriteria": [
-        "Route `/simulate/{sim_id}` fetches simulation metadata and agents list",
-        "Admin toolbar visible only to simulation admin (check via `GET /api/v1/simulations/mine/` membership role)",
-        "Admin toolbar shows: 'Drop Character' button (opens modal), 'Start' / 'Pause' / 'Resume' button based on current status",
-        "'Drop Character' modal shows dropdown of user's available characters (from `GET /api/v1/characters/` filtered to status='available'); submit calls `POST /api/v1/simulations/{id}/drop/`",
-        "'Start' button calls `POST /api/v1/simulations/{id}/start/`; becomes 'Pause' after starting",
-        "Agents list updates after dropping a character (re-fetches agents)",
-        "Shows current simulation status as a badge",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 23,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-024",
-      "title": "Live WebSocket observation in SimulationViewer",
-      "description": "As an observer, I want the simulation viewer to connect via WebSocket and update agent positions in real-time.",
-      "acceptanceCriteria": [
-        "On `/simulate/{sim_id}` mount, open WebSocket to `ws://localhost:8000/ws/simulations/{sim_id}/?token={accessToken}`",
-        "On receiving `step_update` message: update agent positions and current simulation time in state",
-        "Show green 'Live' indicator when WebSocket is connected; grey 'Disconnected' when not",
-        "Auto-reconnect with exponential backoff (1s, 2s, 4s, 8s, max 30s) on unexpected disconnect",
-        "On WebSocket close code 4001 (invalid token): attempt token refresh then reconnect once; if still failing redirect to `/login`",
-        "On WebSocket close code 4003 (forbidden): show 'Access denied' message, do not reconnect",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 24,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-025",
-      "title": "Simulation settings page (visibility and members)",
-      "description": "As a simulation admin, I want a /simulate/{id}/settings page to manage visibility and invite observers.",
-      "acceptanceCriteria": [
-        "Route `/simulate/{sim_id}/settings` requires admin role; redirects to `/simulate/{sim_id}` if not admin",
-        "Shows visibility selector (Private / Shared / Public); changing it calls `PATCH /api/v1/simulations/{sim_id}/` immediately",
-        "Shows current members list from `GET /api/v1/simulations/{sim_id}/members/` with name, role, status",
-        "Admin can remove any observer member (calls `DELETE /api/v1/simulations/{sim_id}/members/{user_id}/`)",
-        "Invite form with username input; submit calls `POST /api/v1/simulations/{sim_id}/members/`; shows success/error feedback",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 25,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-026",
-      "title": "Pending invites page and header notification badge",
-      "description": "As an invited user, I want to see and respond to pending simulation invites.",
-      "acceptanceCriteria": [
-        "Route `/invites` requires authentication; fetches `GET /api/v1/invites/` and lists pending invites",
-        "Each invite shows: simulation name, inviting user, Accept and Decline buttons",
-        "Accept calls `POST /api/v1/invites/{id}/accept/`; on success simulation appears in dashboard",
-        "Decline calls `POST /api/v1/invites/{id}/decline/`; invite disappears from list",
-        "App header shows a notification badge with pending invite count (fetches on page load)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 26,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-027",
-      "title": "Public simulation browser page",
-      "description": "As any logged-in user, I want to browse public simulations at /explore so I can discover interesting worlds.",
-      "acceptanceCriteria": [
-        "Route `/explore` requires authentication",
-        "Fetches `GET /api/v1/simulations/public/` and shows simulation cards: name, map, status, character count, creator username",
-        "Filter bar with 'Status' dropdown (All / Running / Paused / Completed) that appends `?status=` to the API request",
-        "'Observe' button on each card navigates to `/simulate/{id}`",
-        "Empty state message when no public simulations",
-        "Navigation link to `/explore` added to app header",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 27,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-028",
-      "title": "Simulation replay steps API endpoint",
-      "description": "As a developer, I need API endpoints for replay data so the frontend can scrub through past simulation steps.",
-      "acceptanceCriteria": [
-        "`GET /api/v1/simulations/{sim_id}/replay/` returns `{ sim_id, total_steps, first_step, last_step }` using MovementRecord table; requires CanObserveSimulation; returns 404 if no steps recorded",
-        "`GET /api/v1/simulations/{sim_id}/replay/{step}/` returns agent state at that step from MovementRecord; returns 404 if step not found",
-        "Response format for replay step: `{ step, sim_curr_time, agents: { <name>: { x, y, pronunciatio, description } } }`",
-        "Added to urls.py",
-        "Typecheck passes"
-      ],
-      "priority": 28,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-029",
-      "title": "Replay page with step scrubber",
-      "description": "As an observer, I want a /simulate/{id}/replay page with a playback timeline so I can review what my character did.",
-      "acceptanceCriteria": [
-        "Route `/simulate/{sim_id}/replay` fetches `GET /api/v1/simulations/{sim_id}/replay/` to get step range",
-        "Renders map canvas with agent positions from current step",
-        "Timeline scrubber (range input) spanning from first_step to last_step; dragging updates displayed step",
-        "Play button animates through steps at 1 step per second; Pause button stops playback",
-        "Speed selector: 1x / 2x / 5x (adjusts playback interval)",
-        "Current step number and sim_curr_time displayed above the scrubber",
-        "'Watch Live' button shown if simulation is still running; navigates to `/simulate/{sim_id}`",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 29,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-030",
-      "title": "Character detail panel in simulation viewer",
-      "description": "As an observer, I want to click an agent on the map and see their current thoughts, plans, and recent memories.",
-      "acceptanceCriteria": [
-        "Clicking an agent name or sprite in the simulation viewer fetches `GET /api/v1/simulations/{sim_id}/agents/{agent_id}/`",
-        "Opens a side panel showing: agent name, current action description (from scratch.act_description), today's plan list (from scratch.daily_req), last 5 concept nodes (most recent by created date), current conversation partner if any (from scratch.chatting_with)",
-        "Panel updates on each WebSocket step_update for the selected agent",
-        "Panel closes when clicking outside it or pressing Escape",
-        "If no agent is selected the panel is hidden",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 30,
-      "passes": true,
-      "notes": ""
-    },
-    {
-      "id": "US-031",
-      "title": "Social login with Google and GitHub",
-      "description": "As a new user, I want to sign in with Google or GitHub so I don't need a separate password.",
-      "acceptanceCriteria": [
-        "Add `django-allauth`, `dj-rest-auth[with_social]` to `frontend_server/requirements.txt`",
-        "Configure allauth in settings: INSTALLED_APPS includes `allauth`, `allauth.account`, `allauth.socialaccount`, `allauth.socialaccount.providers.google`, `allauth.socialaccount.providers.github`",
-        "`GET /api/v1/auth/social/google/` initiates Google OAuth flow",
-        "`GET /api/v1/auth/social/github/` initiates GitHub OAuth flow",
-        "On successful OAuth callback, issues the same JWT pair as regular login",
-        "If OAuth email matches an existing account, links social login to that account instead of creating a duplicate",
-        "Login page shows 'Continue with Google' and 'Continue with GitHub' buttons below the password form",
-        "SOCIALACCOUNT_PROVIDERS configured in settings with placeholder client_id/secret (read from env vars `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 31,
-      "passes": true,
+      "passes": false,
       "notes": ""
     }
   ]

@@ -1,0 +1,46 @@
+{% extends "base_retro.html" %}
+{% load i18n %}
+
+{% block title %}Finish Sign Up — Reverie Pixel Town{% endblock %}
+
+{% block content %}
+<div class="retro-panel">
+  <h1 class="retro-title">Almost there</h1>
+  <p class="retro-subtitle">
+    Choose a username to complete your account setup.
+  </p>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="retro-alert {% if message.tags == 'error' %}retro-alert-error{% elif message.tags == 'success' %}retro-alert-success{% else %}retro-alert-info{% endif %}">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" action="{% url 'socialaccount_signup' %}">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <input
+          id="{{ field.id_for_label }}"
+          type="{{ field.field.widget.input_type }}"
+          name="{{ field.html_name }}"
+          value="{{ field.value|default:'' }}"
+          {% if field.field.required %}required{% endif %}
+          class="retro-input"
+          placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+        />
+        {% if field.errors %}
+          <div class="retro-error">{{ field.errors }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <button type="submit" class="retro-button retro-button-warm" style="margin-top:0.5rem;">
+      Enter the simulation
+    </button>
+  </form>
+</div>
+{% endblock %}

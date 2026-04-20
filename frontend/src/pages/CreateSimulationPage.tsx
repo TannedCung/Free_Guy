@@ -13,6 +13,7 @@ export default function CreateSimulationPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [mapsLoading, setMapsLoading] = useState(true)
+  const [step, setStep] = useState<1 | 2>(1)
 
   useEffect(() => {
     async function loadMaps() {
@@ -46,17 +47,126 @@ export default function CreateSimulationPage() {
     }
   }
 
+  const selectedMap = maps.find((m) => m.id === selectedMapId)
+
+  // ── Step 1: Map selection ─────────────────────────────────────────────────
+
+  if (step === 1) {
+    return (
+      <div className="retro-page">
+        <Header />
+        <main className="retro-main max-w-4xl">
+          <div className="mb-6">
+            <h2 className="retro-title mb-1">Choose a map</h2>
+            <p className="retro-subtitle">Pick the world your simulation will run in.</p>
+          </div>
+
+          {mapsLoading ? (
+            <p className="text-gray-500">Loading maps…</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+              {maps.map((map) => (
+                <button
+                  key={map.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedMapId(map.id)
+                    setStep(2)
+                  }}
+                  className={`text-left border-2 transition-colors overflow-hidden ${
+                    selectedMapId === map.id
+                      ? 'border-blue-500 retro-panel'
+                      : 'border-gray-200 bg-white hover:border-blue-400'
+                  }`}
+                >
+                  {map.preview_image_url ? (
+                    <img
+                      src={map.preview_image_url}
+                      alt={map.name}
+                      className="w-full h-40 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
+                      No preview
+                    </div>
+                  )}
+                  <div className="p-4">
+                    <h4 className="font-bold uppercase text-sm text-gray-900">{map.name}</h4>
+                    {map.description && (
+                      <p className="text-xs text-gray-600 mt-1">{map.description}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-2">Max agents: {map.max_agents}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => navigate('/dashboard')}
+            className="retro-button retro-button-ghost"
+          >
+            Cancel
+          </button>
+        </main>
+      </div>
+    )
+  }
+
+  // ── Step 2: Simulation details ────────────────────────────────────────────
+
   return (
     <div className="retro-page">
       <Header />
-      <main className="retro-main max-w-4xl">
-        <h2 className="retro-title mb-3">Create simulation</h2>
-        <p className="retro-subtitle mb-6">
-          Choose a name, pick visibility, then select a map tile set to launch your pixel town.
-        </p>
+      <main className="retro-main max-w-2xl">
+        <button
+          type="button"
+          onClick={() => setStep(1)}
+          className="text-sm text-gray-500 hover:text-gray-700 mb-4 inline-flex items-center gap-1"
+        >
+          ← Back to map selection
+        </button>
+
+        <div className="mb-6">
+          <h2 className="retro-title mb-1">Create simulation</h2>
+          <p className="retro-subtitle">Name your simulation and set its visibility.</p>
+        </div>
+
+        {/* Selected map summary */}
+        {selectedMap && (
+          <div className="retro-panel p-4 mb-6 flex items-center gap-4">
+            {selectedMap.preview_image_url ? (
+              <img
+                src={selectedMap.preview_image_url}
+                alt={selectedMap.name}
+                className="w-20 h-14 object-cover shrink-0"
+              />
+            ) : (
+              <div className="w-20 h-14 bg-gray-100 shrink-0 flex items-center justify-center text-xs text-gray-400">
+                No preview
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="font-bold uppercase text-sm text-gray-900">{selectedMap.name}</div>
+              {selectedMap.description && (
+                <div className="text-xs text-gray-500 mt-0.5 truncate">{selectedMap.description}</div>
+              )}
+              <div className="text-xs text-gray-400 mt-0.5">Max agents: {selectedMap.max_agents}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="text-xs text-blue-500 hover:text-blue-700 shrink-0"
+            >
+              Change
+            </button>
+          </div>
+        )}
+
         <form onSubmit={(e) => void handleSubmit(e)}>
-          <div className="retro-panel p-6 md:p-8 mb-6">
-            <div className="mb-6">
+          <div className="retro-panel p-6 mb-6 space-y-5">
+            <div>
               <label className="block text-xs font-bold uppercase mb-1">
                 Simulation Name <span className="text-red-500">*</span>
               </label>
@@ -82,32 +192,6 @@ export default function CreateSimulationPage() {
             </div>
           </div>
 
-          <div className="retro-panel p-6 md:p-8 mb-6">
-            <h3 className="retro-title text-lg mb-4">Choose a map</h3>
-            {mapsLoading ? (
-              <p className="text-gray-500">Loading maps…</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {maps.map((map) => (
-                  <button
-                    key={map.id}
-                    type="button"
-                    onClick={() => setSelectedMapId(map.id)}
-                    className={`text-left p-4 border-2 transition-colors ${
-                      selectedMapId === map.id
-                        ? 'border-blue-500 bg-blue-50 retro-panel'
-                        : 'border-gray-200 bg-white hover:border-blue-500'
-                    }`}
-                  >
-                    <h4 className="font-bold uppercase text-sm text-gray-900">{map.name}</h4>
-                    <p className="text-xs text-gray-600 mt-1">{map.description}</p>
-                    <p className="text-xs text-gray-400 mt-2">Max agents: {map.max_agents}</p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm retro-panel">
               {error}
@@ -117,7 +201,7 @@ export default function CreateSimulationPage() {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={loading || mapsLoading}
+              disabled={loading}
               className="retro-button retro-button-primary"
             >
               {loading ? 'Creating…' : 'Create Simulation'}

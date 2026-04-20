@@ -16,7 +16,7 @@ import {
   type AgentPosition,
   type SimulationMeta,
 } from '../api/simulations'
-import { fetchCharacters, type Character } from '../api/characters'
+import { fetchCharacters, createCharacter, type Character } from '../api/characters'
 import { useAuth } from '../context/AuthContext'
 import { useSimulationSSE } from '../hooks/useSimulationSSE'
 
@@ -110,46 +110,305 @@ function AgentCard({ agent }: { agent: Agent }) {
   )
 }
 
+// ─── Add Character Modal ──────────────────────────────────────────────────────
+
+function AddCharacterModal({
+  simId,
+  spawnPos,
+  onClose,
+  onSuccess,
+}: {
+  simId: string
+  spawnPos: { x: number; y: number } | null
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [mode, setMode] = useState<'new' | 'existing'>('new')
+
+  // New character form
+  const [name, setName] = useState('')
+  const [age, setAge] = useState('')
+  const [traits, setTraits] = useState('')
+  const [backstory, setBackstory] = useState('')
+  const [currently, setCurrently] = useState('')
+  const [lifestyle, setLifestyle] = useState('')
+  const [livingArea, setLivingArea] = useState('')
+  const [dailyPlan, setDailyPlan] = useState('')
+
+  // Existing character selection
+  const [availableChars, setAvailableChars] = useState<Character[]>([])
+  const [selectedCharId, setSelectedCharId] = useState<number | null>(null)
+  const [charsLoading, setCharsLoading] = useState(false)
+
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (mode === 'existing') {
+      setCharsLoading(true)
+      fetchCharacters()
+        .then((res) => setAvailableChars(res.characters.filter((c) => c.status === 'available')))
+        .catch(() => setError('Failed to load characters'))
+        .finally(() => setCharsLoading(false))
+    }
+  }, [mode])
+
+  const handleSubmitNew = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      const char = await createCharacter({
+        name,
+        age: age ? parseInt(age, 10) : undefined,
+        traits,
+        backstory,
+        currently,
+        lifestyle,
+        living_area: livingArea,
+        daily_plan: dailyPlan,
+      })
+      await dropCharacter(simId, char.id)
+      onSuccess()
+      onClose()
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'name' in err) {
+        const fieldErr = err as Record<string, string[]>
+        const firstKey = Object.keys(fieldErr)[0]
+        setError(firstKey ? `${firstKey}: ${fieldErr[firstKey]?.join(', ')}` : 'Failed to add character')
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to add character')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDropExisting = async () => {
+    if (!selectedCharId) return
+    setLoading(true)
+    setError(null)
+    try {
+      await dropCharacter(simId, selectedCharId)
+      onSuccess()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to drop character')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="retro-panel p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl mx-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-gray-900">Add Character</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-700 text-xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+
+        {spawnPos && (
+          <p className="text-xs text-gray-500 mb-4">
+            Spawn position: tile ({spawnPos.x}, {spawnPos.y})
+          </p>
+        )}
+
+        {/* Mode tabs */}
+        <div className="flex gap-0 mb-5 border-b border-gray-200">
+          <button
+            onClick={() => setMode('new')}
+            className={`pb-2 px-3 text-sm font-medium transition-colors ${
+              mode === 'new'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            New Character
+          </button>
+          <button
+            onClick={() => setMode('existing')}
+            className={`pb-2 px-3 text-sm font-medium transition-colors ${
+              mode === 'existing'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Existing Character
+          </button>
+        </div>
+
+        {/* New character form */}
+        {mode === 'new' && (
+          <form onSubmit={(e) => void handleSubmitNew(e)} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">
+                Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Isabella Rodriguez"
+                className="retro-input"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">Age</label>
+              <input
+                type="number"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="e.g. 34"
+                className="retro-input"
+                min={0}
+                max={120}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">Traits</label>
+              <textarea
+                value={traits}
+                onChange={(e) => setTraits(e.target.value)}
+                placeholder="e.g. kind, curious, hardworking"
+                rows={2}
+                className="retro-input resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">Backstory</label>
+              <textarea
+                value={backstory}
+                onChange={(e) => setBackstory(e.target.value)}
+                placeholder="Background and history…"
+                rows={2}
+                className="retro-input resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">Currently</label>
+              <input
+                value={currently}
+                onChange={(e) => setCurrently(e.target.value)}
+                placeholder="e.g. working at the café"
+                className="retro-input"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">Lifestyle</label>
+              <input
+                value={lifestyle}
+                onChange={(e) => setLifestyle(e.target.value)}
+                placeholder="e.g. early riser, healthy diet"
+                className="retro-input"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">Lives in</label>
+              <input
+                value={livingArea}
+                onChange={(e) => setLivingArea(e.target.value)}
+                placeholder="e.g. Oak Hill Apartments:Apt 2"
+                className="retro-input"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase mb-1">Daily plan</label>
+              <textarea
+                value={dailyPlan}
+                onChange={(e) => setDailyPlan(e.target.value)}
+                placeholder="Typical daily schedule…"
+                rows={2}
+                className="retro-input resize-none"
+              />
+            </div>
+
+            {error && (
+              <p className="text-red-500 text-xs">{error}</p>
+            )}
+
+            <div className="flex gap-2 justify-end pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="retro-button retro-button-ghost text-xs py-1 px-3"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="retro-button retro-button-primary text-xs py-1 px-3"
+              >
+                {loading ? 'Adding…' : 'Add Character'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Existing character */}
+        {mode === 'existing' && (
+          <div>
+            {charsLoading ? (
+              <p className="text-sm text-gray-500">Loading characters…</p>
+            ) : availableChars.length === 0 ? (
+              <p className="text-sm text-gray-500">No available characters. Create one first.</p>
+            ) : (
+              <select
+                value={selectedCharId ?? ''}
+                onChange={(e) => setSelectedCharId(parseInt(e.target.value, 10))}
+                className="retro-select w-full mb-4"
+              >
+                <option value="">Select a character…</option>
+                {availableChars.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}{c.age ? ` (${c.age})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {error && <p className="text-red-500 text-xs mb-2">{error}</p>}
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={onClose}
+                className="retro-button retro-button-ghost text-xs py-1 px-3"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleDropExisting()}
+                disabled={!selectedCharId || loading || charsLoading}
+                className="retro-button retro-button-primary text-xs py-1 px-3"
+              >
+                {loading ? 'Adding…' : 'Add Character'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Admin toolbar ────────────────────────────────────────────────────────────
 
 function AdminToolbar({
   sim,
   onRefresh,
+  onEnterDropMode,
 }: {
   sim: SimulationMeta
   onRefresh: () => void
+  onEnterDropMode: () => void
 }) {
-  const [showDropModal, setShowDropModal] = useState(false)
-  const [availableChars, setAvailableChars] = useState<Character[]>([])
-  const [selectedCharId, setSelectedCharId] = useState<number | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  const openDropModal = async () => {
-    try {
-      const res = await fetchCharacters()
-      setAvailableChars(res.characters.filter((c) => c.status === 'available'))
-      setSelectedCharId(null)
-      setShowDropModal(true)
-    } catch {
-      setActionError('Failed to load characters')
-    }
-  }
-
-  const handleDrop = async () => {
-    if (!selectedCharId) return
-    setLoading(true)
-    setActionError(null)
-    try {
-      await dropCharacter(sim.id, selectedCharId)
-      setShowDropModal(false)
-      onRefresh()
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to drop character')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleStart = async () => {
     setActionError(null)
@@ -191,10 +450,10 @@ function AdminToolbar({
         Settings
       </Link>
       <button
-        onClick={() => void openDropModal()}
+        onClick={onEnterDropMode}
         className="retro-button retro-button-primary text-xs py-1 px-3"
       >
-        Drop Character
+        + Add Character
       </button>
       {sim.status !== 'running' && sim.status !== 'paused' && (
         <button
@@ -221,45 +480,6 @@ function AdminToolbar({
         </button>
       )}
       {actionError && <span className="text-xs text-red-400">{actionError}</span>}
-
-      {showDropModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="retro-panel p-6 w-full max-w-sm shadow-xl">
-            <h3 className="text-gray-900 font-semibold mb-4">Drop Character</h3>
-            {availableChars.length === 0 ? (
-              <p className="text-gray-400 text-sm">No available characters.</p>
-            ) : (
-              <select
-                value={selectedCharId ?? ''}
-                onChange={(e) => setSelectedCharId(parseInt(e.target.value))}
-                className="retro-select w-full mb-4"
-              >
-                <option value="">Select a character…</option>
-                {availableChars.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setShowDropModal(false)}
-                className="retro-button retro-button-ghost text-xs py-1 px-3"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => void handleDrop()}
-                disabled={!selectedCharId || loading}
-                className="retro-button retro-button-primary text-xs py-1 px-3"
-              >
-                {loading ? 'Dropping…' : 'Drop'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -277,6 +497,12 @@ function SimulationViewer({ simId }: { simId: string }) {
   const [wsError, setWsError] = useState<string | null>(null)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null)
+
+  // Drop-mode state
+  const [dropMode, setDropMode] = useState(false)
+  const [spawnPos, setSpawnPos] = useState<{ x: number; y: number } | null>(null)
+  const [showAddCharModal, setShowAddCharModal] = useState(false)
+
   // Step orchestration loop (Vercel serverless mode)
   const stepLoopActiveRef = useRef(false)
   const agentPositionsRef = useRef<Record<string, AgentPosition>>({})
@@ -285,7 +511,6 @@ function SimulationViewer({ simId }: { simId: string }) {
     fetchSimulation(simId)
       .then((data) => {
         setMeta(data)
-        // User is admin if they are the owner
         setIsAdmin(user !== null && data.owner === user.id)
       })
       .catch((err: unknown) =>
@@ -308,7 +533,6 @@ function SimulationViewer({ simId }: { simId: string }) {
   const handleStepUpdate = useCallback((payload: { step?: number; sim_curr_time?: string }) => {
     if (payload.step !== undefined) setStep(payload.step)
     setLastPoll(new Date())
-    // Re-fetch agents on step updates
     void pollAgents()
   }, [pollAgents])
 
@@ -336,15 +560,20 @@ function SimulationViewer({ simId }: { simId: string }) {
     }
   }, [step, simId, selectedAgentId])
 
-  // Close panel on Escape
+  // ESC closes drop mode, modals, and agent detail panel
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') selectAgent(null) }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (dropMode) { setDropMode(false); return }
+        if (showAddCharModal) { setShowAddCharModal(false); setSpawnPos(null); return }
+        selectAgent(null)
+      }
+    }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectAgent])
+  }, [selectAgent, dropMode, showAddCharModal])
 
-  // Keep agentPositionsRef in sync with current agent locations so the step
-  // loop can submit accurate positions to the EnvironmentState API.
+  // Keep agentPositionsRef in sync
   useEffect(() => {
     const positions: Record<string, AgentPosition> = {}
     for (const agent of agents) {
@@ -368,16 +597,12 @@ function SimulationViewer({ simId }: { simId: string }) {
     return () => clearInterval(interval)
   }, [pollAgents, wsStatus])
 
-  // ── Step orchestration loop (Vercel serverless mode) ────────────────────
-  // When the simulation is running and this browser tab is the owner,
-  // we drive the cognitive pipeline by calling each stage API in sequence.
-  // The SSE stream (or polling fallback) delivers movements to GameCanvas.
+  // ── Step orchestration loop ────────────────────────────────────────────
   const runStepLoop = useCallback(async () => {
     if (stepLoopActiveRef.current) return
     stepLoopActiveRef.current = true
     try {
       while (stepLoopActiveRef.current) {
-        // Re-fetch simulation status — stop if no longer running.
         const latestMeta = await fetchSimulation(simId).catch(() => null)
         if (!latestMeta || latestMeta.status !== 'running') break
 
@@ -386,15 +611,11 @@ function SimulationViewer({ simId }: { simId: string }) {
 
         try {
           const result = await runSimulationStep(simId, positions, currentStep, (stage) => {
-            // Update step display after execute stage completes.
             if (stage === 'execute') pollAgents()
           })
           if (result.next_step !== undefined) setStep(result.next_step)
         } catch (err: unknown) {
-          // Log and continue — transient errors (network, timeout) should not
-          // crash the loop permanently.
           console.error('[stepLoop] stage error:', err)
-          // Brief pause before retrying to avoid hammering the API.
           await new Promise((r) => setTimeout(r, 3000))
         }
       }
@@ -403,7 +624,6 @@ function SimulationViewer({ simId }: { simId: string }) {
     }
   }, [simId, pollAgents])
 
-  // Start/stop the step loop based on simulation status and ownership.
   useEffect(() => {
     if (!isAdmin || meta?.status !== 'running') {
       stepLoopActiveRef.current = false
@@ -414,6 +634,13 @@ function SimulationViewer({ simId }: { simId: string }) {
       stepLoopActiveRef.current = false
     }
   }, [isAdmin, meta?.status, runStepLoop])
+
+  // Map click handler (called by GameCanvas when in drop mode)
+  const handleMapClick = useCallback((tileX: number, tileY: number) => {
+    setSpawnPos({ x: tileX, y: tileY })
+    setDropMode(false)
+    setShowAddCharModal(true)
+  }, [])
 
   const statusColors: Record<string, string> = {
     pending: 'bg-gray-600',
@@ -442,7 +669,6 @@ function SimulationViewer({ simId }: { simId: string }) {
             >
               {meta.status ?? 'pending'}
             </span>
-            {/* WebSocket indicator */}
             <span
               className={`ml-auto flex items-center gap-1 ${wsStatus === 'connected' ? 'text-green-400' : 'text-gray-500'}`}
             >
@@ -455,14 +681,39 @@ function SimulationViewer({ simId }: { simId: string }) {
           </div>
         )}
         {meta && isAdmin && (
-          <AdminToolbar sim={meta} onRefresh={() => { loadMeta(); void pollAgents() }} />
+          <AdminToolbar
+            sim={meta}
+            onRefresh={() => { loadMeta(); void pollAgents() }}
+            onEnterDropMode={() => setDropMode(true)}
+          />
         )}
       </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Main canvas area */}
         <div className="flex-1 overflow-hidden relative">
-          <GameCanvas className="w-full h-full" agents={agents} />
+          <GameCanvas
+            className="w-full h-full"
+            agents={agents}
+            dropMode={dropMode}
+            onMapClick={handleMapClick}
+          />
+
+          {/* Drop-mode placement banner */}
+          {dropMode && (
+            <div className="absolute top-3 left-0 right-0 flex justify-center z-10 pointer-events-none">
+              <div className="bg-black/75 text-white text-sm px-5 py-2 rounded-full flex items-center gap-3">
+                <span>Click on the map to place your character</span>
+                <button
+                  className="pointer-events-auto text-gray-300 hover:text-white font-bold text-base leading-none"
+                  onClick={() => setDropMode(false)}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="absolute bottom-2 left-2 text-xs text-white bg-black/50 px-2 py-1 rounded pointer-events-none">
             Arrow keys to pan
           </div>
@@ -509,6 +760,16 @@ function SimulationViewer({ simId }: { simId: string }) {
           )}
         </aside>
       </div>
+
+      {/* Add Character modal */}
+      {showAddCharModal && meta && (
+        <AddCharacterModal
+          simId={meta.id}
+          spawnPos={spawnPos}
+          onClose={() => { setShowAddCharModal(false); setSpawnPos(null) }}
+          onSuccess={() => { loadMeta(); void pollAgents() }}
+        />
+      )}
 
       {/* Agent detail panel */}
       {agentDetail && (

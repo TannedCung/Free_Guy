@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Reverie Pixel Town{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --retro-sky: #77bef0;
+      --retro-sun: #ffcb61;
+      --retro-orange: #ff894f;
+      --retro-rose: #ea5b6f;
+      --retro-paper: #fffdf3;
+      --retro-ink: #2f2a3a;
+      --retro-shadow: #9d4f5c;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--retro-ink);
+      font-family: 'Press Start 2P', 'Trebuchet MS', 'Verdana', sans-serif;
+      background:
+        linear-gradient(90deg, rgb(119 190 240 / 15%) 1px, transparent 1px) 0 0 / 20px 20px,
+        linear-gradient(rgb(255 203 97 / 20%) 1px, transparent 1px) 0 0 / 20px 20px,
+        var(--retro-paper);
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Header */
+    .retro-header {
+      background: var(--retro-sky);
+      border-bottom: 4px solid var(--retro-orange);
+      box-shadow: 0 6px 0 var(--retro-shadow);
+    }
+    .retro-header-inner {
+      max-width: 76rem;
+      margin: 0 auto;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .retro-brand {
+      color: var(--retro-ink);
+      font-size: 1.1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Page */
+    .retro-page {
+      min-height: calc(100vh - 72px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1rem;
+    }
+
+    /* Panel */
+    .retro-panel {
+      background: var(--retro-paper);
+      border: 3px solid var(--retro-orange);
+      box-shadow: 6px 6px 0 var(--retro-shadow);
+      padding: 2rem 2.25rem;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* Typography */
+    .retro-title {
+      font-size: clamp(1rem, 2.5vw, 1.4rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin: 0 0 0.5rem;
+    }
+    .retro-subtitle {
+      font-size: 0.72rem;
+      line-height: 1.8;
+      color: color-mix(in srgb, var(--retro-ink) 80%, white);
+      margin: 0 0 1.5rem;
+    }
+
+    /* Form */
+    label {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.3rem;
+    }
+    .retro-input {
+      width: 100%;
+      border: 2px solid var(--retro-ink);
+      border-radius: 0;
+      background: #fff;
+      color: var(--retro-ink);
+      padding: 0.65rem 0.8rem;
+      font-size: 0.75rem;
+      font-family: inherit;
+      line-height: 1.4;
+      margin-bottom: 1rem;
+    }
+    .retro-input:focus {
+      outline: 3px solid var(--retro-sky);
+      outline-offset: 1px;
+    }
+
+    /* Buttons */
+    .retro-button {
+      border: 2px solid var(--retro-ink);
+      border-radius: 0;
+      padding: 0.6rem 1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      font-family: inherit;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      text-decoration: none;
+    }
+    .retro-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .retro-button-primary { background: var(--retro-sky); color: var(--retro-ink); }
+    .retro-button-primary:hover:not(:disabled) { background: #5ea8dc; }
+
+    .retro-button-warm { background: var(--retro-sun); color: var(--retro-ink); }
+    .retro-button-warm:hover:not(:disabled) { background: var(--retro-orange); }
+
+    .retro-button-ghost { background: #fff; color: var(--retro-ink); }
+    .retro-button-ghost:hover:not(:disabled) { background: #f6f1dd; }
+
+    .retro-button-danger { background: var(--retro-rose); color: #fff; }
+
+    /* Divider */
+    .retro-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.5rem 0;
+      font-size: 0.62rem;
+      color: color-mix(in srgb, var(--retro-ink) 55%, white);
+    }
+    .retro-divider::before,
+    .retro-divider::after {
+      content: '';
+      flex: 1;
+      border-top: 2px solid color-mix(in srgb, var(--retro-ink) 25%, white);
+    }
+
+    /* Field spacing */
+    .field { margin-bottom: 1rem; }
+    .field:last-child { margin-bottom: 0; }
+
+    /* Error / helptext */
+    .retro-error {
+      font-size: 0.62rem;
+      color: var(--retro-rose);
+      margin-top: 0.25rem;
+    }
+    .retro-error ul { margin: 0; padding: 0 0 0 1rem; }
+
+    .retro-footer-note {
+      margin-top: 1.25rem;
+      text-align: center;
+      font-size: 0.62rem;
+      color: color-mix(in srgb, var(--retro-ink) 70%, white);
+      line-height: 1.9;
+    }
+    .retro-link {
+      color: var(--retro-rose);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      font-weight: 700;
+    }
+
+    /* Alerts */
+    .retro-alert {
+      border: 2px solid var(--retro-ink);
+      padding: 0.65rem 0.9rem;
+      font-size: 0.65rem;
+      line-height: 1.7;
+      margin-bottom: 1.25rem;
+    }
+    .retro-alert-error { background: color-mix(in srgb, var(--retro-rose) 15%, white); border-color: var(--retro-rose); }
+    .retro-alert-success { background: color-mix(in srgb, var(--retro-sun) 25%, white); border-color: var(--retro-orange); }
+    .retro-alert-info { background: color-mix(in srgb, var(--retro-sky) 20%, white); border-color: var(--retro-sky); }
+  </style>
+</head>
+<body>
+  <header class="retro-header">
+    <div class="retro-header-inner">
+      <a href="/" class="retro-brand">Reverie Pixel Town</a>
+    </div>
+  </header>
+
+  <main class="retro-page">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
