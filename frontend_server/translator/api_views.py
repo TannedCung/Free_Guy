@@ -315,12 +315,14 @@ def simulation_detail(request: Request, sim_id: str) -> Response:
     return Response(_sim_summary_from_orm(sim))
 
 
-@api_view(["GET"])
+@api_view(["GET", "POST"])
 def simulation_state(request: Request, sim_id: str) -> Response:
     """
-    GET /api/v1/simulations/:id/state/
-
-    Returns the current world state: agent positions from the latest EnvironmentState row.
+    GET  /api/v1/simulations/:id/state/  — returns the latest EnvironmentState.
+    POST /api/v1/simulations/:id/state/  — upserts an EnvironmentState for the
+        given step. Body: { "step": int, "agent_positions": { name: {x, y} } }.
+        Called by the frontend before running each step's cognitive stages so
+        that run_execute can read the latest canvas positions.
     """
     try:
         sim = Simulation.objects.get(name=sim_id)
@@ -329,6 +331,18 @@ def simulation_state(request: Request, sim_id: str) -> Response:
             {"error": f"simulation '{sim_id}' not found"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+    if request.method == "POST":
+        step = request.data.get("step")
+        agent_positions = request.data.get("agent_positions", {})
+        if step is None:
+            return Response({"error": "'step' is required"}, status=status.HTTP_400_BAD_REQUEST)
+        EnvironmentState.objects.update_or_create(
+            simulation=sim,
+            step=step,
+            defaults={"agent_positions": agent_positions},
+        )
+        return Response({"simulation_id": sim_id, "step": step, "agents": agent_positions})
 
     env = EnvironmentState.objects.filter(simulation=sim).order_by("-step").first()
     return Response(
