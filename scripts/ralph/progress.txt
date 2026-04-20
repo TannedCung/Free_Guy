@@ -62,6 +62,18 @@ Started: Mon Apr 20 05:44:41 PM +07 2026
   - Manual browser verification needed (no browser MCP tools available)
 ---
 
+## 2026-04-20 - US-007
+- Added `activeTab: 'agents' | 'debug'` prop to `DebugPanel`
+- `loadDebugData` now resets `debugData` to `null` before fetching so pipeline pills go grey immediately on step change
+- `useEffect` guarded by `activeTab !== 'debug'` to avoid fetches when tab is inactive
+- Switched sidebar content from conditional rendering to `display: none/block` so `DebugPanel` stays mounted across tab switches — avoids remount re-fetches when step hasn't changed
+- Files changed: `frontend/src/pages/SimulatePage.tsx`
+- **Learnings for future iterations:**
+  - Use `display: none/block` (inline style) instead of conditional rendering when you want a component to stay mounted but hidden — avoids remounting and re-fetching stale state on tab switch
+  - `setDebugData(null)` before an async fetch is the idiomatic way to reset derived UI (pills, accordion data) to an empty/loading state before new data arrives
+  - Manual browser verification needed (no browser MCP tools available)
+---
+
 ## 2026-04-20 - US-006
 - Added `expandedAgentName` and `openStages` state to `DebugPanel` for accordion behavior
 - Converted agent rows to `<button>` elements with `▼/▲` chevron indicators
