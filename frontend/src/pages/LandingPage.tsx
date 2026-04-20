@@ -1,15 +1,6 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export default function LandingPage() {
-  const [simName, setSimName] = useState('')
-  const [forkFrom, setForkFrom] = useState('')
-
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault()
-    // TODO: wire to POST /api/v1/simulations/ in US-032
-    alert(`Creating simulation: ${simName}${forkFrom ? ` (forked from ${forkFrom})` : ''}`)
-  }
 
   return (
     <div className="retro-page">
@@ -75,42 +66,18 @@ export default function LandingPage() {
         </section>
 
         <section className="retro-panel p-6 md:p-8">
-          <h3 className="retro-title text-lg mb-5">Quick simulation name tester</h3>
-          <form onSubmit={handleCreate} className="space-y-4">
-            <div>
-              <label htmlFor="sim-name" className="block text-xs font-bold uppercase mb-1">
-                Simulation name <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="sim-name"
-                type="text"
-                required
-                value={simName}
-                onChange={(e) => setSimName(e.target.value)}
-                placeholder="my_ville_experiment"
-                className="retro-input"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="fork-from" className="block text-xs font-bold uppercase mb-1">
-                Fork from (optional)
-              </label>
-              <input
-                id="fork-from"
-                type="text"
-                value={forkFrom}
-                onChange={(e) => setForkFrom(e.target.value)}
-                placeholder="base_the_ville..."
-                className="retro-input"
-              />
-              <p className="mt-1 text-xs text-gray-500">Leave empty to start fresh.</p>
-            </div>
-
-            <button type="submit" className="retro-button retro-button-warm">
-              Create simulation
-            </button>
-          </form>
+          <h3 className="retro-title text-lg mb-3">Ready to start?</h3>
+          <p className="retro-subtitle text-sm mb-5">
+            Sign in to create your first simulation and watch AI agents come to life.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link to="/login" className="retro-button retro-button-warm">
+              Sign in
+            </Link>
+            <Link to="/register" className="retro-button retro-button-ghost">
+              Register
+            </Link>
+          </div>
         </section>
       </main>
 

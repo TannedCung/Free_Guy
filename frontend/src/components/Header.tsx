@@ -32,6 +32,9 @@ export default function Header() {
               <Link to="/dashboard" className="retro-navlink">
                 Dashboard
               </Link>
+              <Link to="/characters" className="retro-navlink">
+                Characters
+              </Link>
               <Link to="/explore" className="retro-navlink">
                 Explore
               </Link>
@@ -42,6 +45,9 @@ export default function Header() {
                     {pendingInvites}
                   </span>
                 )}
+              </Link>
+              <Link to="/simulations/new" className="retro-button retro-button-warm">
+                + New Simulation
               </Link>
               <span className="text-xs md:text-sm font-bold uppercase tracking-wide text-gray-700">
                 {user.username}
