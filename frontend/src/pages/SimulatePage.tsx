@@ -501,12 +501,14 @@ function DebugPanel({
   meta,
   agents,
   agentMovements,
+  activeTab,
 }: {
   simId: string
   step: number | null
   meta: SimulationMeta | null
   agents: Agent[]
   agentMovements: Record<string, AgentMovement>
+  activeTab: 'agents' | 'debug'
 }) {
   const [debugData, setDebugData] = useState<DebugStepData | null>(null)
   const [loading, setLoading] = useState(false)
@@ -515,6 +517,7 @@ function DebugPanel({
 
   const loadDebugData = useCallback(
     async (s: number) => {
+      setDebugData(null)
       setLoading(true)
       try {
         const data = await fetchDebugStep(simId, s)
@@ -529,9 +532,9 @@ function DebugPanel({
   )
 
   useEffect(() => {
-    if (step === null) return
+    if (activeTab !== 'debug' || step === null) return
     void loadDebugData(step)
-  }, [step, loadDebugData])
+  }, [step, loadDebugData, activeTab])
 
   const toggleAgent = (name: string) => {
     if (expandedAgentName === name) {
@@ -966,51 +969,49 @@ function SimulationViewer({ simId }: { simId: string }) {
           </div>
 
           <div className="flex-1 overflow-y-auto p-3">
-            {sidebarTab === 'agents' && (
-              <>
-                <div className="mb-3">
-                  {meta?.curr_time && (
-                    <div className="text-xs text-gray-400 mb-1">
-                      <span className="font-medium text-gray-300">Time:</span> {meta.curr_time}
-                    </div>
-                  )}
-                  {step !== null && (
-                    <div className="text-xs text-gray-400 mb-1">
-                      <span className="font-medium text-gray-300">Step:</span> {step}
-                    </div>
-                  )}
-                  {lastPoll && (
-                    <div className="text-xs text-gray-600">
-                      Updated {lastPoll.toLocaleTimeString()}
-                    </div>
-                  )}
-                </div>
-
-                <hr className="border-gray-700 mb-3" />
-
-                <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                  Agents ({agents.length})
-                </h2>
-
-                {agents.length === 0 ? (
-                  <p className="text-xs text-gray-600">No agents found.</p>
-                ) : (
-                  agents.map((agent) => (
-                    <button
-                      key={agent.id}
-                      onClick={() => selectAgent(agent.id)}
-                      className="w-full text-left"
-                    >
-                      <AgentCard agent={agent} />
-                    </button>
-                  ))
+            <div style={{ display: sidebarTab === 'agents' ? 'block' : 'none' }}>
+              <div className="mb-3">
+                {meta?.curr_time && (
+                  <div className="text-xs text-gray-400 mb-1">
+                    <span className="font-medium text-gray-300">Time:</span> {meta.curr_time}
+                  </div>
                 )}
-              </>
-            )}
+                {step !== null && (
+                  <div className="text-xs text-gray-400 mb-1">
+                    <span className="font-medium text-gray-300">Step:</span> {step}
+                  </div>
+                )}
+                {lastPoll && (
+                  <div className="text-xs text-gray-600">
+                    Updated {lastPoll.toLocaleTimeString()}
+                  </div>
+                )}
+              </div>
 
-            {sidebarTab === 'debug' && (
-              <DebugPanel simId={simId} step={step} meta={meta} agents={agents} agentMovements={agentMovements} />
-            )}
+              <hr className="border-gray-700 mb-3" />
+
+              <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                Agents ({agents.length})
+              </h2>
+
+              {agents.length === 0 ? (
+                <p className="text-xs text-gray-600">No agents found.</p>
+              ) : (
+                agents.map((agent) => (
+                  <button
+                    key={agent.id}
+                    onClick={() => selectAgent(agent.id)}
+                    className="w-full text-left"
+                  >
+                    <AgentCard agent={agent} />
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div style={{ display: sidebarTab === 'debug' ? 'block' : 'none' }}>
+              <DebugPanel simId={simId} step={step} meta={meta} agents={agents} agentMovements={agentMovements} activeTab={sidebarTab} />
+            </div>
           </div>
         </aside>
       </div>
