@@ -50,6 +50,6 @@ def oauth_complete(request):
     # Destroy the allauth session — JWT cookies take over from here.
     auth_logout(request)
 
-    response = redirect("/")
+    response = redirect("/dashboard")
     _set_auth_cookies(response, access_token=access_token, refresh_token=refresh_token)
     return response

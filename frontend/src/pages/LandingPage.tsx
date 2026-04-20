@@ -1,28 +1,16 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import Header from '../components/Header'
+import { useAuth } from '../context/AuthContext'
 
 export default function LandingPage() {
+  const { user, isLoading } = useAuth()
+
+  // Redirect authenticated users straight to their dashboard
+  if (!isLoading && user) return <Navigate to="/dashboard" replace />
 
   return (
     <div className="retro-page">
-      <header className="retro-header">
-        <div className="retro-header-inner flex flex-wrap items-center justify-between gap-3">
-          <h1 className="retro-brand">Reverie Pixel Town</h1>
-          <nav className="flex flex-wrap gap-2">
-            <Link to="/login" className="retro-navlink">
-              Sign in
-            </Link>
-            <Link to="/register" className="retro-navlink">
-              Register
-            </Link>
-            <Link to="/simulate" className="retro-navlink">
-              Simulator
-            </Link>
-            <Link to="/demo" className="retro-navlink">
-              Demo replay
-            </Link>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       <main className="retro-main">
         <section className="retro-panel p-6 md:p-8 mb-6">
