@@ -53,10 +53,11 @@ else:
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-# CSRF — trust all local origins.
-# With nginx on port 80, the primary origin is http://localhost (no port).
-# Ports 3000/8000 are kept for local dev without Docker.
-CSRF_TRUSTED_ORIGINS = [
+# CSRF — local defaults + any extra origin declared in the environment.
+# Add a comma-separated list to CSRF_TRUSTED_ORIGINS in .env for tunnels
+# (ngrok, localtunnel, etc.) or any other external origin you need in dev.
+# DJANGO_SITE_DOMAIN is automatically included when set.
+_csrf_trusted_origins = [
     "http://localhost",
     "http://localhost:80",
     "http://localhost:3000",
@@ -66,6 +67,13 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
 ]
+_extra_origins = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
+if _extra_origins:
+    _csrf_trusted_origins += [o.strip() for o in _extra_origins.split(",") if o.strip()]
+_site_domain = os.environ.get("DJANGO_SITE_DOMAIN", "")
+if _site_domain:
+    _csrf_trusted_origins.append(f"https://{_site_domain}")
+CSRF_TRUSTED_ORIGINS = _csrf_trusted_origins
 
 # Cookie security — disable HTTPS enforcement in local dev
 SESSION_COOKIE_SECURE = False
