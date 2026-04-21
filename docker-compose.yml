@@ -24,6 +24,11 @@ services:
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
       - MAZE_ASSETS_LOC=/app/static_dirs/assets
+      - LLM_PROVIDER=${LLM_PROVIDER:-vllm}
+      - LLM_MODEL=${LLM_MODEL:-llm}
+      - LLM_BASE_URL=${LLM_BASE_URL:-http://vllm:8000/v1}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-openai}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-ada-002}
     volumes:
       - ./backend_server:/backend_server:ro
     depends_on:
@@ -69,6 +74,35 @@ services:
       - ollama-data:/root/.ollama
     restart: unless-stopped
 
+  vllm:
+    image: vllm/vllm-openai:latest
+    ports:
+      - "8080:8000"
+    volumes:
+      - huggingface-cache:/root/.cache/huggingface
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HUGGINGFACE_TOKEN:-}
+    command: >
+      --model ${VLLM_MODEL:-Qwen/Qwen2.5-32B-Instruct-AWQ}
+      --quantization awq
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-8192}
+      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.90}
+      --served-model-name llm
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+
   db:
     image: postgres:12
     env_file:
@@ -112,3 +146,4 @@ volumes:
   postgres-data:
   qdrant-data:
   ollama-data:
+  huggingface-cache:

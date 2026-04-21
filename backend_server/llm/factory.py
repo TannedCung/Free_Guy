@@ -19,8 +19,8 @@ from llm.protocol import LLMConfig, LLMProvider
 # Default configuration (env-driven)
 # ---------------------------------------------------------------------------
 
-_DEFAULT_PROVIDER = "ollama"
-_DEFAULT_MODEL = "gemma2"
+_DEFAULT_PROVIDER = "vllm"
+_DEFAULT_MODEL = "llm"
 _DEFAULT_EMBEDDING_MODEL_OPENAI = "text-embedding-ada-002"
 _DEFAULT_EMBEDDING_MODEL_OLLAMA = "nomic-embed-text"
 
@@ -95,4 +95,23 @@ def get_provider(config: LLMConfig) -> LLMProvider:
 
         return OllamaProvider(config)
 
-    raise ValueError(f"Unknown LLM provider: {config.provider!r}. Supported values: 'openai', 'ollama'.")
+    if provider == "vllm":
+        # vLLM exposes an OpenAI-compatible /v1 endpoint — reuse OpenAIProvider.
+        # LLM_BASE_URL must point at the vLLM server (e.g. http://vllm:8000/v1).
+        # A dummy key is required by the OpenAI client even though vLLM ignores it.
+        from llm.openai_provider import OpenAIProvider
+
+        if not config.base_url:
+            raise ValueError("LLM_BASE_URL must be set when using LLM_PROVIDER=vllm (e.g. http://vllm:8000/v1)")
+        if not config.api_key:
+            config = LLMConfig(
+                provider=config.provider,
+                model=config.model,
+                api_key="vllm-no-key",
+                base_url=config.base_url,
+                embedding_provider=config.embedding_provider,
+                embedding_model=config.embedding_model,
+            )
+        return OpenAIProvider(config)
+
+    raise ValueError(f"Unknown LLM provider: {config.provider!r}. Supported values: 'openai', 'ollama', 'vllm'.")
