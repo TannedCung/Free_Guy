@@ -17,6 +17,8 @@ Endpoints:
   POST   /api/v1/invites/{mid}/decline/                - decline invite
 """
 
+import datetime
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
@@ -26,7 +28,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from translator.api_views import _sim_summary_from_orm
-from translator.models import Character, MovementRecord, Persona, Simulation, SimulationMembership
+from translator.models import (
+    Character,
+    EnvironmentState,
+    MovementRecord,
+    Persona,
+    PersonaScratch,
+    Simulation,
+    SimulationMembership,
+)
 
 User = get_user_model()
 
@@ -87,8 +97,23 @@ def drop_character(request: Request, sim_id: str) -> Response:
     if char.status == Character.Status.IN_SIMULATION:
         return Response({"detail": "Character is already in a simulation."}, status=status.HTTP_400_BAD_REQUEST)
 
+    # Parse optional spawn tile from request body (e.g. {"x": 72, "y": 14})
+    spawn_tile_raw = request.data.get("spawn_tile")
+    if isinstance(spawn_tile_raw, dict):
+        spawn_x = int(spawn_tile_raw.get("x", 72))
+        spawn_y = int(spawn_tile_raw.get("y", 14))
+    else:
+        spawn_x, spawn_y = 72, 14  # default safe tile in the_ville
+
+    # Resolve living_area: use character's value if it contains ":", otherwise derive
+    # from the spawn tile's maze metadata so the plan stage never sees a bare None/"".
+    living_area = char.living_area or ""
+    if ":" not in living_area:
+        # Fall back to a known valid area in the_ville that matches the default spawn tile
+        living_area = "the Ville:Isabella Rodriguez's apartment:main room"
+
     # Create Persona from character fields
-    Persona.objects.get_or_create(
+    persona, _ = Persona.objects.get_or_create(
         simulation=sim,
         name=char.name,
         defaults={
@@ -99,10 +124,33 @@ def drop_character(request: Request, sim_id: str) -> Response:
             "learned": char.backstory,
             "currently": char.currently,
             "lifestyle": char.lifestyle,
-            "living_area": char.living_area,
+            "living_area": living_area,
             "daily_plan_req": char.daily_plan,
         },
     )
+
+    # Determine in-game start time: use simulation's curr_time, start_date, or default to 9 AM today
+    game_time: datetime.datetime = sim.curr_time or sim.start_date or datetime.datetime(2023, 2, 13, 9, 0, 0)
+
+    # Ensure PersonaScratch exists so ReverieServer can load this agent
+    scratch, created = PersonaScratch.objects.get_or_create(
+        persona=persona,
+        defaults={"curr_tile": [spawn_x, spawn_y], "curr_time": game_time},
+    )
+    if not created and scratch.curr_time is None:
+        scratch.curr_time = game_time
+        scratch.save(update_fields=["curr_time"])
+
+    # Record initial position in EnvironmentState so the canvas renders the agent
+    env_state, _ = EnvironmentState.objects.get_or_create(
+        simulation=sim,
+        step=sim.step,
+        defaults={"agent_positions": {}},
+    )
+    positions = dict(env_state.agent_positions or {})
+    positions[char.name] = {"x": spawn_x, "y": spawn_y}
+    env_state.agent_positions = positions
+    env_state.save(update_fields=["agent_positions"])
 
     char.status = Character.Status.IN_SIMULATION
     char.simulation = sim

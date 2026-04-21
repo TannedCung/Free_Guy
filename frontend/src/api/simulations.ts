@@ -152,11 +152,17 @@ export async function createSimulation(
   return res.json() as Promise<SimulationMeta>
 }
 
-export async function dropCharacter(simId: string, characterId: number): Promise<SimulationMeta> {
+export async function dropCharacter(
+  simId: string,
+  characterId: number,
+  spawnPos?: { x: number; y: number },
+): Promise<SimulationMeta> {
+  const body: Record<string, unknown> = { character_id: characterId }
+  if (spawnPos) body.spawn_tile = { x: spawnPos.x, y: spawnPos.y }
   const res = await apiFetch(`/simulations/${encodeURIComponent(simId)}/drop/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ character_id: characterId }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     const err = (await res.json()) as { detail?: string }

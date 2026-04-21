@@ -12,8 +12,7 @@ if not openai_api_key:
 # Put your name
 key_owner = os.environ.get("KEY_OWNER", "unknown")
 
-maze_assets_loc = "..//frontend_server/static_dirs/assets"
-# maze_assets_loc = "frontend_server/static_dirs/assets"
+maze_assets_loc = os.environ.get("MAZE_ASSETS_LOC", "..//frontend_server/static_dirs/assets")
 env_matrix = f"{maze_assets_loc}/the_ville/matrix"
 env_visuals = f"{maze_assets_loc}/the_ville/visuals"
 

@@ -170,7 +170,7 @@ function AddCharacterModal({
         living_area: livingArea,
         daily_plan: dailyPlan,
       })
-      await dropCharacter(simId, char.id)
+      await dropCharacter(simId, char.id, spawnPos ?? undefined)
       onSuccess()
       onClose()
     } catch (err: unknown) {
@@ -191,7 +191,7 @@ function AddCharacterModal({
     setLoading(true)
     setError(null)
     try {
-      await dropCharacter(simId, selectedCharId)
+      await dropCharacter(simId, selectedCharId, spawnPos ?? undefined)
       onSuccess()
       onClose()
     } catch (err) {
@@ -249,7 +249,7 @@ function AddCharacterModal({
         {mode === 'new' && (
           <form onSubmit={(e) => void handleSubmitNew(e)} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">
+              <label className="block text-sm font-bold text-gray-800 mb-1">
                 Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -261,7 +261,7 @@ function AddCharacterModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Age</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1">Age</label>
               <input
                 type="number"
                 value={age}
@@ -273,7 +273,7 @@ function AddCharacterModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Traits</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1">Traits</label>
               <textarea
                 value={traits}
                 onChange={(e) => setTraits(e.target.value)}
@@ -283,7 +283,7 @@ function AddCharacterModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Backstory</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1">Backstory</label>
               <textarea
                 value={backstory}
                 onChange={(e) => setBackstory(e.target.value)}
@@ -293,7 +293,7 @@ function AddCharacterModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Currently</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1">Currently</label>
               <input
                 value={currently}
                 onChange={(e) => setCurrently(e.target.value)}
@@ -302,7 +302,7 @@ function AddCharacterModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Lifestyle</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1">Lifestyle</label>
               <input
                 value={lifestyle}
                 onChange={(e) => setLifestyle(e.target.value)}
@@ -311,7 +311,7 @@ function AddCharacterModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Lives in</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1">Lives in</label>
               <input
                 value={livingArea}
                 onChange={(e) => setLivingArea(e.target.value)}
@@ -320,7 +320,7 @@ function AddCharacterModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase mb-1">Daily plan</label>
+              <label className="block text-sm font-bold text-gray-800 mb-1">Daily plan</label>
               <textarea
                 value={dailyPlan}
                 onChange={(e) => setDailyPlan(e.target.value)}

@@ -162,8 +162,8 @@ export default function GameCanvas({ className, agents, dropMode, onMapClick }: 
       this.load.tilemapTiledJSON('map', `${ASSETS}/the_ville_jan7.json`)
       this.load.atlas(
         'atlas',
-        'https://mikewesthad.github.io/phaser-3-tilemap-blog-posts/post-1/assets/atlas/atlas.png',
-        'https://mikewesthad.github.io/phaser-3-tilemap-blog-posts/post-1/assets/atlas/atlas.json',
+        '/assets/atlas/atlas.png',
+        '/assets/atlas/atlas.json',
       )
     }
 
@@ -293,7 +293,11 @@ export default function GameCanvas({ className, agents, dropMode, onMapClick }: 
       camera.startFollow(player)
       camera.setBounds(0, 0, map.widthInPixels, map.heightInPixels)
 
+      // createCursorKeys() adds arrow/space/shift to Phaser's capture list;
+      // disableGlobalCapture() must come AFTER so it clears that list and
+      // lets keydown events reach HTML input/textarea elements.
       const cursors = this.input.keyboard!.createCursorKeys()
+      this.input.keyboard!.disableGlobalCapture()
       this.data.set('player', player)
       this.data.set('cursors', cursors)
 

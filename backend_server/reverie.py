@@ -661,7 +661,6 @@ class ReverieServer:
                 logger.error("open_server: command '%s' raised an error", sim_command, exc_info=True)
                 print("Error.")
 
-
     # -----------------------------------------------------------------------
     # Stateless stage methods — for Vercel serverless step execution
     # -----------------------------------------------------------------------
@@ -682,7 +681,6 @@ class ReverieServer:
         """
         init_django()
 
-        from translator.models import EnvironmentState as EnvironmentStateModel  # noqa: PLC0415
         from translator.models import Persona as PersonaModel  # noqa: PLC0415
         from translator.models import Simulation as SimulationModel  # noqa: PLC0415
 
@@ -730,7 +728,7 @@ class ReverieServer:
 
         # Clean up previous step's object events (turn them idle) using the
         # game_obj_cleanup list saved from the last run_execute call.
-        for entry in (sim_db.game_obj_cleanup or []):
+        for entry in sim_db.game_obj_cleanup or []:
             # Stored as [event_tuple, tile_xy] — tuples were serialized as lists.
             event_tuple, tile_xy = entry
             server.maze.turn_event_from_tile_idle(tuple(event_tuple), tuple(tile_xy))
@@ -812,9 +810,7 @@ class ReverieServer:
 
             # Reconstruct ConceptNode objects from persisted node_ids.
             perceived_nodes = [
-                persona.a_mem.id_to_node[nid]
-                for nid in perceived_node_ids
-                if nid in persona.a_mem.id_to_node
+                persona.a_mem.id_to_node[nid] for nid in perceived_node_ids if nid in persona.a_mem.id_to_node
             ]
 
             retrieved = persona.retrieve(perceived_nodes)
@@ -854,7 +850,7 @@ class ReverieServer:
         for persona_name, persona in server.personas.items():
             # Determine new_day flag (same logic as persona.move()).
             new_day: Any = False
-            if not persona.scratch.curr_time:
+            if not persona.scratch.curr_time or not persona.scratch.f_daily_schedule:
                 new_day = "First day"
             elif persona.scratch.curr_time.strftime("%A %B %d") != server.curr_time.strftime("%A %B %d"):
                 new_day = "New day"
@@ -927,9 +923,7 @@ class ReverieServer:
         # Apply env positions — use latest EnvironmentState for the current step.
         from translator.models import EnvironmentState as EnvironmentStateModel  # noqa: PLC0415
 
-        env_row = EnvironmentStateModel.objects.filter(
-            simulation=server._db_sim, step=server.step
-        ).first()
+        env_row = EnvironmentStateModel.objects.filter(simulation=server._db_sim, step=server.step).first()
         if env_row:
             new_env = env_row.agent_positions or {}
             for persona_name, persona in server.personas.items():
@@ -987,12 +981,13 @@ class ReverieServer:
                     "persona_movements": movements,
                 },
             )
-            SimulationModel.objects.filter(pk=server._db_sim.pk).update(
-                step=next_step,
-                curr_time=next_time_aware,
-                status="running",
-                game_obj_cleanup=new_game_obj_cleanup,
-            )
+            if server._db_sim is not None:
+                SimulationModel.objects.filter(pk=server._db_sim.pk).update(
+                    step=next_step,
+                    curr_time=next_time_aware,
+                    status="running",
+                    game_obj_cleanup=new_game_obj_cleanup,
+                )
             set_runtime_state("curr_sim_code", {"sim_code": sim_code})
             set_runtime_state("curr_step", {"step": next_step})
 
