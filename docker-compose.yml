@@ -75,33 +75,37 @@ services:
     restart: unless-stopped
 
   vllm:
-    image: vllm/vllm-openai:latest
+    image: rocm/vllm:latest
     ports:
-      - "8080:8000"
+      - "8090:8000"
     volumes:
-      - huggingface-cache:/root/.cache/huggingface
+      # Bind-mount the host HuggingFace cache so pre-downloaded weights are reused
+      - ${HF_CACHE_DIR:-/home/tannedcung/vllm/huggingface}:/root/.cache/huggingface
     environment:
       - HUGGING_FACE_HUB_TOKEN=${HUGGINGFACE_TOKEN:-}
+      # Required for gfx1100 (RDNA3 / Radeon PRO W7900) on ROCm
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0
+    entrypoint: ["python", "-m", "vllm.entrypoints.openai.api_server"]
     command: >
-      --model ${VLLM_MODEL:-Qwen/Qwen2.5-32B-Instruct-AWQ}
-      --quantization awq
+      --model ${VLLM_MODEL:-Qwen/Qwen3-8B-FP8}
+      --dtype ${VLLM_DTYPE:-auto}
       --max-model-len ${VLLM_MAX_MODEL_LEN:-8192}
-      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.90}
+      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.65}
       --served-model-name llm
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - video
+      - render
+    ipc: host
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
       interval: 30s
       timeout: 10s
       retries: 10
-      start_period: 180s
+      start_period: 300s
 
   db:
     image: postgres:12
@@ -146,4 +150,3 @@ volumes:
   postgres-data:
   qdrant-data:
   ollama-data:
-  huggingface-cache:

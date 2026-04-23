@@ -15,6 +15,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Any
 
@@ -98,6 +99,7 @@ class OpenAIProvider:
                     max_tokens=max_tokens,
                 )
                 content = response.choices[0].message.content or ""
+                content = re.sub(r"<think>.*?</think>\s*", "", content, flags=re.DOTALL)
                 logger.debug("[OpenAI chat] response=%s", content[:120])
                 return content
             except openai.RateLimitError as exc:
