@@ -78,6 +78,7 @@ services:
     image: rocm/vllm:latest
     ports:
       - "8090:8000"
+    shm_size: 8g
     volumes:
       # Bind-mount the host HuggingFace cache so pre-downloaded weights are reused
       - ${HF_CACHE_DIR:-/home/tannedcung/vllm/huggingface}:/root/.cache/huggingface
@@ -85,12 +86,16 @@ services:
       - HUGGING_FACE_HUB_TOKEN=${HUGGINGFACE_TOKEN:-}
       # Required for gfx1100 (RDNA3 / Radeon PRO W7900) on ROCm
       - HSA_OVERRIDE_GFX_VERSION=11.0.0
+      # Use only cached model weights — no outbound HF network calls at startup
+      - HF_HUB_OFFLINE=1
     entrypoint: ["python", "-m", "vllm.entrypoints.openai.api_server"]
     command: >
-      --model ${VLLM_MODEL:-Qwen/Qwen3-8B-FP8}
-      --dtype ${VLLM_DTYPE:-auto}
-      --max-model-len ${VLLM_MAX_MODEL_LEN:-8192}
-      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.65}
+      --model ${VLLM_MODEL:-Qwen/Qwen3-8B}
+      --dtype ${VLLM_DTYPE:-bfloat16}
+      --max-model-len ${VLLM_MAX_MODEL_LEN:-32768}
+      --gpu-memory-utilization ${VLLM_GPU_MEM_UTIL:-0.70}
+      --max-num-batched-tokens ${VLLM_MAX_BATCHED_TOKENS:-8192}
+      --max-num-seqs ${VLLM_MAX_NUM_SEQS:-8}
       --served-model-name llm
     devices:
       - /dev/kfd:/dev/kfd
