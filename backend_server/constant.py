@@ -4,9 +4,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# OpenAI API key loaded from environment variable OPENAI_API_KEY
+# OpenAI API key — required only when LLM_PROVIDER=openai.
+# vLLM and Ollama providers work fine with an empty or dummy key.
 openai_api_key = os.environ.get("OPENAI_API_KEY", "")
-if not openai_api_key:
+_llm_provider = os.environ.get("LLM_PROVIDER", "openai").lower()
+if not openai_api_key and _llm_provider == "openai":
     raise ValueError("OPENAI_API_KEY environment variable is required. Copy .env.example to .env and set a value.")
 
 # Put your name

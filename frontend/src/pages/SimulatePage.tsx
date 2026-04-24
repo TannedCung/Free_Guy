@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import GameCanvas from '../game/GameCanvas'
 import {
@@ -11,10 +11,8 @@ import {
   startSimulation,
   pauseSimulation,
   resumeSimulation,
-  runSimulationStep,
   type Agent,
   type AgentDetail,
-  type AgentPosition,
   type SimulationMeta,
   type DebugStepData,
 } from '../api/simulations'
@@ -700,7 +698,6 @@ function SimulationViewer({ simId }: { simId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [lastPoll, setLastPoll] = useState<Date | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
-  const [isPublic, setIsPublic] = useState(false)
   const [wsError, setWsError] = useState<string | null>(null)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null)
@@ -712,16 +709,12 @@ function SimulationViewer({ simId }: { simId: string }) {
   const [spawnPos, setSpawnPos] = useState<{ x: number; y: number } | null>(null)
   const [showAddCharModal, setShowAddCharModal] = useState(false)
 
-  // Step orchestration loop (Vercel serverless mode)
-  const stepLoopActiveRef = useRef(false)
-  const agentPositionsRef = useRef<Record<string, AgentPosition>>({})
 
   const loadMeta = useCallback(() => {
     fetchSimulation(simId)
       .then((data) => {
         setMeta(data)
         setIsAdmin(user !== null && data.owner === user.id)
-        setIsPublic(data.visibility === 'public')
       })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : 'Simulation not found'),
@@ -796,17 +789,6 @@ function SimulationViewer({ simId }: { simId: string }) {
     return () => window.removeEventListener('keydown', handler)
   }, [selectAgent, dropMode, showAddCharModal])
 
-  // Keep agentPositionsRef in sync
-  useEffect(() => {
-    const positions: Record<string, AgentPosition> = {}
-    for (const agent of agents) {
-      if (agent.location) {
-        positions[agent.name] = { x: agent.location.x, y: agent.location.y }
-      }
-    }
-    agentPositionsRef.current = positions
-  }, [agents])
-
   // Initial load
   useEffect(() => {
     loadMeta()
@@ -820,45 +802,6 @@ function SimulationViewer({ simId }: { simId: string }) {
     return () => clearInterval(interval)
   }, [pollAgents, wsStatus])
 
-  // ── Step orchestration loop ────────────────────────────────────────────
-  const runStepLoop = useCallback(async () => {
-    if (stepLoopActiveRef.current) return
-    stepLoopActiveRef.current = true
-    try {
-      while (stepLoopActiveRef.current) {
-        const latestMeta = await fetchSimulation(simId).catch(() => null)
-        if (!latestMeta || latestMeta.status !== 'running') break
-
-        const currentStep = latestMeta.step ?? 0
-        const positions = agentPositionsRef.current
-
-        try {
-          const result = await runSimulationStep(simId, positions, currentStep, (stage) => {
-            if (stage === 'execute') pollAgents()
-          })
-          if (result.next_step !== undefined) setStep(result.next_step)
-        } catch (err: unknown) {
-          console.error('[stepLoop] stage error:', err)
-          await new Promise((r) => setTimeout(r, 3000))
-        }
-      }
-    } finally {
-      stepLoopActiveRef.current = false
-    }
-  }, [simId, pollAgents])
-
-  const canDriveLoop = user !== null && meta?.status === 'running' && (isAdmin || isPublic)
-
-  useEffect(() => {
-    if (!canDriveLoop) {
-      stepLoopActiveRef.current = false
-      return
-    }
-    void runStepLoop()
-    return () => {
-      stepLoopActiveRef.current = false
-    }
-  }, [canDriveLoop, runStepLoop])
 
   // Map click handler (called by GameCanvas when in drop mode)
   const handleMapClick = useCallback((tileX: number, tileY: number) => {

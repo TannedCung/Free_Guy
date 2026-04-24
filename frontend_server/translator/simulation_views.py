@@ -187,6 +187,10 @@ def start_simulation(request: Request, sim_id: str) -> Response:
     sim.status = Simulation.Status.RUNNING
     sim.save(update_fields=["status", "start_date"])
 
+    from . import simulation_runner  # noqa: PLC0415
+
+    simulation_runner.start(sim_id)
+
     return Response(_sim_summary_from_orm(sim))
 
 
@@ -224,6 +228,10 @@ def resume_simulation(request: Request, sim_id: str) -> Response:
 
     sim.status = Simulation.Status.RUNNING
     sim.save(update_fields=["status"])
+
+    from . import simulation_runner  # noqa: PLC0415
+
+    simulation_runner.start(sim_id)
 
     return Response(_sim_summary_from_orm(sim))
 
