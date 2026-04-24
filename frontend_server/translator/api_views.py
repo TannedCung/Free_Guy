@@ -47,6 +47,23 @@ from translator.models import (
 # ---------------------------------------------------------------------------
 
 
+def _normalize_location(pos: dict | None) -> dict | None:
+    """Normalize agent position to {x, y, maze} expected by the frontend.
+
+    EnvironmentState written by run_execute stores {movement: [x, y]}.
+    EnvironmentState written by the frontend submitEnvironmentState posts {x, y}.
+    This function handles both formats.
+    """
+    if not pos:
+        return None
+    if "movement" in pos:
+        mv = pos["movement"]
+        return {"x": mv[0], "y": mv[1], "maze": ""}
+    if "x" in pos and "y" in pos:
+        return {"x": pos["x"], "y": pos["y"], "maze": pos.get("maze", "")}
+    return None
+
+
 def _sim_summary_from_orm(sim: Simulation) -> dict:
     """Return summary dict from a Simulation ORM object."""
     persona_names = list(sim.personas.values_list("name", flat=True))
@@ -394,7 +411,7 @@ def simulation_agents(request: Request, sim_id: str) -> Response:
                 "age": p.age,
                 "innate": p.innate,
                 "currently": p.currently,
-                "location": positions.get(p.name),
+                "location": _normalize_location(positions.get(p.name)),
             }
         )
 
@@ -465,7 +482,7 @@ def simulation_agent_detail(request: Request, sim_id: str, agent_id: str) -> Res
             "curr_time": curr_time_str,
             "vision_r": scratch.vision_r if scratch else None,
             "att_bandwidth": scratch.att_bandwidth if scratch else None,
-            "location": position,
+            "location": _normalize_location(position),
             "act_description": scratch.act_description if scratch else None,
             "daily_req": scratch.daily_req if scratch else [],
             "chatting_with": scratch.chatting_with if scratch else None,
@@ -612,10 +629,11 @@ def simulation_latest_movement(request: Request, sim_id: str) -> Response:
     except Simulation.DoesNotExist:
         return Response({"detail": f"Simulation '{sim_id}' not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    # Basic access check: must be owner or member.
+    # Basic access check: must be owner, member, or public simulation.
     is_owner = sim.owner == request.user
     is_member = SimulationMembership.objects.filter(simulation=sim, user=request.user).exists()
-    if not (is_owner or is_member):
+    is_public = sim.visibility == Simulation.Visibility.PUBLIC
+    if not (is_owner or is_member or is_public):
         return Response({"detail": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
 
     after_step = int(request.query_params.get("after_step", -1))
@@ -682,21 +700,24 @@ async def simulation_sse_stream(request, sim_id: str):
     async def event_stream():
         yield "event: connected\ndata: {}\n\n"
         after_step = -1
-        while True:
-            record = await sync_to_async(
-                MovementRecord.objects.filter(simulation=sim, step__gt=after_step).order_by("step").first
-            )()
-            if record is not None:
-                after_step = record.step
-                payload = {
-                    "step": record.step,
-                    "sim_curr_time": record.sim_curr_time.isoformat() if record.sim_curr_time else None,
-                    "persona_movements": record.persona_movements,
-                }
-                yield f"data: {json.dumps(payload)}\n\n"
-            else:
-                yield ": keepalive\n\n"
-            await asyncio.sleep(2)
+        try:
+            while True:
+                record = await sync_to_async(
+                    MovementRecord.objects.filter(simulation=sim, step__gt=after_step).order_by("step").first
+                )()
+                if record is not None:
+                    after_step = record.step
+                    payload = {
+                        "step": record.step,
+                        "sim_curr_time": record.sim_curr_time.isoformat() if record.sim_curr_time else None,
+                        "persona_movements": record.persona_movements,
+                    }
+                    yield f"data: {json.dumps(payload)}\n\n"
+                else:
+                    yield ": keepalive\n\n"
+                await asyncio.sleep(2)
+        except asyncio.CancelledError:
+            pass
 
     response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
     response["Cache-Control"] = "no-cache"
@@ -741,7 +762,8 @@ def _run_stage(request: Request, sim_id: str, stage_fn_name: str) -> Response:
 
     is_owner = sim.owner == request.user
     is_member = SimulationMembership.objects.filter(simulation=sim, user=request.user).exists()
-    if not (is_owner or is_member):
+    is_public = sim.visibility == Simulation.Visibility.PUBLIC
+    if not (is_owner or is_member or is_public):
         return Response({"detail": "Access denied."}, status=status.HTTP_403_FORBIDDEN)
 
     try:

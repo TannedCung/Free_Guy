@@ -700,6 +700,7 @@ function SimulationViewer({ simId }: { simId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [lastPoll, setLastPoll] = useState<Date | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isPublic, setIsPublic] = useState(false)
   const [wsError, setWsError] = useState<string | null>(null)
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
   const [agentDetail, setAgentDetail] = useState<AgentDetail | null>(null)
@@ -720,6 +721,7 @@ function SimulationViewer({ simId }: { simId: string }) {
       .then((data) => {
         setMeta(data)
         setIsAdmin(user !== null && data.owner === user.id)
+        setIsPublic(data.visibility === 'public')
       })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : 'Simulation not found'),
@@ -845,8 +847,10 @@ function SimulationViewer({ simId }: { simId: string }) {
     }
   }, [simId, pollAgents])
 
+  const canDriveLoop = user !== null && meta?.status === 'running' && (isAdmin || isPublic)
+
   useEffect(() => {
-    if (!isAdmin || meta?.status !== 'running') {
+    if (!canDriveLoop) {
       stepLoopActiveRef.current = false
       return
     }
@@ -854,7 +858,7 @@ function SimulationViewer({ simId }: { simId: string }) {
     return () => {
       stepLoopActiveRef.current = false
     }
-  }, [isAdmin, meta?.status, runStepLoop])
+  }, [canDriveLoop, runStepLoop])
 
   // Map click handler (called by GameCanvas when in drop mode)
   const handleMapClick = useCallback((tileX: number, tileY: number) => {
