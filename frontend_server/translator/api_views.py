@@ -13,10 +13,14 @@ Endpoints:
   GET   /api/v1/demos/:id/step/:step/               - get demo data for a step
 """
 
+import asyncio
+import json
 import string
 
 import qdrant_utils
+from asgiref.sync import sync_to_async
 from django.db import transaction
+from django.http import HttpResponse, StreamingHttpResponse
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -627,6 +631,77 @@ def simulation_latest_movement(request: Request, sim_id: str) -> Response:
             "persona_movements": record.persona_movements,
         }
     )
+
+
+# ---------------------------------------------------------------------------
+# SSE stream endpoint — replaces the Vercel Edge Function for self-hosted use
+# ---------------------------------------------------------------------------
+
+
+async def simulation_sse_stream(request, sim_id: str):
+    """GET /api/simulations/:id/stream
+
+    Server-Sent Events stream that pushes new MovementRecord rows to the
+    browser as they are written by the step/execute stage.  Replaces the
+    Vercel Edge Function (api/simulations/[id]/stream.ts) for self-hosted
+    deployments.
+
+    Auth: reads the 'access_token' httpOnly JWT cookie (same cookie used by
+    all other endpoints).  EventSource sends same-origin cookies automatically.
+    """
+    from django.contrib.auth.models import User
+    from rest_framework_simplejwt.exceptions import TokenError
+    from rest_framework_simplejwt.tokens import AccessToken
+    from translator.authentication import AUTH_COOKIE_ACCESS
+
+    raw_token = request.COOKIES.get(AUTH_COOKIE_ACCESS)
+    if not raw_token:
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        if auth_header.startswith("Bearer "):
+            raw_token = auth_header[7:]
+    if not raw_token:
+        return HttpResponse("Unauthorized", status=401)
+
+    try:
+        token = AccessToken(raw_token)
+        user = await sync_to_async(User.objects.get)(id=token["user_id"])
+    except (TokenError, User.DoesNotExist, Exception):
+        return HttpResponse("Unauthorized", status=401)
+
+    try:
+        sim = await sync_to_async(Simulation.objects.get)(name=sim_id)
+    except Simulation.DoesNotExist:
+        return HttpResponse("Not Found", status=404)
+
+    is_owner = await sync_to_async(lambda: sim.owner_id == user.pk)()
+    is_member = await sync_to_async(SimulationMembership.objects.filter(simulation=sim, user=user).exists)()
+    is_public = await sync_to_async(lambda: sim.visibility == Simulation.Visibility.PUBLIC)()
+    if not (is_owner or is_member or is_public):
+        return HttpResponse("Forbidden", status=403)
+
+    async def event_stream():
+        yield "event: connected\ndata: {}\n\n"
+        after_step = -1
+        while True:
+            record = await sync_to_async(
+                MovementRecord.objects.filter(simulation=sim, step__gt=after_step).order_by("step").first
+            )()
+            if record is not None:
+                after_step = record.step
+                payload = {
+                    "step": record.step,
+                    "sim_curr_time": record.sim_curr_time.isoformat() if record.sim_curr_time else None,
+                    "persona_movements": record.persona_movements,
+                }
+                yield f"data: {json.dumps(payload)}\n\n"
+            else:
+                yield ": keepalive\n\n"
+            await asyncio.sleep(2)
+
+    response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"
+    return response
 
 
 # ---------------------------------------------------------------------------

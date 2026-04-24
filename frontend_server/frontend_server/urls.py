@@ -74,6 +74,12 @@ urlpatterns = [
         api_views.simulation_latest_movement,
         name="api-simulation-latest-movement",
     ),
+    # SSE stream — replaces Vercel Edge Function for self-hosted deployments
+    path(
+        "api/simulations/<str:sim_id>/stream",
+        api_views.simulation_sse_stream,
+        name="api-simulation-sse-stream",
+    ),
     # REST API v1 — simulation step stage endpoints (Vercel serverless microservices)
     path(
         "api/v1/simulations/<str:sim_id>/step/perceive/", api_views.simulation_step_perceive, name="api-step-perceive"
