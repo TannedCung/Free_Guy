@@ -353,8 +353,13 @@ export default function GameCanvas({ className, agents, dropMode, onMapClick }: 
 
         const body = sprite.body as Phaser.Physics.Arcade.Body
         const MOVEMENT_SPEED = 4
-        const dx = target.targetX - body.x
-        const dy = target.targetY - body.y
+        // Use sprite.x/y (not body.x/y) — body has a 32 px Y offset from the
+        // sprite origin, so body.y is always 32 px below sprite.y and would
+        // produce a residual dy=-32 even when the sprite is exactly at target,
+        // causing the walk animation to loop forever and make the character
+        // appear to spin.
+        const dx = target.targetX - sprite.x
+        const dy = target.targetY - sprite.y
 
         // Animate sprite toward target position
         if (Math.abs(dx) > MOVEMENT_SPEED || Math.abs(dy) > MOVEMENT_SPEED) {
@@ -374,7 +379,7 @@ export default function GameCanvas({ className, agents, dropMode, onMapClick }: 
           sprite.setTexture('atlas', 'misa-front')
         }
 
-        label?.setPosition(body.x - 6, body.y - 74)
+        label?.setPosition(sprite.x - 6, sprite.y - 74)
         label?.setText(target.pronunciatio)
       }
     }
