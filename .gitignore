@@ -137,3 +137,6 @@ Thumbs.db
 *.p12
 secrets/
 credentials/
+
+# Reference
+reference/
